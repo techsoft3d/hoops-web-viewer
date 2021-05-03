@@ -1,604 +1,341 @@
 /// <reference path="tcc.d.ts" />
-declare namespace Communicator {
-    enum BCFVersion {
-        Unknown = 0,
-        v1_0 = 1,
-        v2_0 = 2,
-        v2_1 = 3
-    }
-    enum BCFFileType {
-        Unknown = 0,
-        TopicFolder = 1,
-        Version = 2,
-        Markup = 3,
-        Snapshot = 4,
-        Viewpoint = 5,
-        Schema = 6,
-        Project = 7
-    }
-    /**
-     * This class contains data corresponding to the BCF file format.
-     */
-    class BCFData {
-        private readonly _bcfFileName;
-        private readonly _id;
-        private _version;
-        private _topicsMap;
-        constructor(bcfFileName: BCFName, id: number);
-        exportBCF(filename: BCFName): Promise<void>;
-        /**
-         * Adds a BCF topic.
-         * @param topicId
-         * @param topic
-         */
-        addTopic(topicId: BCFTopicId, topic: BCFTopic): void;
-        /**
-         * @returns A map associating BCF topic ids to BCF topic data.
-         */
-        getTopics(): Map<BCFTopicId, BCFTopic>;
-        /**
-         * Gets a BCF topic.
-         * @param topicId
-         */
-        getTopic(topicId: BCFTopicId): BCFTopic | null;
-        /**
-         * Gets the BCF version.
-         */
-        getVersion(): BCFVersion;
-        /**
-         * Sets the BCF version.
-         * @param version
-         */
-        setVersion(version: BCFVersion): void;
-        /**
-         * Gets the BCF filename.
-         */
-        getFilename(): BCFName;
-        /**
-         * Identifier used to keep track of loaded BCF data.
-         */
-        getId(): number;
-    }
-}
-declare namespace Communicator {
-    class BCFMarkupHeaderFile {
-        private _ifcProject;
-        private _ifcSpatialStructureElement;
-        private _isExternal;
-        private _filename;
-        private _date;
-        private _reference;
-        constructor(ifcProject: GenericId | undefined, ifcSpatialStructureElement: GenericId | undefined, isExternal: boolean | undefined, filename: string | undefined, date: Date | undefined, reference: string | undefined);
-        /**
-         * [[GenericId]] Reference to the project to which this topic is related in the IFC file
-         */
-        getIfcProject(): GenericId | null;
-        /**
-         * [[GenericId]] Reference to the spatial structure element, e.g. IfcBuildingStorey, to which this topic is related.
-         */
-        getIfcSpacialStructureElement(): GenericId | null;
-        /**
-         * Is the IFC file external or within the bcfzip
-         */
-        getIsExternal(): boolean | null;
-        /**
-         * The BIM file related to this topic.
-         */
-        getBimFilename(): string | null;
-        /**
-         * Date of the BIM file.
-         */
-        getBimDate(): Date | null;
-        /**
-         * URI to IfcFile.
-         * IsExternal=false "..\example.ifc" (within bcfzip)
-         * IsExternal=true "https://.../example.ifc"
-         */
-        getReference(): string | null;
-    }
-    class BCFMarkupViewpoint {
-        private readonly _guid;
-        private readonly _viewpointFilename;
-        private readonly _snapshotFilename;
-        private readonly _index;
-        constructor(guid: Uuid, viewpointFilename: string | undefined, snapshotFilename: string | undefined, index: string | undefined);
-        getGuid(): Uuid;
-        getViewpointFilename(): string | null;
-        getSnapshotFilename(): string | null;
-        getIndex(): number | null;
-    }
-    class BCFComment {
-        private readonly _guid;
-        private _date;
-        private _author;
-        private _text;
-        private _viewpointGuid?;
-        private _modifiedDate?;
-        private _modifiedAuthor?;
-        constructor(guid: BCFCommentId, date: Date, author: string, text: string, viewpointGuid?: string, modifiedDate?: Date, modifiedAuthor?: string);
-        getId(): BCFCommentId;
-        getDate(): Date;
-        setDate(date: Date): void;
-        getAuthor(): string;
-        setAuthor(author: string): void;
-        getText(): string;
-        setText(text: string): void;
-        getViewpointGuid(): Uuid | null;
-        setViewpointGuid(id: Uuid | null): void;
-        getModifiedDate(): Date | null;
-        setModifiedDate(date: Date | null): void;
-        getModifiedAuthor(): string | null;
-        setModifiedAuthor(author: string | null): void;
-    }
-    class BCFMarkup {
-        private readonly _bcfTopic;
-        private readonly _filename;
-        private _projectGuid;
-        private _markupHeaderFiles;
-        private _topic;
-        private _comments;
-        private _viewpoints;
-        constructor(filename: string, document: Document | null, bcfTopic: BCFTopic);
-        private _parseDocument;
-        private _exportHeader;
-        private _exportTopicData;
-        private _exportBimSnippet;
-        private _exportDocumentReference;
-        private _exportRelatedTopic;
-        private _exportTopic;
-        private _exportComment;
-        private _exportViewpoint;
-        /**
-         * @returns XML document containing the markup data.
-         */
-        export(): XMLDocument;
-        /**
-         * @deprecated Use [[getMarkupHeaderFiles]] instead.
-         */
-        getIfcProject(): GenericId | undefined;
-        /**
-         * @deprecated Use [[getMarkupHeaderFiles]] instead.
-         */
-        getIfcSpacialStructureElement(): GenericId | undefined;
-        /**
-         * @deprecated Use [[getMarkupHeaderFiles]] instead.
-         */
-        getIsExternal(): boolean | undefined;
-        /**
-         * @deprecated Use [[getMarkupHeaderFiles]] instead.
-         */
-        getBimFilename(): string | undefined;
-        /**
-         * @deprecated Use [[getMarkupHeaderFiles]] instead.
-         */
-        getBimDate(): Date | undefined;
-        /**
-         * @deprecated Use [[getMarkupHeaderFiles]] instead.
-         */
-        getReference(): string | undefined;
-        /**
-         * @returns the project GUID.
-         */
-        getProjectGuid(): Uuid | null;
-        /**
-         * @returns a list of [[BCFMarkupHeaderFile]] containing data related to IFC files.
-         */
-        getMarkupHeaderFiles(): BCFMarkupHeaderFile[];
-        /**
-         * Gets the Markup filename.
-         */
-        getFilename(): string;
-        /**
-         * Gets the topic type.
-         */
-        getTopicType(): string | null;
-        /**
-         * Sets the topic type.
-         * @param topicType
-         */
-        setTopicType(topicType: string | null): void;
-        /**
-         * Gets the topic status.
-         */
-        getTopicStatus(): string | null;
-        /**
-         * Sets the topic status.
-         * @param topicStatus
-         */
-        setTopicStatus(topicStatus: string | null): void;
-        /**
-         * Gets the title of the markup topic.
-         */
-        getTopicTitle(): string;
-        /**
-         * Sets the title of the markup topic.
-         * @param title
-         */
-        setTopicTitle(title: string): void;
-        /**
-         * Gets the creation date of the markup topic.
-         */
-        getTopicCreationDate(): Date;
-        /**
-         * Sets the creation date of the markup topic;
-         * @param date
-         */
-        setTopicCreationDate(date: Date): void;
-        /**
-         * Gets the name of the user that created the markup topic.
-         */
-        getTopicCreationAuthor(): string;
-        /**
-         * Sets the name of the user that created the markup topic.
-         * @param author
-         */
-        setTopicCreationAuthor(author: string): void;
-        /**
-         * List of references to the topic, for example, a work request management system or an URI to a model.
-         */
-        getTopicReferenceLink(): string | null;
-        /**
-         * Sets the ReferenceLink.
-         * @param referenceLink
-         */
-        setTopicReferenceLink(referenceLink: string | null): void;
-        /**
-         * Gets the topic priority.
-         */
-        getTopicPriority(): string | null;
-        /**
-         * Sets the topic priority.
-         * @param priority
-         */
-        setTopicPriority(priority: string | null): void;
-        /**
-         * Number to maintain the order of the topics.
-         */
-        getTopicIndex(): number | null;
-        /**
-         * Sets the topic index.
-         * @param index
-         */
-        setTopicIndex(index: number | null): void;
-        /**
-         * Tags for grouping Topics.
-         */
-        getTopicLabels(): string[];
-        /**
-         * Sets the topic labels.
-         * @param labels
-         */
-        setTopicLabels(labels: string[]): void;
-        /**
-         * Date when the topic was last modified. Exists only when Topic has been modified after creation.
-         */
-        getTopicModifiedDate(): Date | null;
-        /**
-         * Sets the topic modified date.
-         * @param date
-         */
-        setTopicModifiedDate(date: Date | null): void;
-        /**
-         * User who modified the topic. Exists only when Topic has been modified after creation.
-         */
-        getTopicModifiedAuthor(): string | null;
-        /**
-         * Sets the author that last modified the topic.
-         * @param modifiedAuthor
-         */
-        setTopicModifiedAuthor(modifiedAuthor: string | null): void;
-        /**
-         * Date when the issue needs to be resolved by.
-         */
-        getTopicDueDate(): Date | null;
-        /**
-         * Sets the topic due date.
-         * @param date
-         */
-        setTopicDueDate(date: Date | null): void;
-        /**
-         * The user to whom this topic is assigned to. Recommended to be in email format. The list of possible values are defined in the extension schema.
-         */
-        getTopicAssignedTo(): string | null;
-        /**
-         * Sets the user that the topic is assigned to.
-        */
-        setTopicAssignedTo(assignedTo: string | null): void;
-        /**
-         * Description of the topic.
-         */
-        getTopicDescription(): string | null;
-        /**
-         * Sets the topic description;
-         * @param description
-         */
-        setTopicDescription(description: string | null): void;
-        /**
-         * Stage this topic is part of.
-         */
-        getTopicStage(): string | null;
-        /**
-         * Sets the topic stage;
-         * @param stage
-         */
-        setTopicState(stage: string | null): void;
-        /**
-         * Gets a map of GUIDs and corresponding comments.
-         */
-        getComments(): Map<Uuid, BCFComment>;
-        /**
-         * Adds a comment to the topic.
-         * @param date
-         * @param author
-         * @param text
-         * @param viewpointGuid
-         * @param modifiedDate
-         * @param modifiedAuthor
-         */
-        addComment(date: Date, author: string, text: string, viewpointGuid?: string, modifiedDate?: Date, modifiedAuthor?: string): BCFComment;
-        /**
-         * Updates a topic comment.
-         * @param comment
-         */
-        updateComment(comment: BCFComment): void;
-        /**
-         * Deletes a comment from the topic..
-         * @param guid
-         */
-        deleteComment(guid: Uuid): void;
-        /**
-         * Gets a map of GUIDs and corresponding viewpoints.
-         */
-        getViewpoints(): Map<Uuid, BCFMarkupViewpoint>;
-        private _addFile;
-        private _parseHeader;
-        private _parseTopic;
-        private _parseComment;
-        private _parseViewpoint;
-        addViewpoint(guid: Uuid, viewpointFilename?: string, snapshotFilename?: string, index?: string): void;
-        private _getChildData;
-        private _getElementAttributes;
-    }
-}
-declare namespace Communicator {
-    class BCFSnapshot {
-        private readonly _filename;
-        private readonly _data;
-        constructor(filename: string, data: Uint8Array);
-        /**
-         * Creates a BCF Snapshot from an HTMLImageElement.
-         * @param filename
-         * @param image
-         */
-        static createFromImage(filename: string, image: HTMLImageElement): BCFSnapshot;
-        /**
-         * Gets the filename.
-         */
-        getFilename(): string;
-        /**
-         * Gets png data.
-         */
-        getData(): Uint8Array;
-        /**
-         * Gets a url for images corresponding to viewpoints.
-         */
-        getUrl(): string;
-        /**
-         * Gets image data as a Uint8Array from an HTMLImageElement.
-         * @param img
-         */
-        static snapshotDataFromImage(img: HTMLImageElement): Uint8Array;
-        private static _convertDataURIToBinary;
-    }
-}
-declare namespace Communicator {
-    /**
-     * This class contains data corresponding to a BCF file topic.
-     */
-    class BCFTopic {
-        private readonly _viewer;
-        private readonly _topicId;
-        private readonly _bcfDataId;
-        private readonly _bcfFilename;
-        private _markup;
-        private _viewpointMap;
-        private _snapshotMap;
-        constructor(bcfDataId: number, bcfFilename: BCFName, topicId: BCFTopicId, viewer: WebViewer);
-        /**
-         * Takes a MarkupView and creates a BCF Topic from it.
-         * @param bcfDataId
-         * @param bcfFilename
-         * @param viewer
-         * @param markupView
-         * @param topicTitle
-         */
-        static createTopic(viewer: WebViewer, bcfDataId: number, bcfFilename: BCFName, topicTitle: string, markupView?: Markup.MarkupView | null): Promise<BCFTopic>;
-        /**
-         * Gets the topic id corresponding to the BCF topic folder.
-         */
-        getTopicId(): BCFTopicId;
-        /**
-         * Adds a BCF markup.
-         * @param markup BCF markup data.
-         */
-        addMarkup(filename: string, document: Document | null): BCFMarkup;
-        /**
-         * @returns BCF markup data.
-         */
-        getMarkup(): BCFMarkup;
-        /**
-         * Creates and adds BCF viewpoint.
-         * @param fileName viewpoint filename.
-         * @param viewpoint BCF viewpoint data.
-         */
-        addViewpoint(filename: string, document: Document | null, version: BCFVersion, modelBounding: Box, modelUnits: number): BCFViewpoint;
-        /**
-         * Adds a BCF Viewpoint. If there is a already a viewpoint with the same filename, it will be replaced.
-         * @param filename
-         * @param viewpoint
-         */
-        setViewpoint(filename: string, viewpoint: BCFViewpoint): void;
-        /**
-         * @returns A map associating viewpoint filenames with viewpoint data.
-         */
-        getViewpointMap(): Map<string, BCFViewpoint>;
-        /**
-         * Gets viewpoint data.
-         * @param filename viewpoint filename.
-         */
-        getViewpoint(filename: string): BCFViewpoint | null;
-        /**
-         * Creates and adds a Snapshot.
-         * @param fileName Snapshot filename.
-         * @param png Image data.
-         */
-        addSnapshot(filename: string, png: Uint8Array): void;
-        /**
-         * Adds a BCF Snapshot. If there is already a snapshot with the smae filename, it will be replaced.
-         * @param filename
-         * @param snapshot
-         */
-        setSnapshot(filename: string, snapshot: BCFSnapshot): void;
-        /**
-         * @returns A map associating snapshot filenames with snapshot data.
-         */
-        getSnapshotMap(): Map<string, BCFSnapshot>;
-        /**
-         * Gets snapshot data.
-         * @param filename snapshot or corresponding viewpoint filename
-         */
-        getSnapshot(filename: string): BCFSnapshot | null;
-        private _massageSnapshotFilename;
-    }
-}
-declare namespace Communicator {
-    class BCFViewpoint {
-        private readonly _viewer;
-        private readonly _filename;
-        private readonly _version;
-        private readonly _modelBounding;
-        private readonly _unitScale;
-        private _viewpointGuid;
-        private _components;
-        private _orthogonalCamera;
-        private _perspectiveCamera;
-        private _lines;
-        private _clippingPlanes;
-        constructor(filename: string, document: Document | null, version: BCFVersion, modelBounding: Box, modelUnits: number, viewer: WebViewer);
-        static createViewpoint(viewer: WebViewer, viewpointFilename: string, markupView?: Markup.MarkupView | null): Promise<BCFViewpoint>;
-        private static _markupRedlineToBcf;
-        private _parseDocument;
-        private _exportComponents;
-        private _exportOrthogonalCamera;
-        private _exportPerspectiveCamera;
-        private _exportLines;
-        private _exportClippingPlanes;
-        /**
-         * @returns XML document containing the viewpoint data.
-         */
-        export(): XMLDocument;
-        /**
-         * Activates viewpoint.
-         * Sets the camera, visibility, cutting planes, colors, and markup.
-         */
-        activate(): Promise<void>;
-        private _activateCamera;
-        private _activateComponentsVisibility;
-        private _activateMarkup;
-        private _activateCuttingPlanes;
-        private _activateSelected;
-        private _activateColors;
-        /**
-         * Gets the viewpoint filename.
-         */
-        getFilename(): string;
-        /**
-         * Gets the GUID associated with the viewpoint.
-         */
-        getViewpointGuid(): string | null;
-        private _fromBCFPerspectiveCamera;
-        private _fromBCFOrthogonalCamera;
-        /**
-         * Gets the viewpoint camera, or null if none is set.
-         */
-        getCamera(): Camera | null;
-        /**
-         * Sets the viewpoint camera.
-         * @param camera
-         */
-        setCamera(camera: Camera): void;
-        private _toBCFOrthogonalCamera;
-        private _toBCFPerspectiveCamera;
-        /**
-         * Sets the default visibility.
-         * If true, visibility exceptions are hidden.
-         * If false, visibility exceptions are shown.
-         * @param defaultVisibility
-         */
-        setDefaultVisibility(defaultVisibility: boolean): void;
-        private _getDefaultVisibility;
-        /**
-         * Sets the visibility exceptions. These nodes will be shown or hidden based on the default visibility setting.
-         * @param visibilityExceptions Array of GenericIds corresponding to components.
-         */
-        setVisibilityExceptions(visibilityExceptions: GenericId[]): void;
-        /**
-         * Gets the visibility exceptions.
-         * @returns Array of GenericIds corresponding to components.
-         */
-        getVisibilityExceptions(): GenericId[];
-        /**
-         * Sets the colors.
-         * @param colorGenericIdMap Map correlating color to GenericIds.
-         */
-        setColors(colorGenericIdMap: Map<Color, Set<GenericId>>): void;
-        /**
-         * @returns Map correlating color to components.
-         */
-        getColors(): Map<Color, Set<GenericId>>;
-        /**
-         * Sets the markup lines.
-         * @param lines array of start point and end point line pairs.
-         */
-        setLines(lines: [Point3, Point3][]): void;
-        /**
-         * Gets markup lines.
-         * @returns Array containing start point and end point line pairs.
-         */
-        getLines(): [Point3, Point3][];
-        /**
-         * Sets the clipping planes.
-         * @param planes array containing position and direction pairs.
-         */
-        setClippingPlanes(planes: [Point3, Point3][]): void;
-        /**
-         * Gets the clipping planes.
-         * @returns Array containing position and direction pairs.
-         */
-        getClippingPlanes(): [Point3, Point3][];
-        /**
-         * Sets a list of items to be added to the selection set.
+declare namespace Communicator.Animation {
+    /** Structure encapsulating a specific animation */
+    class Animation {
+        name: string;
+        nodeChannels: NodeChannel[];
+        cameraChannels: CameraChannel[];
+        pivotPoints: Map<number, Point3>;
+        /**
+         * Creates a new, empty Animation
+         * @param name friendly name for the animation
+         */
+        constructor(name: string);
+        /**
+         * Creates a new node animation channel.
+         * @param name friendly name for the channel.
+         * @param target id of node that will receive interpolated values.
+         * @param property the node property that will be animated.
+         * @param sampler sampler describing the buffer and interpolation type.
+         */
+        createNodeChannel(name: string, target: NodeId, property: NodeProperty, sampler: Sampler): NodeChannel;
+        private _registerNodeChannel;
+        /**
+         * Creates a new camera animation channel.
+         * @param name friendly name for the channel.
+         * @param property the property that will be animated by this channel.
+         * @param sampler sampler describing the buffer and interpolation type used.
+         */
+        createCameraChannel(name: string, property: CameraProperty, sampler: Sampler): CameraChannel;
+        private _registerCameraChannel;
+        /**
+         * Removes a channel from this animation.
          *
+         * Call [[Player.reload]] on any players that are referencing this animation.
          */
-        setSelection(selection: GenericId[]): void;
+        deleteChannel(channel: NodeChannel | CameraChannel): void;
+        /** @hidden */
+        _gatherForExport(context: Internal.ExportContext): void;
+        /** @hidden */
+        _export(context: Internal.ExportContext): {
+            nodeChannels?: {
+                name?: string | undefined;
+                colorMap?: number | undefined;
+                nodeId: number;
+                property: "Translation" | "Rotation" | "Scale" | "Opacity" | "Visibility" | "Color" | "ColorMap";
+                sampler: number;
+            }[] | undefined;
+            cameraChannels?: {
+                name?: string | undefined;
+                property: "Position" | "Target" | "Up" | "Width" | "Height";
+                sampler: number;
+            }[] | undefined;
+            name?: string | undefined;
+            pivotPoints?: {
+                node: number;
+                point: Object;
+            }[] | undefined;
+        };
+        /** @hidden */
+        static _import(context: Internal.ImportContext, data: ReturnType<Animation["_export"]>): Animation;
+    }
+}
+declare namespace Communicator.Animation {
+    enum NodeProperty {
+        Translation = 0,
+        Rotation = 1,
+        Scale = 2,
+        Opacity = 3,
+        Visibility = 4,
+        Color = 5,
+        ColorMap = 6
+    }
+    interface ColorPosition {
+        color: Color;
+        position: number;
+    }
+    /**
+     * RGB color values are specified in the 0-255 range.
+     * Positions are specified in the 0-1 range, pre-sorted in ascending order.
+     */
+    type ColorMap = ColorPosition[];
+    class NodeChannel {
+        readonly name: string;
+        readonly nodeId: NodeId;
+        readonly property: NodeProperty;
+        readonly sampler: Sampler;
+        colorMap: ColorMap | undefined;
+        constructor(name: string, nodeId: NodeId, property: NodeProperty, sampler: Sampler);
+        /** @hidden */
+        _getValue(t: number, values: Internal.NodeValues): void;
+        private _getColorFromMap;
+        /** @hidden */
+        _gatherForExport(context: Internal.ExportContext): void;
+        /** @hidden */
+        _export(context: Internal.ExportContext): {
+            name?: string | undefined;
+            colorMap?: number | undefined;
+            nodeId: number;
+            property: "Translation" | "Rotation" | "Scale" | "Opacity" | "Visibility" | "Color" | "ColorMap";
+            sampler: number;
+        };
+        /** @hidden */
+        static _import(context: Internal.ImportContext, data: ReturnType<NodeChannel["_export"]>): NodeChannel;
+    }
+    enum CameraProperty {
+        Position = 0,
+        Target = 1,
+        Up = 2,
+        Width = 3,
+        Height = 4
+    }
+    class CameraChannel {
+        readonly name: string;
+        readonly property: CameraProperty;
+        readonly sampler: Sampler;
         /**
-         * Gets a list of items that are in the selection set.
+         * Do not use directly.  Create via Animation class API.
+         * @hidden
+         * */
+        constructor(name: string, property: CameraProperty, sampler: Sampler);
+        /** @hidden */
+        _getValue(t: number, values: Internal.CameraValues): void;
+        /** @hidden */
+        _gatherForExport(context: Internal.ExportContext): void;
+        /** @hidden */
+        _export(context: Internal.ExportContext): {
+            name?: string | undefined;
+            property: "Position" | "Target" | "Up" | "Width" | "Height";
+            sampler: number;
+        };
+        /** @hidden */
+        static _import(context: Internal.ImportContext, data: ReturnType<CameraChannel["_export"]>): CameraChannel;
+    }
+}
+declare namespace Communicator.Animation {
+    /**
+     * Return the given animations and their dependent data in a form suitable
+     * for serialization via, e.g., `JSON.stringify`. The animation objects can
+     * be recreated by passing the output to [[importAnimations]].
+     *
+     * Sharing of objects such as keyframe buffers and samplers is preserved.
+     *
+     * The layout of the returned data is subject to change in future releases.
+     */
+    function exportAnimations(animations: Animation[]): Object;
+    /**
+     * Recreate [[Animation]] objects exported by a call to
+     * [[exportAnimations]].
+     */
+    function importAnimations(exportedObj: Object): Animation[];
+}
+/** @hidden */
+declare namespace Communicator.Animation.Internal {
+    class ExportContext {
+        readonly buffers: IndexedSet<KeyframeBuffer>;
+        readonly samplers: IndexedSet<Sampler>;
+        readonly colorMaps: IndexedSet<ColorPosition[]>;
+    }
+    class ImportContext {
+        readonly buffers: KeyframeBuffer[];
+        readonly samplers: Sampler[];
+        readonly colorMaps: ColorMap[];
+    }
+    /**
+     * Provides the functionality of a `Set` with the addition of a
+     * monotonically-increasing index associated with each element.
+     */
+    class IndexedSet<T> {
+        private readonly map;
+        add(value: T): void;
+        getIndex(value: T): number;
+        /**
+         * Returns an array containing each element of the set placed at its
+         * assigned index.
          */
-        getSelection(): GenericId[];
-        private _getGenericIdsFromComponents;
-        private _parseComponentsV2_0;
-        private _parseComponents;
-        private _getCameraData;
-        private _parseOrthogonalCamera;
-        private _parsePerspectiveCamera;
-        private _parseLines;
-        private _parseClippingPlanes;
-        private _getClippingPlane;
-        private _getLine;
-        private _getPoint;
-        private _colorFromArgb;
-        private _getColoring;
-        private _getComponents;
+        toArray(): T[];
+        isEmpty(): boolean;
+    }
+}
+declare namespace Communicator.Animation {
+    /** Describes the type of values stored in a Keyframe Buffer */
+    enum KeyType {
+        /** Keyframe value is a single scalar. */
+        Scalar = 1,
+        /** Keyframe value is a 3 component vector. */
+        Vec3 = 3,
+        /** Keyframe value is interpreted as a 4 component quaternion */
+        Quat = 4
+    }
+    /**
+     * This class contains a collection of keyframes.
+     * A Keyframe consists of a scalar value T, representing the linear time in seconds, and a vector of scalars described by [[KeyType]].
+     * Optionally, a Keyframe can also have a vector of tangents described by [[KeyType]], that are used for cubic spline interpolation.
+     * Keyframes are stored in the times, values, and tangents arrays.
+     * For example, with [[KeyType]] of Vec3:
+     * times: t0, t1, ... tn
+     * values: v0x, v0y, v0z, ... vnx, vny, vnz
+     * tangents: in_v0x, in_v0y, in_v0z, out_v0x, out_v0y, out_v0z, ... in_vnx, in_vny, in_vnz, out_vnx, out_vny, out_vnz
+     * */
+    class KeyframeBuffer {
+        readonly keyType: KeyType;
+        times: number[];
+        values: number[];
+        tangents: number[];
+        /** The number of elements between successive keyframes in the array. */
+        readonly keyOffset: number;
+        /** Keeps track if the data in the points array has associated tangents. */
+        private _hasTangents;
+        /**
+         * Creates a new buffer for storing keyframe data.
+         * @param keyType The type of keyframes that will be stored in the buffer.
+         */
+        constructor(keyType: KeyType);
+        private _validateKey;
+        private _validateTangents;
+        /** Returns the index of the keyframe at the specified time. */
+        getKeyframeIndex(t: number): number;
+        /** Deletes a keyframe at the specified index. */
+        deleteKeyframe(index: number): void;
+        /** Appends Scalar keyframe. The type of this buffer should be [[KeyType.Scalar]] */
+        appendScalarKeyframe(t: number, val: number, inTan?: number, outTan?: number): void;
+        /** Inserts a Scalar keyframe at the specified index. The type of this buffer should be [[KeyType.Scalar]] */
+        insertScalarKeyframe(index: number, t: number, val: number, inTan?: number, outTan?: number): void;
+        /** Updates a Scalar keyframe at the specified index. The type of this buffer should be [[KeyType.Scalar]] */
+        updateScalarKeyframe(index: number, t: number, val: number, inTan?: number, outTan?: number): void;
+        /** Appends Vec3 keyframe. The type of this buffer should be [[KeyType.Vec3]] */
+        appendVec3Keyframe(t: number, x: number, y: number, z: number, inTanX?: number, inTanY?: number, inTanZ?: number, outTanX?: number, outTanY?: number, outTanZ?: number): void;
+        /** Inserts a Vec3 keyframe at the specified index. The type of this buffer should be [[KeyType.Vec3]] */
+        insertVec3Keyframe(index: number, t: number, x: number, y: number, z: number, inTanX?: number, inTanY?: number, inTanZ?: number, outTanX?: number, outTanY?: number, outTanZ?: number): void;
+        /** Updates a Vec3 keyframe at the specified index. The type of this buffer should be [[KeyType.Vec3]] */
+        updateVec3Keyframe(index: number, t: number, x: number, y: number, z: number, inTanX?: number, inTanY?: number, inTanZ?: number, outTanX?: number, outTanY?: number, outTanZ?: number): void;
+        /** Appends Quat keyframe. The type of this buffer should be [[KeyType.Quat]] */
+        appendQuatKeyframe(t: number, x: number, y: number, z: number, w: number, inTanX?: number, inTanY?: number, inTanZ?: number, inTanW?: number, outTanX?: number, outTanY?: number, outTanZ?: number, outTanW?: number): void;
+        /** Inserts a Quat keyframe at the specified index. The type of this buffer should be [[KeyType.Quat]] */
+        insertQuatKeyframe(index: number, t: number, x: number, y: number, z: number, w: number, inTanX?: number, inTanY?: number, inTanZ?: number, inTanW?: number, outTanX?: number, outTanY?: number, outTanZ?: number, outTanW?: number): void;
+        /** Updates a Quat keyframe at the specified index. The type of this buffer should be [[KeyType.Quat]] */
+        updateQuatKeyframe(index: number, t: number, x: number, y: number, z: number, w: number, inTanX?: number, inTanY?: number, inTanZ?: number, inTanW?: number, outTanX?: number, outTanY?: number, outTanZ?: number, outTanW?: number): void;
+        /** @hidden */
+        _export(): {
+            tangents?: number[] | undefined;
+            keyType: "Scalar" | "Vec3" | "Quat";
+            times: number[];
+            values: number[];
+        };
+        /** @hidden */
+        static _import(data: ReturnType<KeyframeBuffer["_export"]>): KeyframeBuffer;
+    }
+}
+declare namespace Communicator.Animation {
+    /** Top-level interface for the animation system. */
+    class Manager {
+        private _viewer;
+        private _players;
+        private _intervalHandle;
+        private _batch;
+        /** @hidden Created during WebViewer Initialization. */
+        constructor(_viewer: WebViewer);
+        /** Creates a new animation player for the supplied animation. */
+        createPlayer(animation: Animation): Player;
+        /** Removes all players from control of the manager. */
+        clear(): void;
+        private _tick;
+        /** @hidden  Called by the web viewer only*/
+        _shutdown(): void;
+        /**
+         * Sets the interval at which animations are updated.
+         * @param milliseconds number of milliseconds between update intervals
+         */
+        setTickInterval(milliseconds: number): void;
+    }
+}
+declare namespace Communicator.Animation {
+    enum PlayerState {
+        Stopped = 0,
+        Playing = 1,
+        Paused = 2,
+        Complete = 3
+    }
+    class Player {
+        private readonly _viewer;
+        private readonly _animation;
+        /** If loop is set to LoopIndefinitely, the animation will play repeatedly. */
+        static readonly LoopIndefinitely = -1;
+        private readonly _nodeValues;
+        /** The current time in seconds that the animation has been running. */
+        private _currentTime;
+        /** The time of the last update. */
+        private _lastUpdate;
+        /** Scale value to be applied to animation time. */
+        speed: number;
+        /** The total calculated time of the animation. */
+        private _animationTime;
+        private _state;
+        /** The number of times the animation will repeat. Set to [[LoopIndefinitely]] to repeat indefinitely. Default is 0 */
+        loop: number;
+        /** The number of times the animation has repeated. */
+        private _loopCount;
+        /** Callback function to be called when the animation is complete.  Will not be triggered if the player is looping. */
+        onComplete: (() => void) | null;
+        /** A base offset value which will be applied to all node identifiers in the animation attached to this player.
+         * This is useful to play an authored animation for a model that has been loaded into the scene after initial startup.
+         * In this situation the authored node identifiers in the animation may not match up with the runtime node identifiers in the current scene.
+         * The [[Model.getNodeIdOffset]] function can be used on the loaded model's root node to retrieve the correct offset value.
+         * */
+        nodeIdOffset: NodeIdOffset;
+        /** @hidden Do not use.  Create via Animation.Manager API instead. */
+        constructor(_viewer: WebViewer, _animation: Animation);
+        /**
+         * Updates internal state of animation player.
+         *
+         * Call this method after any part of the underlying animation has been updated.
+         * */
+        reload(): void;
+        /**
+         * Called automatically by the Animation.Manager when it is updating all animations.
+         * @hidden
+         * */
+        _tick(batch: Internal.BatchedValues): void;
+        /** Updates the animation using the supplied delta time specified in seconds. */
+        private _tickTime;
+        /** Starts playing the animation. */
+        play(): void;
+        /** Pauses animation playback. */
+        pause(): void;
+        /** Stops animation playback and resets the current time to 0. */
+        stop(): void;
+        /**
+         * Sets the current animation time.
+         * @param time time in milliseconds
+         */
+        setTime(time: number): void;
+        private _update;
+        /** Gets the current animation state. */
+        getState(): PlayerState;
+        /** Gets the current time in seconds that the animation has been playing. */
+        getCurrentTime(): number;
+        /** Gets the current time in seconds of the entire animation. */
+        getAnimationTime(): number;
     }
 }
 declare namespace Communicator {
@@ -954,6 +691,787 @@ declare namespace Communicator {
          * @returns The rotation matrix.
          */
         static zAxisRotation(degrees: Degrees): Matrix;
+    }
+}
+declare namespace Communicator {
+    /** @hidden */
+    class Quaternion {
+        x: number;
+        y: number;
+        z: number;
+        w: number;
+        constructor(x: number, y: number, z: number, w: number);
+        set(x: number, y: number, z: number, w: number): void;
+        assign(other: Quaternion): void;
+        copy(): Quaternion;
+        equals(q: Quaternion): boolean;
+        equalsWithTolerance(other: Quaternion, tolerance: number): boolean;
+        fromArray(arr: number[]): Quaternion;
+        toArray(arr: number[]): Quaternion;
+        negate(): Quaternion;
+        magnitudeSquared(): number;
+        magnitude(): number;
+        normalize(): void;
+        static add(q1: Quaternion, q2: Quaternion): Quaternion;
+        static subtract(q1: Quaternion, q2: Quaternion): Quaternion;
+        /** @deprecated use [[Quaternion.identity]] instead. */
+        static Identity(): Quaternion;
+        static identity(): Quaternion;
+        static toMatrix(quaternion: Quaternion): Matrix;
+        static createFromMatrix(matrix: Matrix): Quaternion;
+        static interpolate(begin: Quaternion, end: Quaternion, t: number): Quaternion;
+        private static readonly _epsilon;
+        private static _arccos;
+    }
+}
+declare namespace Communicator.Animation {
+    enum InterpolationType {
+        Constant = 0,
+        Linear = 1,
+        CubicSpline = 2
+    }
+    type KeyframeIndex = number;
+    /** Describes how the keyframes in a buffer are sampled. */
+    class Sampler {
+        readonly buffer: KeyframeBuffer;
+        interpolationType: InterpolationType;
+        private static q0;
+        private static q1;
+        private static q2;
+        private static q3;
+        private static q4;
+        private static q5;
+        private static v0;
+        private static v1;
+        private static v2;
+        private static v3;
+        /**
+         * Creates a new sampler for a [[KeyframeBuffer]]
+         * @param buffer The buffer that will be sampled.
+         * @param interpolationType The Type of interpolation that will be used
+         */
+        constructor(buffer: KeyframeBuffer, interpolationType: InterpolationType);
+        /**
+         * Returns the index of the next keyframe for a given frame T.
+         * Note that this assumes that all keyframes in the buffer
+         * are arranged in ascending order by frame time.
+         */
+        private _getNextKeyframeIndex;
+        /** Computes an interpolated quaternion for the given frame. */
+        interpolateQuat(t: number, out: Quaternion): void;
+        /** Computes an interpolated Vector 3 value for the given frame. */
+        interpolateVec3(t: number, out: Point3): void;
+        /** Computes an interpolated scalar value for the given frame. */
+        interpolateScalar(t: number): number;
+        /** Performs linear interpolation of two scalar values beginning at indices k0 and k1. */
+        private interpolateScalarLinear;
+        /** Performs spherical linear interpolation on the quaternion values beginning at indices k0 and k1. */
+        private interpolateQuatSlerp;
+        private static _interpVec3;
+        /** Performs linear interpolation on the Vector3 values at keyframes beginning at indices k0 and k1 */
+        private interpolateVec3Linear;
+        private _interpCubicSpline;
+        /** Performs Cubic Spline Interpolation on two scalar values beginning at indices k0 and k1 */
+        private interpolateScalarCubicSpline;
+        /** Performs Cubic Spline Interpolation on the Vector3 values at keyframes beginning at indices k0 and k1 */
+        interpolateVec3CubicSpline(k0: KeyframeIndex, k1: KeyframeIndex, t: number, out: Point3): void;
+        /** Performs Cubic Spline Interpolation on the Quaternion values beginning at indices k0 and k1 */
+        private interpolateQuatCubicSpline;
+        private _setVecFromKeyframeIndex;
+        private _setVecTanFromKeyframeIndex;
+        private _setQuatFromKeyframeIndex;
+        private _setQuatTanFromKeyframeIndex;
+        /** @hidden */
+        _gatherForExport(context: Internal.ExportContext): void;
+        /** @hidden */
+        _export(context: Internal.ExportContext): {
+            buffer: number;
+            interpolationType: "Constant" | "Linear" | "CubicSpline";
+        };
+        /** @hidden */
+        static _import(context: Internal.ImportContext, data: ReturnType<Sampler["_export"]>): Sampler;
+    }
+}
+declare namespace Communicator.Animation.Util {
+    /**
+     * Convenience method that sets up Animation channels, samplers, and keyframe buffers for the supplied camera.
+     *
+     * The created channel and buffer names will have the form: <namePrefix>-<Property> where type is the corresponding value of [[CameraProperty]]
+     * @param animation Animation that will receive the new camera channels.  This animation should not contain any camera channels.
+     * @param namePrefix Prefix to use for channel names.
+     * @param interpolationType The type of interpolation that will be set on each sampler that is created.
+     */
+    function createCameraChannels(animation: Animation, namePrefix: string, interpolationType: InterpolationType): CameraChannel[];
+    /**
+     * Convenience method that will update keyframe buffers for animation channels created with [[createChannelsForCamera]].
+     * @param t Animation time (in seconds) that will be used for the created keyframes
+     * @param camera Camera containing the current values to keyframe.
+     * @param animation An animation containing camera channels created using [[createChannelsForCamera]]
+     */
+    function keyframeCamera(t: number, camera: Camera, animation: Animation): void;
+}
+/** @hidden */
+declare namespace Communicator.Animation.Internal {
+    /**
+     * Enumeration whose bits indicate which node properties are interpolated.
+     * */
+    enum NodeValuesFlags {
+        None = 0,
+        Transform = 1,
+        Opacity = 2,
+        Visibility = 4,
+        Color = 8
+    }
+    /**
+     * Structure which holds interpolated values for a node.
+     * */
+    class NodeValues {
+        readonly nodeId: NodeId;
+        readonly translate: Point3;
+        readonly rotation: Quaternion;
+        readonly scale: Point3;
+        readonly color: Point3;
+        pivotPoint: Point3 | null | undefined;
+        opacity: number;
+        visibility: number;
+        matrix: Matrix;
+        flags: NodeValuesFlags;
+        constructor(nodeId: NodeId);
+        updateMatrix(): void;
+        private _updateMatrixWithOrigin;
+        private _updateMatrix;
+    }
+    /**
+     * Structure which holds interpolated values for a camera.
+     * */
+    class CameraValues {
+        camera: Camera;
+        position: Point3;
+        target: Point3;
+        up: Point3;
+        width: number;
+        height: number;
+        constructor(camera: Camera);
+        updateCamera(): void;
+    }
+    /**
+     * This class holds all data that needs to be set for one tick of the animation manager.
+     * Results from all animations are gathered here so that updates can be made with the fewest possible API calls.
+     * This can result in performance benefits for large numbers of animations in SSR Mode.
+     */
+    class BatchedValues {
+        private _viewer;
+        readonly opacities: Map<number, number>;
+        readonly colors: Map<number, Color>;
+        matrixNodeIds: NodeId[];
+        matrices: Matrix[];
+        nodesVisibilityOn: NodeId[];
+        nodesVisibilityOff: NodeId[];
+        constructor(_viewer: WebViewer);
+        clear(): void;
+        update(): void;
+    }
+}
+declare namespace Communicator {
+    enum BCFVersion {
+        Unknown = 0,
+        v1_0 = 1,
+        v2_0 = 2,
+        v2_1 = 3
+    }
+    enum BCFFileType {
+        Unknown = 0,
+        TopicFolder = 1,
+        Version = 2,
+        Markup = 3,
+        Snapshot = 4,
+        Viewpoint = 5,
+        Schema = 6,
+        Project = 7
+    }
+    /**
+     * This class contains data corresponding to the BCF file format.
+     */
+    class BCFData {
+        private readonly _bcfFileName;
+        private readonly _id;
+        private _version;
+        private _topicsMap;
+        constructor(bcfFileName: BCFName, id: number);
+        exportBCF(filename: BCFName): Promise<void>;
+        /**
+         * Adds a BCF topic.
+         * @param topicId
+         * @param topic
+         */
+        addTopic(topicId: BCFTopicId, topic: BCFTopic): void;
+        /**
+         * @returns A map associating BCF topic ids to BCF topic data.
+         */
+        getTopics(): Map<BCFTopicId, BCFTopic>;
+        /**
+         * Gets a BCF topic.
+         * @param topicId
+         */
+        getTopic(topicId: BCFTopicId): BCFTopic | null;
+        /**
+         * Gets the BCF version.
+         */
+        getVersion(): BCFVersion;
+        /**
+         * Sets the BCF version.
+         * @param version
+         */
+        setVersion(version: BCFVersion): void;
+        /**
+         * Gets the BCF filename.
+         */
+        getFilename(): BCFName;
+        /**
+         * Identifier used to keep track of loaded BCF data.
+         */
+        getId(): number;
+    }
+}
+declare namespace Communicator {
+    class BCFMarkupHeaderFile {
+        private _ifcProject;
+        private _ifcSpatialStructureElement;
+        private _isExternal;
+        private _filename;
+        private _date;
+        private _reference;
+        constructor(ifcProject: GenericId | undefined, ifcSpatialStructureElement: GenericId | undefined, isExternal: boolean | undefined, filename: string | undefined, date: Date | undefined, reference: string | undefined);
+        /**
+         * [[GenericId]] Reference to the project to which this topic is related in the IFC file
+         */
+        getIfcProject(): GenericId | null;
+        /**
+         * [[GenericId]] Reference to the spatial structure element, e.g. IfcBuildingStorey, to which this topic is related.
+         */
+        getIfcSpacialStructureElement(): GenericId | null;
+        /**
+         * Is the IFC file external or within the bcfzip
+         */
+        getIsExternal(): boolean | null;
+        /**
+         * The BIM file related to this topic.
+         */
+        getBimFilename(): string | null;
+        /**
+         * Date of the BIM file.
+         */
+        getBimDate(): Date | null;
+        /**
+         * URI to IfcFile.
+         * IsExternal=false "..\example.ifc" (within bcfzip)
+         * IsExternal=true "https://.../example.ifc"
+         */
+        getReference(): string | null;
+    }
+    class BCFMarkupViewpoint {
+        private readonly _guid;
+        private readonly _viewpointFilename;
+        private readonly _snapshotFilename;
+        private readonly _index;
+        constructor(guid: Uuid, viewpointFilename: string | undefined, snapshotFilename: string | undefined, index: string | undefined);
+        getGuid(): Uuid;
+        getViewpointFilename(): string | null;
+        getSnapshotFilename(): string | null;
+        getIndex(): number | null;
+    }
+    class BCFComment {
+        private readonly _guid;
+        private _date;
+        private _author;
+        private _text;
+        private _viewpointGuid?;
+        private _modifiedDate?;
+        private _modifiedAuthor?;
+        constructor(guid: BCFCommentId, date: Date, author: string, text: string, viewpointGuid?: string, modifiedDate?: Date, modifiedAuthor?: string);
+        getId(): BCFCommentId;
+        getDate(): Date;
+        setDate(date: Date): void;
+        getAuthor(): string;
+        setAuthor(author: string): void;
+        getText(): string;
+        setText(text: string): void;
+        getViewpointGuid(): Uuid | null;
+        setViewpointGuid(id: Uuid | null): void;
+        getModifiedDate(): Date | null;
+        setModifiedDate(date: Date | null): void;
+        getModifiedAuthor(): string | null;
+        setModifiedAuthor(author: string | null): void;
+    }
+    class BCFMarkup {
+        private readonly _bcfTopic;
+        private readonly _filename;
+        private _projectGuid;
+        private _markupHeaderFiles;
+        private _topic;
+        private _comments;
+        private _viewpoints;
+        constructor(filename: string, document: Document | null, bcfTopic: BCFTopic);
+        private _parseDocument;
+        private _exportHeader;
+        private _exportTopicData;
+        private _exportBimSnippet;
+        private _exportDocumentReference;
+        private _exportRelatedTopic;
+        private _exportTopic;
+        private _exportComment;
+        private _exportViewpoint;
+        /**
+         * @returns XML document containing the markup data.
+         */
+        export(): XMLDocument;
+        /**
+         * @deprecated Use [[getMarkupHeaderFiles]] instead.
+         */
+        getIfcProject(): GenericId | undefined;
+        /**
+         * @deprecated Use [[getMarkupHeaderFiles]] instead.
+         */
+        getIfcSpacialStructureElement(): GenericId | undefined;
+        /**
+         * @deprecated Use [[getMarkupHeaderFiles]] instead.
+         */
+        getIsExternal(): boolean | undefined;
+        /**
+         * @deprecated Use [[getMarkupHeaderFiles]] instead.
+         */
+        getBimFilename(): string | undefined;
+        /**
+         * @deprecated Use [[getMarkupHeaderFiles]] instead.
+         */
+        getBimDate(): Date | undefined;
+        /**
+         * @deprecated Use [[getMarkupHeaderFiles]] instead.
+         */
+        getReference(): string | undefined;
+        /**
+         * @returns the project GUID.
+         */
+        getProjectGuid(): Uuid | null;
+        /**
+         * @returns a list of [[BCFMarkupHeaderFile]] containing data related to IFC files.
+         */
+        getMarkupHeaderFiles(): BCFMarkupHeaderFile[];
+        /**
+         * Gets the Markup filename.
+         */
+        getFilename(): string;
+        /**
+         * Gets the topic type.
+         */
+        getTopicType(): string | null;
+        /**
+         * Sets the topic type.
+         * @param topicType
+         */
+        setTopicType(topicType: string | null): void;
+        /**
+         * Gets the topic status.
+         */
+        getTopicStatus(): string | null;
+        /**
+         * Sets the topic status.
+         * @param topicStatus
+         */
+        setTopicStatus(topicStatus: string | null): void;
+        /**
+         * Gets the title of the markup topic.
+         */
+        getTopicTitle(): string;
+        /**
+         * Sets the title of the markup topic.
+         * @param title
+         */
+        setTopicTitle(title: string): void;
+        /**
+         * Gets the creation date of the markup topic.
+         */
+        getTopicCreationDate(): Date;
+        /**
+         * Sets the creation date of the markup topic;
+         * @param date
+         */
+        setTopicCreationDate(date: Date): void;
+        /**
+         * Gets the name of the user that created the markup topic.
+         */
+        getTopicCreationAuthor(): string;
+        /**
+         * Sets the name of the user that created the markup topic.
+         * @param author
+         */
+        setTopicCreationAuthor(author: string): void;
+        /**
+         * List of references to the topic, for example, a work request management system or an URI to a model.
+         */
+        getTopicReferenceLink(): string | null;
+        /**
+         * Sets the ReferenceLink.
+         * @param referenceLink
+         */
+        setTopicReferenceLink(referenceLink: string | null): void;
+        /**
+         * Gets the topic priority.
+         */
+        getTopicPriority(): string | null;
+        /**
+         * Sets the topic priority.
+         * @param priority
+         */
+        setTopicPriority(priority: string | null): void;
+        /**
+         * Number to maintain the order of the topics.
+         */
+        getTopicIndex(): number | null;
+        /**
+         * Sets the topic index.
+         * @param index
+         */
+        setTopicIndex(index: number | null): void;
+        /**
+         * Tags for grouping Topics.
+         */
+        getTopicLabels(): string[];
+        /**
+         * Sets the topic labels.
+         * @param labels
+         */
+        setTopicLabels(labels: string[]): void;
+        /**
+         * Date when the topic was last modified. Exists only when Topic has been modified after creation.
+         */
+        getTopicModifiedDate(): Date | null;
+        /**
+         * Sets the topic modified date.
+         * @param date
+         */
+        setTopicModifiedDate(date: Date | null): void;
+        /**
+         * User who modified the topic. Exists only when Topic has been modified after creation.
+         */
+        getTopicModifiedAuthor(): string | null;
+        /**
+         * Sets the author that last modified the topic.
+         * @param modifiedAuthor
+         */
+        setTopicModifiedAuthor(modifiedAuthor: string | null): void;
+        /**
+         * Date when the issue needs to be resolved by.
+         */
+        getTopicDueDate(): Date | null;
+        /**
+         * Sets the topic due date.
+         * @param date
+         */
+        setTopicDueDate(date: Date | null): void;
+        /**
+         * The user to whom this topic is assigned to. Recommended to be in email format. The list of possible values are defined in the extension schema.
+         */
+        getTopicAssignedTo(): string | null;
+        /**
+         * Sets the user that the topic is assigned to.
+         */
+        setTopicAssignedTo(assignedTo: string | null): void;
+        /**
+         * Description of the topic.
+         */
+        getTopicDescription(): string | null;
+        /**
+         * Sets the topic description;
+         * @param description
+         */
+        setTopicDescription(description: string | null): void;
+        /**
+         * Stage this topic is part of.
+         */
+        getTopicStage(): string | null;
+        /**
+         * Sets the topic stage;
+         * @param stage
+         */
+        setTopicState(stage: string | null): void;
+        /**
+         * Gets a map of GUIDs and corresponding comments.
+         */
+        getComments(): Map<Uuid, BCFComment>;
+        /**
+         * Adds a comment to the topic.
+         * @param date
+         * @param author
+         * @param text
+         * @param viewpointGuid
+         * @param modifiedDate
+         * @param modifiedAuthor
+         */
+        addComment(date: Date, author: string, text: string, viewpointGuid?: string, modifiedDate?: Date, modifiedAuthor?: string): BCFComment;
+        /**
+         * Updates a topic comment.
+         * @param comment
+         */
+        updateComment(comment: BCFComment): void;
+        /**
+         * Deletes a comment from the topic..
+         * @param guid
+         */
+        deleteComment(guid: Uuid): void;
+        /**
+         * Gets a map of GUIDs and corresponding viewpoints.
+         */
+        getViewpoints(): Map<Uuid, BCFMarkupViewpoint>;
+        private _addFile;
+        private _parseHeader;
+        private _parseTopic;
+        private _parseComment;
+        private _parseViewpoint;
+        addViewpoint(guid: Uuid, viewpointFilename?: string, snapshotFilename?: string, index?: string): void;
+        private _getChildData;
+        private _getElementAttributes;
+    }
+}
+declare namespace Communicator {
+    class BCFSnapshot {
+        private readonly _filename;
+        private readonly _data;
+        constructor(filename: string, data: Uint8Array);
+        /**
+         * Creates a BCF Snapshot from an HTMLImageElement.
+         * @param filename
+         * @param image
+         */
+        static createFromImage(filename: string, image: HTMLImageElement): BCFSnapshot;
+        /**
+         * Gets the filename.
+         */
+        getFilename(): string;
+        /**
+         * Gets png data.
+         */
+        getData(): Uint8Array;
+        /**
+         * Gets a url for images corresponding to viewpoints.
+         */
+        getUrl(): string;
+        /**
+         * Gets image data as a Uint8Array from an HTMLImageElement.
+         * @param img
+         */
+        static snapshotDataFromImage(img: HTMLImageElement): Uint8Array;
+        private static _convertDataURIToBinary;
+    }
+}
+declare namespace Communicator {
+    /**
+     * This class contains data corresponding to a BCF file topic.
+     */
+    class BCFTopic {
+        private readonly _viewer;
+        private readonly _topicId;
+        private readonly _bcfDataId;
+        private readonly _bcfFilename;
+        private _markup;
+        private _viewpointMap;
+        private _snapshotMap;
+        constructor(bcfDataId: number, bcfFilename: BCFName, topicId: BCFTopicId, viewer: WebViewer);
+        /**
+         * Takes a MarkupView and creates a BCF Topic from it.
+         * @param bcfDataId
+         * @param bcfFilename
+         * @param viewer
+         * @param markupView
+         * @param topicTitle
+         */
+        static createTopic(viewer: WebViewer, bcfDataId: number, bcfFilename: BCFName, topicTitle: string, markupView?: Markup.MarkupView | null): Promise<BCFTopic>;
+        /**
+         * Gets the topic id corresponding to the BCF topic folder.
+         */
+        getTopicId(): BCFTopicId;
+        /**
+         * Adds a BCF markup.
+         * @param markup BCF markup data.
+         */
+        addMarkup(filename: string, document: Document | null): BCFMarkup;
+        /**
+         * @returns BCF markup data.
+         */
+        getMarkup(): BCFMarkup;
+        /**
+         * Creates and adds BCF viewpoint.
+         * @param fileName viewpoint filename.
+         * @param viewpoint BCF viewpoint data.
+         */
+        addViewpoint(filename: string, document: Document | null, version: BCFVersion, modelBounding: Box, modelUnits: number): BCFViewpoint;
+        /**
+         * Adds a BCF Viewpoint. If there is a already a viewpoint with the same filename, it will be replaced.
+         * @param filename
+         * @param viewpoint
+         */
+        setViewpoint(filename: string, viewpoint: BCFViewpoint): void;
+        /**
+         * @returns A map associating viewpoint filenames with viewpoint data.
+         */
+        getViewpointMap(): Map<string, BCFViewpoint>;
+        /**
+         * Gets viewpoint data.
+         * @param filename viewpoint filename.
+         */
+        getViewpoint(filename: string): BCFViewpoint | null;
+        /**
+         * Creates and adds a Snapshot.
+         * @param fileName Snapshot filename.
+         * @param png Image data.
+         */
+        addSnapshot(filename: string, png: Uint8Array): void;
+        /**
+         * Adds a BCF Snapshot. If there is already a snapshot with the smae filename, it will be replaced.
+         * @param filename
+         * @param snapshot
+         */
+        setSnapshot(filename: string, snapshot: BCFSnapshot): void;
+        /**
+         * @returns A map associating snapshot filenames with snapshot data.
+         */
+        getSnapshotMap(): Map<string, BCFSnapshot>;
+        /**
+         * Gets snapshot data.
+         * @param filename snapshot or corresponding viewpoint filename
+         */
+        getSnapshot(filename: string): BCFSnapshot | null;
+        private _massageSnapshotFilename;
+    }
+}
+declare namespace Communicator {
+    class BCFViewpoint {
+        private readonly _viewer;
+        private readonly _filename;
+        private readonly _version;
+        private readonly _modelBounding;
+        private readonly _unitScale;
+        private _viewpointGuid;
+        private _components;
+        private _orthogonalCamera;
+        private _perspectiveCamera;
+        private _lines;
+        private _clippingPlanes;
+        constructor(filename: string, document: Document | null, version: BCFVersion, modelBounding: Box, modelUnits: number, viewer: WebViewer);
+        static createViewpoint(viewer: WebViewer, viewpointFilename: string, markupView?: Markup.MarkupView | null): Promise<BCFViewpoint>;
+        private static _markupRedlineToBcf;
+        private _parseDocument;
+        private _exportComponents;
+        private _exportOrthogonalCamera;
+        private _exportPerspectiveCamera;
+        private _exportLines;
+        private _exportClippingPlanes;
+        /**
+         * @returns XML document containing the viewpoint data.
+         */
+        export(): XMLDocument;
+        /**
+         * Activates viewpoint.
+         * Sets the camera, visibility, cutting planes, colors, and markup.
+         */
+        activate(): Promise<void>;
+        private _activateCamera;
+        private _activateComponentsVisibility;
+        private _activateMarkup;
+        private _activateCuttingPlanes;
+        private _activateSelected;
+        private _activateColors;
+        /**
+         * Gets the viewpoint filename.
+         */
+        getFilename(): string;
+        /**
+         * Gets the GUID associated with the viewpoint.
+         */
+        getViewpointGuid(): string | null;
+        private _fromBCFPerspectiveCamera;
+        private _fromBCFOrthogonalCamera;
+        /**
+         * Gets the viewpoint camera, or null if none is set.
+         */
+        getCamera(): Camera | null;
+        /**
+         * Sets the viewpoint camera.
+         * @param camera
+         */
+        setCamera(camera: Camera): void;
+        private _toBCFOrthogonalCamera;
+        private _toBCFPerspectiveCamera;
+        /**
+         * Sets the default visibility.
+         * If true, visibility exceptions are hidden.
+         * If false, visibility exceptions are shown.
+         * @param defaultVisibility
+         */
+        setDefaultVisibility(defaultVisibility: boolean): void;
+        private _getDefaultVisibility;
+        /**
+         * Sets the visibility exceptions. These nodes will be shown or hidden based on the default visibility setting.
+         * @param visibilityExceptions Array of GenericIds corresponding to components.
+         */
+        setVisibilityExceptions(visibilityExceptions: GenericId[]): void;
+        /**
+         * Gets the visibility exceptions.
+         * @returns Array of GenericIds corresponding to components.
+         */
+        getVisibilityExceptions(): GenericId[];
+        /**
+         * Sets the colors.
+         * @param colorGenericIdMap Map correlating color to GenericIds.
+         */
+        setColors(colorGenericIdMap: Map<Color, Set<GenericId>>): void;
+        /**
+         * @returns Map correlating color to components.
+         */
+        getColors(): Map<Color, Set<GenericId>>;
+        /**
+         * Sets the markup lines.
+         * @param lines array of start point and end point line pairs.
+         */
+        setLines(lines: [Point3, Point3][]): void;
+        /**
+         * Gets markup lines.
+         * @returns Array containing start point and end point line pairs.
+         */
+        getLines(): [Point3, Point3][];
+        /**
+         * Sets the clipping planes.
+         * @param planes array containing position and direction pairs.
+         */
+        setClippingPlanes(planes: [Point3, Point3][]): void;
+        /**
+         * Gets the clipping planes.
+         * @returns Array containing position and direction pairs.
+         */
+        getClippingPlanes(): [Point3, Point3][];
+        /**
+         * Sets a list of items to be added to the selection set.
+         *
+         */
+        setSelection(selection: GenericId[]): void;
+        /**
+         * Gets a list of items that are in the selection set.
+         */
+        getSelection(): GenericId[];
+        private _getGenericIdsFromComponents;
+        private _parseComponentsV2_0;
+        private _parseComponents;
+        private _getCameraData;
+        private _parseOrthogonalCamera;
+        private _parsePerspectiveCamera;
+        private _parseLines;
+        private _parseClippingPlanes;
+        private _getClippingPlane;
+        private _getLine;
+        private _getPoint;
+        private _colorFromArgb;
+        private _getColoring;
+        private _getComponents;
     }
 }
 declare namespace Communicator {
@@ -2352,18 +2870,19 @@ declare namespace Communicator {
         MeasureFaceFaceDistance = 17,
         MeasureLineLineAngle = 18,
         MeasurePointPointDistance = 19,
-        MeasureFaceFaceAngle = 20,
-        MeasurePolylineDistance = 21,
-        MeasurePolygonArea = 22,
-        Note = 23,
-        Cutting = 24,
-        Handle = 25,
-        NavCube = 26,
-        AxisTriad = 27,
-        Floorplan = 28
+        MeasureBodyBodyDistance = 20,
+        MeasureFaceFaceAngle = 21,
+        MeasurePolylineDistance = 22,
+        MeasurePolygonArea = 23,
+        Note = 24,
+        Cutting = 25,
+        Handle = 26,
+        NavCube = 27,
+        AxisTriad = 28,
+        Floorplan = 29
     }
     /** Enumerates IDs for built-in operators */
-    type BuiltInOperatorId = OperatorId.Navigate | OperatorId.Orbit | OperatorId.Pan | OperatorId.Zoom | OperatorId.Walk | OperatorId.KeyboardWalk | OperatorId.WalkMode | OperatorId.Turntable | OperatorId.Select | OperatorId.AreaSelect | OperatorId.RayDrillSelect | OperatorId.RedlineCircle | OperatorId.RedlineText | OperatorId.RedlineRectangle | OperatorId.RedlinePolyline | OperatorId.MeasureEdgeLength | OperatorId.MeasureFaceFaceDistance | OperatorId.MeasureLineLineAngle | OperatorId.MeasurePointPointDistance | OperatorId.MeasureFaceFaceAngle | OperatorId.MeasurePolylineDistance | OperatorId.MeasurePolygonArea | OperatorId.Note | OperatorId.Cutting | OperatorId.Handle | OperatorId.NavCube | OperatorId.AxisTriad | OperatorId.Floorplan;
+    type BuiltInOperatorId = OperatorId.Navigate | OperatorId.Orbit | OperatorId.Pan | OperatorId.Zoom | OperatorId.Walk | OperatorId.KeyboardWalk | OperatorId.WalkMode | OperatorId.Turntable | OperatorId.Select | OperatorId.AreaSelect | OperatorId.RayDrillSelect | OperatorId.RedlineCircle | OperatorId.RedlineText | OperatorId.RedlineRectangle | OperatorId.RedlinePolyline | OperatorId.MeasureEdgeLength | OperatorId.MeasureFaceFaceDistance | OperatorId.MeasureLineLineAngle | OperatorId.MeasurePointPointDistance | OperatorId.MeasureBodyBodyDistance | OperatorId.MeasureFaceFaceAngle | OperatorId.MeasurePolylineDistance | OperatorId.MeasurePolygonArea | OperatorId.Note | OperatorId.Cutting | OperatorId.Handle | OperatorId.NavCube | OperatorId.AxisTriad | OperatorId.Floorplan;
     /** Enumerates EventTypes for Operators */
     enum EventType {
         MouseDown = 0,
@@ -3121,8 +3640,8 @@ declare namespace Communicator {
         distance: number;
     }
     /**
-    * Object representing the up and front vectors for the model coordinate system.
-    */
+     * Object representing the up and front vectors for the model coordinate system.
+     */
     class ViewAxes {
         frontVector: Point3;
         upVector: Point3;
@@ -3463,6 +3982,22 @@ declare namespace Communicator {
         followViewAxes?: boolean;
     }
     /**
+     * Defines the orientation of the image-based lighting environment applied
+     * to physically-based materials.
+     */
+    interface ImageBasedLightingOrientation {
+        /**
+         * A matrix applied to the environment. An identity matrix orients the
+         * environment so that "up" is in the direction of the positive Y-axis.
+         */
+        matrix: Matrix;
+        /**
+         * If `true`, the environment will be oriented according to the model's
+         * view axes after the matrix is applied.
+         */
+        followViewAxes?: boolean;
+    }
+    /**
      * Units in which attenuation distances are specified for simple
      * reflections.
      *
@@ -3755,7 +4290,7 @@ declare namespace Communicator {
          * Sets the color to be used for capping geometry faces. If null is passed in as the color object, no capping face will be shown.
          * @param color color to use for capping geometry faces.
          */
-        setCappingFaceColor(color: Color | null): Promise<void>;
+        setCappingFaceColor(color: Color | null): DeprecatedPromise;
         /**
          * Gets the color used for capping geometry faces.
          * @returns color used for capping geometry faces.
@@ -3765,7 +4300,7 @@ declare namespace Communicator {
          * Sets the color to be used for capping geometry lines. If null is passed in as the color object, no capping line will be shown.
          * @param color color to use for capping geometry lines.
          */
-        setCappingLineColor(color: Color | null): Promise<void>;
+        setCappingLineColor(color: Color | null): DeprecatedPromise;
         /**
          * Gets the color used for capping geometry lines.
          * @returns color used for capping geometry lines.
@@ -3829,7 +4364,7 @@ declare namespace Communicator {
          * The default value is true.
          * @param cappingGeometryVisibility
          */
-        setCappingGeometryVisibility(cappingGeometryVisibility: boolean): Promise<void>;
+        setCappingGeometryVisibility(cappingGeometryVisibility: boolean): DeprecatedPromise;
         /**
          * Gets whether capping geometry will show
          * @returns boolean value indicating whether capping geometry will show
@@ -4494,19 +5029,19 @@ declare namespace Communicator.Event {
         private _date;
         private _handled;
         /**
-          * Gets the handled state of the event
-          * @returns whether the event has been handled
-          */
+         * Gets the handled state of the event
+         * @returns whether the event has been handled
+         */
         getHandled(): boolean;
         /**
-          * Sets the handled state of the event. When an event has been handled it will not propagate any further
-          * @param handled Indicates whether this event has been handled.
-          */
+         * Sets the handled state of the event. When an event has been handled it will not propagate any further
+         * @param handled Indicates whether this event has been handled.
+         */
         setHandled(handled: boolean): void;
         /**
-          * Gets the Date this event occurred
-          * @returns the event Date
-          */
+         * Gets the Date this event occurred
+         * @returns the event Date
+         */
         getDate(): Date;
     }
 }
@@ -5519,7 +6054,8 @@ declare namespace Communicator.Internal.Tree {
     function getRuntimeId(nodeId: AuthoredNodeId | DynamicNodeId, node: HasInclusionContext): RuntimeNodeId;
 }
 declare namespace Communicator {
-    const DefaultTransitionDuration = 400;
+    /** The default duration in milliseconds of camera transitions. */
+    let DefaultTransitionDuration: number;
     const EmptyModelName = "_empty";
     const InvalidNodeId: NodeId;
     interface GetNodesBoundingConfig {
@@ -5547,11 +6083,11 @@ declare namespace Communicator {
         ignoreInvisible?: boolean;
     }
     /**
-    * Object representing the model geometry and its associated data.
-    * All major functionality for querying the model hierachy, retrieving geometry data and loading additional model data are part of this object.
-    *
-    * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/data_model/model-tree.html).
-    */
+     * Object representing the model geometry and its associated data.
+     * All major functionality for querying the model hierachy, retrieving geometry data and loading additional model data are part of this object.
+     *
+     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/data_model/model-tree.html).
+     */
     class Model {
         private readonly _engine;
         private readonly _callbackManager;
@@ -6144,6 +6680,13 @@ declare namespace Communicator {
         /** @deprecated Use [[activateDefaultCadConfiguration]] instead. */
         activateCADDefaultConfiguration(): Promise<void>;
         /**
+         * Returns point attributes for a node of the given node and point.
+         * @param nodeId Node to retrieve point properties from
+         * @param pointIndex Index of point for which to retrieve point attributes
+         * @returns Promise for the requested point attributes. Properties returned will be null if none associated with the point.
+         */
+        getPointAttributes(nodeId: NodeId, pointIndex: number): Promise<SubentityAttributes | null>;
+        /**
          * Returns edge count for a node of the given node.
          * @param nodeId Node to retrieve edge count from
          * @returns Promise providing the number of edges
@@ -6699,13 +7242,27 @@ declare namespace Communicator {
          */
         setMeshLevel(nodeIds: NodeId[], meshLevel: number): DeprecatedPromise;
         /**
+         * Sets the metallic and roughness factors for the supplied nodes materials.
+         * Materials that are not currently set to use the Metallic Roughness shading model will be upgraded to use this mode.
+         * @param nodeIds List of nodes to set material properties for
+         * @param metallicFactor The metalness of the material
+         * @param roughnessFactor The roughness of the material
+         */
+        setMetallicRoughness(nodeIds: NodeId[], metallicFactor: number, roughnessFactor: number): void;
+        /**
+         * Unsets the metallic and roughness values set with [[setMetallicRoughness]]
+         * These materials will no longer use the Metallic Roughness shading model.
+         * @param nodeIds List of nodes to unset material properties for
+         */
+        unsetMetallicRoughness(nodeIds: NodeId[]): void;
+        /**
          * If enabled then models loaded into an existing scene with a different unit value will be scaled to the unit value of the current scene.
          * @param enabled value indicating if automatic unit scaling will be active
          */
         setEnableAutomaticUnitScaling(enabled: boolean): void;
         /**
-         * By default, objects that are intially hidden stays hidden unless specificaly set to be shown. This function allows this behavior to be disabled.
-         * @param enabled value indicating if intially hidden objects stay hidden
+         * By default, objects that are initially hidden stays hidden unless specifically set to be shown. This function allows this behavior to be disabled.
+         * @param enabled value indicating if initially hidden objects stay hidden
          */
         setBehaviorInitiallyHidden(enabled: boolean): void;
         /**
@@ -7412,7 +7969,6 @@ declare namespace Communicator.Internal {
         private _sc;
         private _sessionType;
         private _matrixCache;
-        private _materialCache;
         private _scSelectionManager;
         private _initOptions;
         private _canvasContainer;
@@ -7437,17 +7993,14 @@ declare namespace Communicator.Internal {
         private _syncedCamera?;
         private readonly _cuttingSectionToKeyMap;
         private readonly _cappingQuantizationGranularity;
-        private _cappingFacesEnabled;
-        private _cappingLinesEnabled;
-        private _cappingFaceMaterialId;
-        private _cappingLineMaterialId;
+        private _cappingFaceColor;
+        private _cappingLineColor;
         private _cappingGeometryVisibility;
-        private _cappingMaterialDirty;
+        private _cappingNeedsUpdate;
         private _cappingDelayTimeoutId;
         private _cappingDelay;
         private _requestBatchCountByType;
         private _pendingRequestsByType;
-        private readonly _xRayMaterials;
         constructor(callbackManager: CallbackManager, options: WebViewerConfig);
         getNetworkModelName(): ScModelName;
         logMessage(message: string): void;
@@ -7486,14 +8039,13 @@ declare namespace Communicator.Internal {
         setCappingDelay(delayInMilliseconds: number): void;
         enableCappingIdleCallback(enable: boolean): Promise<boolean>;
         delayCapping(): void;
-        setCappingGeometryVisibility(cappingGeometryVisibility: boolean): Promise<void>;
+        setCappingGeometryVisibility(cappingGeometryVisibility: boolean): void;
         private _regenerateCapping;
         getCappingGeometryVisibility(): boolean;
-        setDiffuseColor(materialIds: SC.MaterialIds, color: SC.Rgba): Promise<void>;
         private _toRgb;
         private _toRgba;
-        setCappingFaceColor(color: Color | null): Promise<void>;
-        setCappingLineColor(color: Color | null): Promise<void>;
+        setCappingFaceColor(color: Color | null): void;
+        setCappingLineColor(color: Color | null): void;
         private _onSessionStarted;
         isInit(): boolean;
         setRemoteEndpoint(uri: string, modelName: ScModelName): void;
@@ -7570,7 +8122,7 @@ declare namespace Communicator.Internal {
         setPartColor(incs: SC.InstanceIncs, elementType: ElementType, color: Color): void;
         unsetPartColor(incs: SC.InstanceIncs, elementType: ElementType): void;
         getPartColor(incs: SC.InstanceIncs, elementType: ElementType): Promise<(Color | null)[]>;
-        getEffectivePartColor(incs: SC.InstanceIncs, elementType: ElementType): Promise<(Color)[]>;
+        getEffectivePartColor(incs: SC.InstanceIncs, elementType: ElementType): Promise<Color[]>;
         setElementColor(incs: SC.InstanceIncs, elementType: ElementType, elementOffset: number, elementCount: number, color: Color): void;
         unsetElementColor(incs: SC.InstanceIncs, elementType: ElementType, elementOffset: number, elementCount: number): void;
         getElementColor(inc: SC.InstanceInc, elementType: ElementType, elementOffset: number): Promise<[Color | null]>;
@@ -7596,8 +8148,6 @@ declare namespace Communicator.Internal {
         _toTextureModifier(value: number | undefined): SC.TextureModifier;
         setTexture(instanceIncs: SC.InstanceIncs, options: TextureOptions): Promise<void>;
         unsetTexture(incs: SC.InstanceIncs): void;
-        createMaterial(): Promise<SC.MaterialId>;
-        private _getMaterialPromiseWithDiffuseColor;
         createMatrix(elements: SC.Matrix16): Promise<SC.MatrixInc>;
         createIdentityMatrix(): Promise<SC.MatrixInc>;
         createMeshInstance(meshInstanceData: MeshInstanceData): Promise<SC.InstanceInc>;
@@ -7642,6 +8192,9 @@ declare namespace Communicator.Internal {
         setAllowHighDpi(allow: boolean): void;
         getAllowHighDpi(): boolean;
         setMeshLevel(incs: SC.InstanceIncs, meshLevel: number): void;
+        setMetallicRoughness(incs: SC.InstanceIncs, metallicFactor: number, roughnessFactor: number): void;
+        setMetallicRoughnessMaterialOverride(defaultMetallicFactor: number, defaultRoughnessFactor: number): void;
+        unsetMetallicRoughness(incs: SC.InstanceIncs): void;
         setOverlayVisibility(index: OverlayIndex, visibility: boolean): void;
         setOverlayCamera(index: OverlayIndex, camera: Camera): void;
         destroyOverlay(index: OverlayIndex): void;
@@ -7655,7 +8208,7 @@ declare namespace Communicator.Internal {
         getMeshData(id: MeshId): Promise<MeshDataCopy>;
         private _toElementType;
         private _toXRayGroup;
-        setXRayColor(group: XRayGroup, element: ElementType, color: Color): Promise<void>;
+        setXRayColor(group: XRayGroup, element: ElementType, color: Color): void;
         unsetXRayColor(group: XRayGroup, element: ElementType): Promise<void>;
         setXRayOpacity(value: number, element?: ElementType): void;
         private _xRayTransparencyMode;
@@ -7749,6 +8302,12 @@ declare namespace Communicator.Internal {
         private _toVector3Array;
         testPointVisibility(points: Point3[]): Promise<number[]>;
         setPointVisibilityTest(points: Point3[]): void;
+        setImageBasedLightingEnabled(value: boolean): void;
+        setImageBasedLightingIntensity(value: number): void;
+        private _toMatrix9;
+        setImageBasedLightingMatrix(value: Matrix): void;
+        setImageBasedLightingEnvironment(data: Uint8Array): void;
+        setImageBasedLightingEnvironmentToDefault(): void;
     }
 }
 /**
@@ -8128,7 +8687,7 @@ declare namespace Communicator.Internal {
     function classFromString(this: any, qualifiedClassName: string): any;
     function projectOnto(source: Point3, target: Point3): Point3;
     function majorAxis(p: Point3): Point3 | null;
-    function deepClone(obj: any): any;
+    function deepClone<T>(obj: T): T;
     function getWithDefault<T>(maybeValue: T | undefined, defaultValue: T): T;
     type VersionNumber = number[];
     function versionAtLeast(version: VersionNumber, atLeast: VersionNumber): boolean;
@@ -8285,9 +8844,16 @@ declare namespace Communicator {
         /** @deprecated Use [[endIncrementalSelection]] instead. */
         endVolumeSelection(handle: Selection.IncrementalSelectionId): DeprecatedPromise;
         /**
-         * Returns the next batch of instances selected by the supplied selection context.
+         * Adds the next batch of instances selected by the supplied selection
+         * context to the selection set.
+         *
          * @param handle The handle to an active area selection context.
-         * @returns Returns true if there are possibly more items to select and false if not.
+         * @param predicate An optional function that returns `true` if a given
+         * [[NodeSelectionItem]] should be added to the selection set. If
+         * `false` is returned, the item will not be added.
+         *
+         * @returns `true` if there are possibly more items to select and
+         * `false` if not.
          */
         advanceIncrementalSelection(handle: Selection.IncrementalSelectionId, predicate?: ((item: Selection.NodeSelectionItem) => Promise<boolean>) | null): Promise<boolean>;
         /** @deprecated Use [[advanceIncrementalSelection]] instead. */
@@ -9055,51 +9621,51 @@ declare namespace Communicator.Markup.Shape {
 }
 declare namespace Communicator.Markup {
     /**
-    * This is a base class for all markup items that are overlayed over the viewer.
-    * Inherit from this class or provide an identical interface when creating custom markup items.
-    */
+     * This is a base class for all markup items that are overlayed over the viewer.
+     * Inherit from this class or provide an identical interface when creating custom markup items.
+     */
     class MarkupItem {
         /**
-        * Called when the MarkupItem is removed from the system.
-        * Any cleanup that needs to be done should be performed in this method.
-        */
+         * Called when the MarkupItem is removed from the system.
+         * Any cleanup that needs to be done should be performed in this method.
+         */
         remove(): void;
         /**
-        * Called when the markup item should be redrawn on the screen. This most typically happens when the scene is rendered.
-        */
+         * Called when the markup item should be redrawn on the screen. This most typically happens when the scene is rendered.
+         */
         draw(): void;
         /**
-        * Called when a hit test is performed on this markup item.
-        * @param point position in window where the hit test is being performed.
-        * @returns boolean value indicating whether this item was picked
-        */
+         * Called when a hit test is performed on this markup item.
+         * @param point position in window where the hit test is being performed.
+         * @returns boolean value indicating whether this item was picked
+         */
         hit(point: Point2): boolean;
         /**
-        * Called when a hit test is performed on this markup item.
-        * @param point position in window where the hit test is being performed.
-        * @param pickTolerance amount of tolerance allowed for a hit in pixels.
-        * @returns boolean value indicating whether this item was picked
-        */
+         * Called when a hit test is performed on this markup item.
+         * @param point position in window where the hit test is being performed.
+         * @param pickTolerance amount of tolerance allowed for a hit in pixels.
+         * @returns boolean value indicating whether this item was picked
+         */
         hitWithTolerance(point: Point2, pickTolerance: number): boolean;
         /**
-        * Called when this markup item is selected by the system.
-        */
+         * Called when this markup item is selected by the system.
+         */
         onSelect(): void;
         /**
-        * Called when this markup item is deselected by the system
-        */
+         * Called when this markup item is deselected by the system
+         */
         onDeselect(): void;
         /**
-        * Creates an object ready for JSON serialization.
-        * @returns The prepared object.
-        */
+         * Creates an object ready for JSON serialization.
+         * @returns The prepared object.
+         */
         toJson(): Object;
         /** @deprecated Use [[toJson]] instead. */
         forJson(): Object;
         /**
-        * Gets the fully qualified class name for this markup item. E.g. "Communicator.Markup.Redline.RedlineCircle"
-        * @returns fully qualified class name
-        */
+         * Gets the fully qualified class name for this markup item. E.g. "Communicator.Markup.Redline.RedlineCircle"
+         * @returns fully qualified class name
+         */
         getClassName(): string;
         /** @hidden */
         protected _behindView: boolean;
@@ -9190,6 +9756,7 @@ declare namespace Communicator {
          *       will cause objects to which they are applied to be treated as transparent,
          *       which may cause undesirable behavior. This can be avoided by setting
          *       [[TextureModifier.Decal]] in [[TextureOptions]] when applying the texture.
+         *       [[TextureModifier.Decal]] is not currently supported for PBR based materials.
          */
         Png = 5
     }
@@ -9218,7 +9785,9 @@ declare namespace Communicator {
          */
         Clamp = 0,
         /** Repeat the texture image when UV coordinates go outside the [0.0, 1.0] range. */
-        Repeat = 1
+        Repeat = 1,
+        /** The texture will get mapped normally for parameters in the range [0,1], but parameters outside that range will act as if the texture at that location is transparent. */
+        Trim = 2
     }
     /**
      * Indicates how texture coordinates are specified or generated. This controls where a given
@@ -9363,9 +9932,9 @@ declare namespace Communicator.GUID {
 }
 declare namespace Communicator {
     /**
-    * Object representing the view associated to a model.
-    * All major functionality that affects how a model is rendered including the currently active camera, the view mode and other functionality like selection are part of this object.
-    */
+     * Object representing the view associated to a model.
+     * All major functionality that affects how a model is rendered including the currently active camera, the view mode and other functionality like selection are part of this object.
+     */
     class View {
         private readonly _viewer;
         private readonly _engine;
@@ -9417,6 +9986,9 @@ declare namespace Communicator {
         private _hardEdgeOpacity;
         private _hardEdgeThreshold;
         private _hardEdgeThresholdRampWidth;
+        private _imageBasedLightingEnabled;
+        private _imageBasedLightingIntensity;
+        private _imageBasedLightingOrientation;
         private readonly _determineInitialAxes;
         private readonly _hiddenLineSettings;
         private _projectionMode;
@@ -9817,7 +10389,7 @@ declare namespace Communicator {
          * @param group the category of nodes that will be affected.
          * If unspecified, [[XRayGroup.Selected]] will be used.
          */
-        setXRayColor(element: ElementType, color: Color, group?: XRayGroup): Promise<void>;
+        setXRayColor(element: ElementType, color: Color, group?: XRayGroup): DeprecatedPromise;
         /**
          * Unsets the color applied to selected items in x-ray mode.
          * Selected items will be displayed without overriding their colors.
@@ -10689,6 +11261,96 @@ declare namespace Communicator {
          * @param points The points to test. An empty array will disable the test.
          */
         setPointVisibilityTest(points: Point3[]): void;
+        /**
+         * Sets whether image-based lighting is enabled for physically-based
+         * materials.
+         *
+         * See also:
+         * - [[getImageBasedLightingEnabled]]
+         * - [[setImageBasedLightingIntensity]]
+         * - [[setImageBasedLightingOrientation]]
+         */
+        setImageBasedLightingEnabled(value: boolean): void;
+        /**
+         * Returns whether image-based lighting is enabled for physically-based
+         * materials.
+         *
+         * See also:
+         * - [[setImageBasedLightingEnabled]]
+         * - [[setImageBasedLightingIntensity]]
+         * - [[setImageBasedLightingOrientation]]
+         */
+        getImageBasedLightingEnabled(): boolean;
+        /**
+         * Sets the intensity (brightness) of image-based lighting applied to
+         * physically-based materials.
+         *
+         * The default value is 1.
+         *
+         * See also:
+         * - [[getImageBasedLightingIntensity]]
+         * - [[setImageBasedLightingEnabled]]
+         * - [[setImageBasedLightingOrientation]]
+         */
+        setImageBasedLightingIntensity(value: number): void;
+        /**
+         * Returns the intensity (brightness) of image-based lighting applied to
+         * physically-based materials.
+         *
+         * The default value is 1.
+         *
+         * See also:
+         * - [[setImageBasedLightingIntensity]]
+         * - [[setImageBasedLightingEnabled]]
+         * - [[setImageBasedLightingOrientation]]
+         */
+        getImageBasedLightingIntensity(): number;
+        private _copyImageBasedLightingOrientation;
+        /**
+         * Sets the orientation of the image-based lighting environment applied
+         * to physically-based materials.
+         *
+         * See also:
+         * - [[getImageBasedLightingOrientation]]
+         * - [[setImageBasedLightingEnabled]]
+         * - [[setImageBasedLightingIntensity]]
+         */
+        setImageBasedLightingOrientation(value: ImageBasedLightingOrientation): void;
+        /**
+         * Returns the orientation of the image-based lighting environment
+         * applied to physically-based materials.
+         *
+         * See also:
+         * - [[setImageBasedLightingOrientation]]
+         * - [[setImageBasedLightingEnabled]]
+         * - [[setImageBasedLightingIntensity]]
+         */
+        getImageBasedLightingOrientation(): ImageBasedLightingOrientation;
+        private _updateImageBasedLightingOrientation;
+        /**
+         * Sets the environment image used by image-based lighting applied to
+         * physically-based materials.
+         *
+         * Passing `null` will cause the default environment image to be used.
+         *
+         * The image should be a cube map in KTX2 format with a space-separated
+         * list of spherical harmonics coefficients stored under the "sh"
+         * metadata key.
+         *
+         * A compatible image can be created from an equirectangular source
+         * image (such as those found at [HDRI Haven](https://hdrihaven.com))
+         * with the following process:
+         *
+         * - cmgen: https://github.com/google/filament
+         * - ktx2ktx2, ktx2sc: https://github.com/KhronosGroup/KTX-Software/
+         *
+         * ```
+         * cmgen -x out --format=ktx --size=256 in.hdr
+         * ktx2ktx2 -o uncompressed.ktx2 out/out_ibl.ktx
+         * ktxsc --zcmp 20 -o out.ktx2 uncompressed.ktx2
+         * ```
+         */
+        setImageBasedLightingEnvironment(data: Uint8Array | null): void;
     }
 }
 declare namespace Communicator.Internal.Tree {
@@ -10783,6 +11445,8 @@ declare namespace Communicator {
         enableShatteredModelUiViews?: boolean;
         /** Path containing the graphics engine `.js` and `.wasm` files. Follows the same rules as the `src` attribute of an HTML `script` tag. */
         enginePath?: string;
+        defaultMetallicFactor?: number;
+        defaultRoughnessFactor?: number;
         /** @hidden */
         _maxConcurrentAttachments?: number;
         /** @hidden */
@@ -10805,6 +11469,7 @@ declare namespace Communicator {
         readonly BCFManager: BCFManager;
         readonly sheetManager: SheetManager;
         readonly noteTextManager: Markup.Note.NoteTextManager;
+        readonly animationManager: Animation.Manager;
         private readonly _engine;
         private readonly _callbackManager;
         private readonly _interpolationManager;
@@ -11225,6 +11890,7 @@ declare namespace Communicator {
          * @param duration the time in milliseconds for the model to transition to the new view orientation.
          */
         setViewOrientation(orientation: ViewOrientation, duration?: number): Promise<void>;
+        private _applyMetallicRoughnessDefaults;
         private _scEngineReady;
         private _sceneReady;
         private _seenPriorityMetaDataSent;
@@ -11507,20 +12173,6 @@ declare namespace Communicator.Internal {
     }
 }
 declare namespace Communicator.Internal {
-    class MaterialInfo {
-        readonly diffuseColor: SC.Rgba;
-        constructor();
-        setDiffuseTransparency(transparency: number): void;
-        setDiffuseColor(color: Color): void;
-        setDiffuseColorFromArray(rgbColor: SC.Rgb): void;
-        hash(): string;
-    }
-    class ScMaterialCache {
-        private readonly _engine;
-        private readonly _materials;
-        constructor(engine: ScEngine);
-        getOrCreateMaterial(materialInfo: MaterialInfo): Promise<SC.MaterialId>;
-    }
     class ScMatrixCache {
         private readonly _engine;
         private _identityInc;
@@ -12011,6 +12663,7 @@ declare namespace Communicator.Internal.Tree {
         readonly originalFileType: FileType;
         readonly doublePrecisionMatrices: boolean;
         private constructor();
+        supportsAttributeBits(): boolean;
         rootAssemblyDataKey(): SC.DataKey;
         /**
          * This mirrors C++ `AssemblyTreeHeader::MaxVersion`.
@@ -12336,6 +12989,7 @@ declare namespace Communicator.Internal.Tree {
         private _getBodyInstanceIndexFrom;
         getNodeOrRepItem(node: AnyNode): Promise<ProductOccurrence | Pmi | CadView | PartDefinition | RepresentationItem | null>;
         private _getNodeOrRepItemFromId;
+        getPointAttributes(nodeId: RuntimeNodeId, pointId: number): Promise<SubentityAttributes | null>;
         getEdgeCount(nodeId: RuntimeNodeId): Promise<number>;
         getEdgeAttributes(nodeId: RuntimeNodeId, edgeId: number): Promise<SubentityAttributes | null>;
         getEdgeProperty(nodeId: RuntimeNodeId, edgeId: number): Promise<SubentityProperties.Edge | null>;
@@ -12732,7 +13386,8 @@ declare namespace Communicator.Internal.Tree {
         GenericTypes = 8,
         GenericTypeId = 16,
         GenericId = 32,
-        DoublePrecisionMatrices = 64
+        DoublePrecisionMatrices = 64,
+        PointAttributes = 128
     }
     class NodeParseBits {
         hasBits1(bits: NodeParseBits1): boolean;
@@ -12775,6 +13430,9 @@ declare namespace Communicator.Internal.Tree {
     const enum LayerParseBits {
         Name = 1
     }
+    const enum AttributeParseBits {
+        ValueName = 1
+    }
     class AssemblyVisibility {
         constructor(shown: boolean, removed: boolean);
         readonly shown: boolean;
@@ -12815,6 +13473,7 @@ declare namespace Communicator.Internal.Tree {
         parseViewParseBits(): ViewParseBits;
         parsePmiParseBits(): PmiParseBits;
         parseLayerParseBits(): LayerParseBits;
+        parseAttributeParseBits(): AttributeParseBits;
         parseBoolean(): boolean;
         parsePoint3_32(): Point3;
         parsePoint3_64(): Point3;
@@ -13142,6 +13801,7 @@ declare namespace Communicator.Internal.Tree {
         static parseNodeIds(elem: Element, attrName: string): AuthoredNodeId[] | null;
         private static _parsePoint3;
         static parseBounding(parentElem: Element, childName: string): Box | null;
+        static parseCamera(elem: Element): Camera | null;
     }
 }
 declare namespace Communicator.Internal.Tree {
@@ -13700,6 +14360,7 @@ declare namespace Communicator.Internal.Tree {
         readonly physicalProps: PhysicalProperties | null;
         readonly faceAttributes: (SubentityAttributes | null)[];
         readonly edgeAttributes: (SubentityAttributes | null)[];
+        readonly pointAttributes: (SubentityAttributes | null)[];
     }
     type RepresentationItemParent = PartDefinition;
     class RepresentationItem extends NodeMixin<0> {
@@ -13715,6 +14376,7 @@ declare namespace Communicator.Internal.Tree {
         getEdgeCount(): number;
         getFaceAttributes(index: number): SubentityAttributes | null;
         getEdgeAttributes(index: number): SubentityAttributes | null;
+        getPointAttributes(index: number): SubentityAttributes | null;
         getFaceMeasurementProperty(index: number): SubentityProperties.Face | null;
         getEdgeMeasurementProperty(index: number): SubentityProperties.Edge | null;
         setFaceMeasurementProperty(index: number, prop: SubentityProperties.Face): void;
@@ -13729,19 +14391,22 @@ declare namespace Communicator.Internal.Tree {
         private _edgeMeasurementProps;
         private _faceAttributes;
         private _edgeAttributes;
+        private _pointAttributes;
     }
 }
 declare namespace Communicator.Internal.Tree {
     class Attribute {
         static parseBinary(parser: AssemblyDataParser): Attribute;
         static parseXml(attributeNode: Element): Attribute;
-        constructor(type: AttributeType, title: string, value: string);
+        constructor(type: AttributeType, title: string, valueName: string | null, value: string);
         getType(): AttributeType;
+        getValueName(): string | null;
         getTitle(): string;
         getValue(): string;
         copy(): Attribute;
         protected readonly __Attribute: PhantomMember;
         private readonly _type;
+        private readonly _valueName;
         private readonly _title;
         private readonly _value;
     }
@@ -14317,12 +14982,12 @@ declare namespace Communicator.Internal {
     /**
      * This is a more space-concious variant of `Lazy<T>`, but restricts the allowed types for `T`.
      */
-    class LazyObject<T extends (object | null)> {
+    class LazyObject<T extends object | null> {
         /**
          * Creates a new lazy value, which is the result of the supplied function
          * once the lazy value is forced (or the value itself if a `T` is directly supplied).
          */
-        static create<T extends (object | null)>(value: (() => T) | T): LazyObject<T>;
+        static create<T extends object | null>(value: (() => T) | T): LazyObject<T>;
         private constructor();
         /**
          * Forces the lazy value given at construction and returns it.
@@ -14339,12 +15004,12 @@ declare namespace Communicator.Internal {
      * `T` must not be itself of type `Promise` or `LazyObject`. The compiler cannot enforce this.
      *
      */
-    class LazyPromise<T extends (object | null)> implements PromiseLike<T> {
+    class LazyPromise<T extends object | null> implements PromiseLike<T> {
         /**
          * Creates a new lazy value, which is the result of the supplied function
          * once the lazy value is forced (or the value itself if a `T` is directly supplied).
          */
-        static create<T extends (object | null)>(value: T | Promise<T> | LazyObject<T | Promise<T>> | (() => T | Promise<T>)): LazyPromise<T>;
+        static create<T extends object | null>(value: T | Promise<T> | LazyObject<T | Promise<T>> | (() => T | Promise<T>)): LazyPromise<T>;
         private constructor();
         /**
          * Returns whether or not this has been both forced (lazy).
@@ -14600,7 +15265,7 @@ declare namespace Communicator.Internal {
      *
      * Neither `null` or `undefined` should inhabit the type `T`. Doing otherwise is an error.
      */
-    type TerseArray0<T, X extends (null | undefined)> = T[] | T | X;
+    type TerseArray0<T, X extends null | undefined> = T[] | T | X;
     /**
      * This type represents a non-empty space efficient array representation by being:
      *
@@ -14845,7 +15510,7 @@ declare namespace Communicator.Internal {
     /**
      * This is a cache of keyed `LazyPromise`s.
      */
-    class PromiseCache<K extends (object | number | string), V extends (object | null)> {
+    class PromiseCache<K extends object | number | string, V extends object | null> {
         clear(): void;
         load(key: K, lazyValue: LazyPromise<V>): Promise<V>;
         private readonly _cache;
@@ -15456,109 +16121,109 @@ declare namespace Communicator.Markup.Shape {
 }
 declare namespace Communicator.Markup {
     /**
-    * This class provides an interface for MarkupItems to draw on the canvas.
-    */
+     * This class provides an interface for MarkupItems to draw on the canvas.
+     */
     interface MarkupRenderer {
         /** @hidden */
         _clear(): void;
         /** @hidden */
         _finalize(): void;
         /**
-        * Renders a circle to the markup layer.
-        * @param circle the circle to draw.
-        * @returns SVG element for the circle. This element is temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a circle to the markup layer.
+         * @param circle the circle to draw.
+         * @returns SVG element for the circle. This element is temporary and will not be preserved when the markup is redrawn.
+         */
         drawCircle(circle: Shape.Circle): Element;
         /**
-        * Renders a collection of circles sharing the same properties to the markup layer.
-        * @param circles the collection of circle to render.
-        * @returns an array containing SVG elements for each circle. These elements are temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a collection of circles sharing the same properties to the markup layer.
+         * @param circles the collection of circle to render.
+         * @returns an array containing SVG elements for each circle. These elements are temporary and will not be preserved when the markup is redrawn.
+         */
         drawCircles(circles: Shape.CircleCollection): Element[];
         /**
-        * Renders a polyline to the markup layer.
-        * @param line the polyline to draw.
-        * @returns SVG element for the line. This element is temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a polyline to the markup layer.
+         * @param line the polyline to draw.
+         * @returns SVG element for the line. This element is temporary and will not be preserved when the markup is redrawn.
+         */
         drawPolyline(polyline: Shape.Polyline): Element;
         /**
-        * Renders a collection of polylines sharing the same properties to the markup layer.
-        * @param lines the collection of polylines to render.
-        * @returns an array containing SVG elements for each line. These elements are temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a collection of polylines sharing the same properties to the markup layer.
+         * @param lines the collection of polylines to render.
+         * @returns an array containing SVG elements for each line. These elements are temporary and will not be preserved when the markup is redrawn.
+         */
         drawPolylines(polylines: Shape.PolylineCollection): Element[];
         /**
-        * Renders a polygon to the markup layer.
-        * @param polygon the polygon to render.
-        * @returns SVG element for the polygon. This element is temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a polygon to the markup layer.
+         * @param polygon the polygon to render.
+         * @returns SVG element for the polygon. This element is temporary and will not be preserved when the markup is redrawn.
+         */
         drawPolygon(polygon: Shape.Polygon): Element;
         /**
-        * Renders a collection of polygons sharing the same properties to the markup layer.
-        * @param polygons the collection of polygons to render.
-        * @returns an array containing SVG elements for each polygon. These elements are temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a collection of polygons sharing the same properties to the markup layer.
+         * @param polygons the collection of polygons to render.
+         * @returns an array containing SVG elements for each polygon. These elements are temporary and will not be preserved when the markup is redrawn.
+         */
         drawPolygons(polygons: Shape.PolygonCollection): Element[];
         /**
-        * Renders a line to the markup layer.
-        * @param line the line to render.
-        * @returns SVG element for the line. This element is temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a line to the markup layer.
+         * @param line the line to render.
+         * @returns SVG element for the line. This element is temporary and will not be preserved when the markup is redrawn.
+         */
         drawLine(line: Shape.Line): Element;
         /**
-        * Renders a collection of lines sharing the same properties to the markup layer.
-        * @param lines the collection of lines to render.
-        * @returns an array containing SVG elements for each line. These elements are temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a collection of lines sharing the same properties to the markup layer.
+         * @param lines the collection of lines to render.
+         * @returns an array containing SVG elements for each line. These elements are temporary and will not be preserved when the markup is redrawn.
+         */
         drawLines(lines: Shape.LineCollection): Element[];
         /**
-        * Renders a rectangle to the markup layer.
-        * @param rectangle the rectangle to render.
-        * @returns SVG element for the rectangle. This element is temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a rectangle to the markup layer.
+         * @param rectangle the rectangle to render.
+         * @returns SVG element for the rectangle. This element is temporary and will not be preserved when the markup is redrawn.
+         */
         drawRectangle(rectangle: Shape.Rectangle): Element;
         /**
-        * Renders a collection of rectangles sharing the same properties to the markup layer.
-        * @param rectangles the collection of rectangles to render.
-        * @returns an array containing SVG elements for each rectangle. These elements are temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a collection of rectangles sharing the same properties to the markup layer.
+         * @param rectangles the collection of rectangles to render.
+         * @returns an array containing SVG elements for each rectangle. These elements are temporary and will not be preserved when the markup is redrawn.
+         */
         drawRectangles(rectangles: Shape.RectangleCollection): Element[];
         /**
-        * Renders text to the markup layer.
-        * @param text the text to render.
-        * @returns SVG element for the text. This element is temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders text to the markup layer.
+         * @param text the text to render.
+         * @returns SVG element for the text. This element is temporary and will not be preserved when the markup is redrawn.
+         */
         drawText(text: Shape.Text): Element;
         /**
-        * Renders a collection of text sharing the same properties to the markup layer.
-        * @param texts the collection of texts to render.
-        * @returns an array containing SVG elements for each text. These elements are temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a collection of text sharing the same properties to the markup layer.
+         * @param texts the collection of texts to render.
+         * @returns an array containing SVG elements for each text. These elements are temporary and will not be preserved when the markup is redrawn.
+         */
         drawTexts(texts: Shape.TextCollection): Element[];
         /**
-        * Computes the width and height of a string using the given text attributes.
-        * @param str the text string to measure.
-        * @param textMarkup the properties of the text item to measure.
-        * @returns a point object containing the width and height in pixels of the string.
-        */
+         * Computes the width and height of a string using the given text attributes.
+         * @param str the text string to measure.
+         * @param textMarkup the properties of the text item to measure.
+         * @returns a point object containing the width and height in pixels of the string.
+         */
         measureText(str: string, markup: Shape.TextMarkupBase): Point2;
         /**
-        * Computes the width and height of a text box.
-        * @param textBox the text box to measure.
-        * @returns a point object containing the width and height in pixels of the text box.
-        */
+         * Computes the width and height of a text box.
+         * @param textBox the text box to measure.
+         * @returns a point object containing the width and height in pixels of the text box.
+         */
         measureTextBox(textBox: Shape.TextBox): Point2;
         /**
-        * Renders a text box to the markup layer.
-        * @param textBox the text box to render.
-        * @returns SVG element pair for the text. The first item in this array corresponds to the rectangle. The second item corresponds to the text. These elements are temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a text box to the markup layer.
+         * @param textBox the text box to render.
+         * @returns SVG element pair for the text. The first item in this array corresponds to the rectangle. The second item corresponds to the text. These elements are temporary and will not be preserved when the markup is redrawn.
+         */
         drawTextBox(textBox: Shape.TextBox): Element[];
         /**
-        * Renders a collection of text boxes sharing the same properties to the markup layer.
-        * @param textBoxes the collection of text boxes to render.
-        * @returns an array containing SVG element pairs for each text box. These elements are temporary and will not be preserved when the markup is redrawn.
-        */
+         * Renders a collection of text boxes sharing the same properties to the markup layer.
+         * @param textBoxes the collection of text boxes to render.
+         * @returns an array containing SVG element pairs for each text box. These elements are temporary and will not be preserved when the markup is redrawn.
+         */
         drawTextBoxes(textBoxes: Shape.TextBoxCollection): Element[][];
         /** @hidden */
         _setCanvas(canvas: Element): void;
@@ -16175,8 +16840,8 @@ declare namespace Communicator.Util {
 }
 declare namespace Communicator {
     /**
-    * Object representing a Ray.
-    */
+     * Object representing a Ray.
+     */
     class Ray {
         origin: Point3;
         direction: Point3;
@@ -16199,8 +16864,8 @@ declare namespace Communicator {
 }
 declare namespace Communicator {
     /**
-    * Object representing a Plane.
-    */
+     * Object representing a Plane.
+     */
     class Plane {
         normal: Point3;
         d: number;
@@ -16250,37 +16915,6 @@ declare namespace Communicator {
         set(x: number, y: number, z: number, w: number): void;
         assign(point: Point4): void;
         static zero(): Point4;
-    }
-}
-declare namespace Communicator {
-    /** @hidden */
-    class Quaternion {
-        x: number;
-        y: number;
-        z: number;
-        w: number;
-        constructor(x: number, y: number, z: number, w: number);
-        set(x: number, y: number, z: number, w: number): void;
-        assign(other: Quaternion): void;
-        copy(): Quaternion;
-        equals(q: Quaternion): boolean;
-        equalsWithTolerance(other: Quaternion, tolerance: number): boolean;
-        fromArray(arr: number[]): Quaternion;
-        toArray(arr: number[]): Quaternion;
-        negate(): Quaternion;
-        magnitudeSquared(): number;
-        magnitude(): number;
-        normalize(): void;
-        static add(q1: Quaternion, q2: Quaternion): Quaternion;
-        static subtract(q1: Quaternion, q2: Quaternion): Quaternion;
-        /** @deprecated use [[Quaternion.identity]] instead. */
-        static Identity(): Quaternion;
-        static identity(): Quaternion;
-        static toMatrix(quaternion: Quaternion): Matrix;
-        static createFromMatrix(matrix: Matrix): Quaternion;
-        static interpolate(begin: Quaternion, end: Quaternion, t: number): Quaternion;
-        private static readonly _epsilon;
-        private static _arccos;
     }
 }
 /**
@@ -17625,6 +18259,7 @@ declare namespace Communicator.Operator {
         onKeyDown(event: Event.KeyInputEvent): void;
         /** @hidden */
         onDeactivate(): Promise<void>;
+        private _checkProjection;
         /** @hidden */
         onMouseDown(event: Event.MouseInputEvent): void;
         /** @hidden */
@@ -18049,6 +18684,7 @@ declare namespace Communicator.Markup.Measure {
         _getStage(): number;
         finalize(): void;
         getFirstPointPosition(): Point3;
+        getSecondPointPosition(): Point3;
         adjust(position: Point2): void;
         private _updateArrowsInverted;
         update(): void;
@@ -18589,7 +19225,6 @@ declare namespace Communicator.Markup.Redline {
 }
 declare namespace Communicator.Operator {
     /**
-     * @hidden
      * This operator allows you to measure the minimum distance between two bodies.
      * Moving the mouse over the model will highlight the body that will be measured.
      * Clicking will select the first node to be measured, it will stay highlighted as

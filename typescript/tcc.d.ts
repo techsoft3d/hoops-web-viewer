@@ -1,57 +1,53 @@
 ﻿/** @hidden */
 declare module SC {
-
     export const enum AttachScope {
-        OfInitialEmptyModel = 0
+        OfInitialEmptyModel = 0,
     }
 
     export const enum Key {
-        Invalid = 0xFFFFFFFF
+        Invalid = 0xffffffff,
     }
 
     export const enum MasterModelKey {
         Invalid = Key.Invalid,
-        Local = 0
+        Local = 0,
     }
 
     export const enum CuttingSectionKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
     export const enum DataKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
     export const enum GroupKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
     export const enum ImageKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
     export const enum InclusionKey {
         Invalid = Key.Invalid,
-        Local = 0
+        Local = 0,
     }
     export const enum InstanceKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
     export const enum LightKey {
-        Invalid = Key.Invalid
-    }
-    export const enum MaterialKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
     export const enum MatrixKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
     export const enum MeshKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
     export const enum ModelKey {
         Invalid = Key.Invalid,
-        Empty = 0xFFFFFFFE,
-        Local = 0
+        Empty = 0xfffffffe,
+        Local = 0,
     }
     export const enum ViewKey {
-        Invalid = Key.Invalid
+        Invalid = Key.Invalid,
     }
 
     export type Id<Key> = [ModelKey, Key];
@@ -61,7 +57,6 @@ declare module SC {
     export type ImageId = Id<ImageKey>;
     export type InclusionId = Id<InclusionKey>;
     export type InstanceId = Id<InstanceKey>;
-    export type MaterialId = Id<MaterialKey>;
     export type MatrixId = Id<MatrixKey>;
     export type MeshId = Id<MeshKey>;
     export type ModelId = Id<ModelKey>;
@@ -74,7 +69,6 @@ declare module SC {
     export type ImageInc = Inc<ImageKey>;
     export type InclusionInc = Inc<InclusionKey>;
     export type InstanceInc = Inc<InstanceKey>;
-    export type MaterialInc = Inc<MaterialKey>;
     export type MatrixInc = Inc<MatrixKey>;
     export type MeshInc = Inc<MeshKey>;
     export type ModelInc = Inc<ModelKey>;
@@ -87,7 +81,6 @@ declare module SC {
     export type ImageIds = Ids<ImageKey>;
     export type InclusionIds = Ids<InclusionKey>;
     export type InstanceIds = Ids<InstanceKey>;
-    export type MaterialIds = Ids<MaterialKey>;
     export type MatrixIds = Ids<MatrixKey>;
     export type MeshIds = Ids<MeshKey>;
     export type ModelIds = Ids<ModelKey>;
@@ -100,7 +93,6 @@ declare module SC {
     export type ImageIncs = Incs<ImageKey>;
     export type InclusionIncs = Incs<InclusionKey>;
     export type InstanceIncs = Incs<InstanceKey>;
-    export type MaterialIncs = Incs<MaterialKey>;
     export type MatrixIncs = Incs<MatrixKey>;
     export type MeshIncs = Incs<MeshKey>;
     export type ModelIncs = Incs<ModelKey>;
@@ -122,8 +114,39 @@ declare module SC {
 
     export type Plane3 = [number, number, number, number];
 
-    export type Matrix12 = [number, number, number, number, number, number, number, number, number, number, number, number];
-    export type Matrix16 = [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number];
+    export type Matrix9 = [number, number, number, number, number, number, number, number, number];
+    export type Matrix12 = [
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+    ];
+    export type Matrix16 = [
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+    ];
 
     export type OverlayIndex = number;
     export type IncrementalSelectionHandle = number;
@@ -134,7 +157,14 @@ declare module SC {
     }
 
     export interface Camera {
-        reset(projection: Projection, position: Point3, target: Point3, up: Vector3, width: number, height: number): void;
+        reset(
+            projection: Projection,
+            position: Point3,
+            target: Point3,
+            up: Vector3,
+            width: number,
+            height: number,
+        ): void;
 
         position(): Point3;
         target(): Point3;
@@ -242,15 +272,6 @@ declare module SC {
         entities: ProximityFaceEntity[];
     }
 
-    export interface CompositeColor {
-        diffuse: Rgba;
-        emission: Rgba;
-    }
-
-    export interface AggregateMaterialItem {
-        colors: CompositeColor;
-    }
-
     export interface OpenModelFailedData {
         reason: string;
         name: string;
@@ -331,17 +352,17 @@ declare module SC {
     }
 
     export interface SvgConfig {
-        svgXmlPrologEnabled?: boolean,
-        svgBackgroundCssColor?: string,
-        silhouettesEnabled?: boolean,
-        linesDrawModelLinesEnabled?: boolean,
-        linesStrokeWidth?: number,
-        linesCssColor?: string,
-        linesClipProximityToPlane?: number,
-        linesClipZNudgeFactor?: number,
-        polygonsForceDrawCssColor?: string,
-        logProgress?: boolean,
-        logDiagnostics?: boolean,
+        svgXmlPrologEnabled?: boolean;
+        svgBackgroundCssColor?: string;
+        silhouettesEnabled?: boolean;
+        linesDrawModelLinesEnabled?: boolean;
+        linesStrokeWidth?: number;
+        linesCssColor?: string;
+        linesClipProximityToPlane?: number;
+        linesClipZNudgeFactor?: number;
+        polygonsForceDrawCssColor?: string;
+        logProgress?: boolean;
+        logDiagnostics?: boolean;
     }
 
     export interface Error<ErrorType> {
@@ -349,20 +370,20 @@ declare module SC {
         data: ErrorType;
     }
 
-    export interface DiscriminatedError<Discriminant extends string, ErrorType> extends Error<ErrorType> {
+    export interface DiscriminatedError<Discriminant extends string, ErrorType>
+        extends Error<ErrorType> {
         scFunction: Discriminant;
         data: ErrorType;
     }
 
-    export type OpaqueError
-        = DiscriminatedError<"getMetaData", DataIds>
+    export type OpaqueError =
+        | DiscriminatedError<"getMetaData", DataIds>
         | DiscriminatedError<"metaDataKeyInfo", ModelKey>
         | DiscriminatedError<"beginScreenAreaSelection", void>
         | DiscriminatedError<"beginConvexPolyhedronSelection", void>
         | DiscriminatedError<"beginRayDrillSelection", void>
         | DiscriminatedError<"beginSphereSelection", void>
-        | DiscriminatedError<"advanceVolumeSelection", void>
-        ;
+        | DiscriminatedError<"advanceVolumeSelection", void>;
 
     // Mirrors C++ `TC::Web::AntiAliasingMode`
     export const enum AntiAliasingMode {
@@ -372,9 +393,9 @@ declare module SC {
 
     // Mirrors C++ `TC::Web::BimType`
     export const enum BimType {
-        Floor   = 0,
-        Wall    = 1,
-        Door    = 2,
+        Floor = 0,
+        Wall = 1,
+        Door = 2,
     }
 
     // Mirrors C++ `TC::Web::BlurIntervalUnit`
@@ -407,11 +428,11 @@ declare module SC {
 
     // Mirrors C++ `TC::Web::ElementMask::Bits`
     export const enum ElementMask {
-        None    = 0,
-        Faces   = 1 << ElementType.Faces,
-        Lines   = 1 << ElementType.Lines,
-        Points  = 1 << ElementType.Points,
-        All     = Faces | Lines | Points,
+        None = 0,
+        Faces = 1 << ElementType.Faces,
+        Lines = 1 << ElementType.Lines,
+        Points = 1 << ElementType.Points,
+        All = Faces | Lines | Points,
     }
 
     // Mirrors C++ `TC::Web::HighlightFilter`
@@ -563,6 +584,7 @@ declare module SC {
     export const enum TextureTiling {
         Repeat,
         Clamp,
+        Trim,
     }
 
     // Mirrors C++ `TC::Web::TransparencyMode`
@@ -583,11 +605,35 @@ declare module SC {
         clearElementColors(incs: InstanceIncs, elementType: ElementType): void;
         clearElementHighlight(incs: InstanceIncs, elementType: ElementType): void;
         clearElementXRay(incs: InstanceIncs, elementType: ElementType): void;
-        computeMinimalBodyBodyDistance(inc1: InstanceInc, inc2: InstanceInc): Promise<FaceFaceDistanceObject>;
-        computeMinimalFaceFaceDistance(inc1: InstanceInc, faceIndex1: number, inc2: InstanceInc, faceIndex2: number): Promise<FaceFaceDistanceObject>;
-        computeMinimalFaceLineDistance(inc: InstanceInc, faceIndex: number, ray: Ray): Promise<FaceFaceDistanceObject>;
-        computeMinimalFaceRayDistance(inc: InstanceInc, faceIndex: number, ray: Ray): Promise<FaceFaceDistanceObject>;
-        create(meshId: MeshId, matrixInc: MatrixInc, faceMaterialId: MaterialId, lineMaterialId: MaterialId, pointMaterialId: MaterialId, flags?: number, overlayIndex?: OverlayIndex): Promise<InstanceInc>;
+        computeMinimalBodyBodyDistance(
+            inc1: InstanceInc,
+            inc2: InstanceInc,
+        ): Promise<FaceFaceDistanceObject>;
+        computeMinimalFaceFaceDistance(
+            inc1: InstanceInc,
+            faceIndex1: number,
+            inc2: InstanceInc,
+            faceIndex2: number,
+        ): Promise<FaceFaceDistanceObject>;
+        computeMinimalFaceLineDistance(
+            inc: InstanceInc,
+            faceIndex: number,
+            ray: Ray,
+        ): Promise<FaceFaceDistanceObject>;
+        computeMinimalFaceRayDistance(
+            inc: InstanceInc,
+            faceIndex: number,
+            ray: Ray,
+        ): Promise<FaceFaceDistanceObject>;
+        create(
+            meshId: MeshId,
+            matrixInc: MatrixInc,
+            faceColor: Rgba,
+            lineColor: Rgba,
+            pointColor: Rgba,
+            flags?: number,
+            overlayIndex?: OverlayIndex,
+        ): Promise<InstanceInc>;
         destroy(incs: InstanceIncs): Promise<void>;
         discardAnonymousMatrix(incs: InstanceIncs): Promise<void>;
         getAlwaysDraw(incs: InstanceIncs): Promise<boolean[]>;
@@ -602,11 +648,27 @@ declare module SC {
         getDrawnWorldSpaceBounding(): Promise<Box>;
         getDrawnWorldSpaceBounding(incs: InstanceIncs): Promise<Box>;
         getEffectiveColor(incs: InstanceIncs, elementType: ElementType): Promise<Rgb[]>;
-        getEffectiveElementColor(incs: InstanceIncs, elementType: ElementType, index: number): Promise<Rgb[]>;
+        getEffectiveElementColor(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            index: number,
+        ): Promise<Rgb[]>;
         getEffectiveOpacity(incs: InstanceIncs, elementType: ElementType): Promise<number[]>;
-        getElementColor(incs: InstanceIncs, elementType: ElementType, index: number): Promise<(Rgb | null)[]>;
-        getElementHighlighted(incs: InstanceIncs, elementType: ElementType, elementIndex: number): Promise<boolean[]>;
-        getElementXRay(incs: InstanceIncs, elementType: ElementType, elementIndex: number): Promise<boolean[]>;
+        getElementColor(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            index: number,
+        ): Promise<(Rgb | null)[]>;
+        getElementHighlighted(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            elementIndex: number,
+        ): Promise<boolean[]>;
+        getElementXRay(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            elementIndex: number,
+        ): Promise<boolean[]>;
         getExcludeBounding(incs: InstanceIncs): Promise<boolean[]>;
         getFaceElementBounding(elementIndices: number[], inc: InstanceInc): Promise<Box>;
         getFacesVisible(incs: InstanceIncs): Promise<boolean[]>;
@@ -625,7 +687,12 @@ declare module SC {
         getScreenSpace(incs: InstanceIncs): Promise<boolean[]>;
         getScreenSpaceStretched(incs: InstanceIncs): Promise<boolean[]>;
         getSuppressCameraScale(incs: InstanceIncs): Promise<boolean[]>;
-        getWorldSpaceBounding(incs: InstanceIncs, ignoreInvisible: boolean, includeExcluded: boolean, tightBounding: boolean): Promise<Box>;
+        getWorldSpaceBounding(
+            incs: InstanceIncs,
+            ignoreInvisible: boolean,
+            includeExcluded: boolean,
+            tightBounding: boolean,
+        ): Promise<Box>;
         hasDepthRange(incs: InstanceIncs): Promise<boolean[]>;
         hasTransparency(incs: InstanceIncs, elementType: ElementType): Promise<boolean[]>;
         linesToIncidentFaces(elementIndices: number[], inc: InstanceInc): Promise<number[]>;
@@ -635,7 +702,12 @@ declare module SC {
         setAnonymousMatrix(incs: InstanceIncs, matrix: Matrix16): void;
         setAnonymousMatrices(incs: InstanceIncs, matrices: number[]): void;
         setColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
-        setCullingVector(incs: InstanceIncs, space: CullingVectorSpace, vector: Vector3, toleranceDegrees: number): void;
+        setCullingVector(
+            incs: InstanceIncs,
+            space: CullingVectorSpace,
+            vector: Vector3,
+            toleranceDegrees: number,
+        ): void;
         setDepthRange(incs: InstanceIncs, min: number, max: number): void;
         setDoNotCut(incs: InstanceIncs, doNotCut: boolean): void;
         setDoNotExplode(incs: InstanceIncs, doNotExplode: boolean): void;
@@ -644,16 +716,45 @@ declare module SC {
         setDoNotSelect(incs: InstanceIncs, doNotSelect: boolean): void;
         setDoNotUseVertexColors(incs: InstanceIncs, value: boolean): void;
         setDoNotXRay(incs: InstanceIncs, value: boolean): void;
-        setElementColor(incs: InstanceIncs, elementType: ElementType, elementOffset: number, elementCount: number, color: Rgb): void;
-        setElementHighlighted(incs: InstanceIncs, elementType: ElementType, elementIndex: number, elementCount: number, value: boolean): void;
-        setElementXRay(incs: InstanceIncs, elementType: ElementType, elementIndex: number, elementCount: number, value: boolean): void;
+        setElementColor(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            elementOffset: number,
+            elementCount: number,
+            color: Rgb,
+        ): void;
+        setElementHighlighted(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            elementIndex: number,
+            elementCount: number,
+            value: boolean,
+        ): void;
+        setElementXRay(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            elementIndex: number,
+            elementCount: number,
+            value: boolean,
+        ): void;
         setExcludeBounding(incs: InstanceIncs, value: boolean): void;
         setFacesVisible(incs: InstanceIncs, visible: boolean): void;
         setHighlighted(incs: InstanceIncs, highlighted: boolean): void;
-        setLinePattern(incs: InstanceIncs, pattern: number[] | Uint8Array, patternLength: number, patternLengthUnit: LinePatternLengthUnit): void;
+        setLinePattern(
+            incs: InstanceIncs,
+            pattern: number[] | Uint8Array,
+            patternLength: number,
+            patternLengthUnit: LinePatternLengthUnit,
+        ): void;
         setLinesVisible(incs: InstanceIncs, visible: boolean): void;
         setMatrix(incs: InstanceIncs, layer: number, matrixInc: MatrixInc): Promise<void>;
         setMeshLevel(incs: InstanceIncs, meshLevel: number): void;
+        setMetallicRoughness(
+            incs: InstanceIncs,
+            metallicFactor: number,
+            roughnessFactor: number,
+        ): void;
+        unsetMetallicRoughness(incs: InstanceIncs): void;
         setOpacity(incs: InstanceIncs, elementType: ElementType, opacity: number): void;
         setOverlayIndex(incs: InstanceIncs, index: OverlayIndex): void;
         setOverrideSceneVisibility(incs: InstanceIncs, overrideSceneVisibility: boolean): void;
@@ -663,14 +764,29 @@ declare module SC {
         setScreenSpaceStretched(incs: InstanceIncs, value: boolean): void;
         setStreamCutoffScale(value: number): void;
         setSuppressCameraScale(incs: InstanceIncs, suppressCameraScale: boolean): void;
-        setTexture(incs: InstanceIncs, elementType: ElementType, imageId: ImageId, matrix: Matrix16, tiling: TextureTiling, interpolation: TextureInterpolation, mipMapping: TextureMipMapping, parameterization: TextureParameterization, modifiers: TextureModifier): Promise<void>;
+        setTexture(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            imageId: ImageId,
+            matrix: Matrix16,
+            tiling: TextureTiling,
+            interpolation: TextureInterpolation,
+            mipMapping: TextureMipMapping,
+            parameterization: TextureParameterization,
+            modifiers: TextureModifier,
+        ): Promise<void>;
         setVisible(incs: InstanceIncs, visible: boolean, onlyDemanded: boolean): void;
         setXRay(incs: InstanceIncs, value: boolean): void;
         synchronizeVisibilities(incs: InstanceIncs, visible: boolean): void;
         unsetColor(incs: InstanceIncs, elementType: ElementType): void;
         unsetCullingVector(incs: InstanceIncs): void;
         unsetDepthRange(incs: InstanceIncs): void;
-        unsetElementColor(incs: InstanceIncs, elementType: ElementType, elementOffset: number, elementCount: number): void;
+        unsetElementColor(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            elementOffset: number,
+            elementCount: number,
+        ): void;
         unsetLinePattern(incs: InstanceIncs): void;
         unsetMatrix(incs: InstanceIncs, layer: number): Promise<void>;
         unsetOpacity(incs: InstanceIncs, elementType: ElementType): void;
@@ -684,24 +800,22 @@ declare module SC {
         destroy(index: OverlayIndex): void;
         maxIndex(): OverlayIndex;
         setCamera(index: OverlayIndex, Camera: Camera): void;
-        setViewport(index: OverlayIndex, anchor: OverlayAnchor, xOffset: number, xUnit: OverlayUnit, yOffset: number, yUnit: OverlayUnit, width: number, widthUnit: OverlayUnit, height: number, heightUnit: OverlayUnit): void;
+        setViewport(
+            index: OverlayIndex,
+            anchor: OverlayAnchor,
+            xOffset: number,
+            xUnit: OverlayUnit,
+            yOffset: number,
+            yUnit: OverlayUnit,
+            width: number,
+            widthUnit: OverlayUnit,
+            height: number,
+            heightUnit: OverlayUnit,
+        ): void;
         setVisible(index: OverlayIndex, visibility: boolean): void;
     }
     export interface Instance {
         Overlay: OverlayInterface;
-    }
-
-    export interface MaterialInterface {
-        create(): Promise<MaterialId>;
-        destroy(materialIds: MaterialIds): Promise<void>;
-        getAggregateProperties(materialIds: MaterialIds): Promise<AggregateMaterialItem[]>;
-        getDiffuseColor(materialIds: MaterialIds): Promise<Rgbas>;
-        getEmissionColor(materialIds: MaterialIds): Promise<Rgbas>;
-        setDiffuseColor(materialIds: MaterialIds, color: Rgba): Promise<void>;
-        setEmissionColor(materialIds: MaterialIds, color: Rgba): Promise<void>;
-    }
-    export interface Instance {
-        Material: MaterialInterface;
     }
 
     export interface MeshDataBuilderFaceOptions {
@@ -723,12 +837,15 @@ declare module SC {
 
     export interface MeshDataBuilder {
         addFace(vertexData: Point3s | Float32Array, options?: MeshDataBuilderFaceOptions): void;
-        addPolyline(polylineData: Point3s | Float32Array, options?: MeshDataBuilderLineOptions): void;
+        addPolyline(
+            polylineData: Point3s | Float32Array,
+            options?: MeshDataBuilderLineOptions,
+        ): void;
         addPoints(pointData: Point3s | Float32Array, options?: MeshDataBuilderPointOptions): void;
         formatBits: number;
     }
     export interface Instance {
-        MeshDataBuilder: { new(): MeshDataBuilder };
+        MeshDataBuilder: { new (): MeshDataBuilder };
     }
 
     export interface MeshDataInterface {
@@ -755,9 +872,15 @@ declare module SC {
 
     export interface ImageInterface {
         create(
-            mainFormat: ImageFormat, mainData: Uint8Array, mainWidth?: number, mainHeight?: number,
-            thumbFormat?: ImageFormat, thumbData?: Uint8Array, thumbWidth?: number, thumbHeight?: number)
-            : Promise<ImageId>;
+            mainFormat: ImageFormat,
+            mainData: Uint8Array,
+            mainWidth?: number,
+            mainHeight?: number,
+            thumbFormat?: ImageFormat,
+            thumbData?: Uint8Array,
+            thumbWidth?: number,
+            thumbHeight?: number,
+        ): Promise<ImageId>;
 
         destroy(imageIds: ImageIds): Promise<void>;
     }
@@ -799,74 +922,291 @@ declare module SC {
     }
 
     export interface Instance {
-        setEventHandler(eventName: "announce_model", callback: (eventName: string, attachScope: AttachScope, masterModelKey: MasterModelKey) => void): void;
-        setEventHandler(eventName: "bad_data", callback: (eventName: string, data: BadDataData) => void): void;
+        setEventHandler(
+            eventName: "announce_model",
+            callback: (
+                eventName: string,
+                attachScope: AttachScope,
+                masterModelKey: MasterModelKey,
+            ) => void,
+        ): void;
+        setEventHandler(
+            eventName: "bad_data",
+            callback: (eventName: string, data: BadDataData) => void,
+        ): void;
         setEventHandler(eventName: "bounding", callback: (eventName: string) => void): void;
         setEventHandler(eventName: "camera_set", callback: (eventName: string) => void): void;
-        setEventHandler(eventName: "capping_idle", callback: (eventName: string, isIdle: boolean, cappedInstanceCount: number) => void): void;
-        setEventHandler(eventName: "client_message", callback: (eventName: string, data: ClientData) => void): void;
+        setEventHandler(
+            eventName: "capping_idle",
+            callback: (eventName: string, isIdle: boolean, cappedInstanceCount: number) => void,
+        ): void;
+        setEventHandler(
+            eventName: "client_message",
+            callback: (eventName: string, data: ClientData) => void,
+        ): void;
         setEventHandler(eventName: "draw_complete", callback: (eventName: string) => void): void;
         setEventHandler(eventName: "draw_idle", callback: (eventName: string) => void): void;
         setEventHandler(eventName: "first_instance", callback: (eventName: string) => void): void;
-        setEventHandler(eventName: "inclusion", callback: (eventName: string, attachScope: SC.AttachScope, inclusionKey: InclusionKey, modelKey: ModelKey) => void): void;
-        setEventHandler(eventName: "meta_data", callback: (eventName: string, modelKey: ModelKey, dataKey: DataKey, data: Uint8Array) => void): void;
-        setEventHandler(eventName: "missing_model", callback: (eventName: string, attachScope: SC.AttachScope, modelPath: string) => void): void;
-        setEventHandler(eventName: "network_receive_data", callback: (eventName: string, dataSize: number) => void): void;
-        setEventHandler(eventName: "open_model_failed", callback: (eventName: string, data: OpenModelFailedData) => void): void;
-        setEventHandler(eventName: "post_draw", callback: (eventName: string, stats: FrameStats, camera: Camera, visiblePoints: number[]) => void): void;
-        setEventHandler(eventName: "post_draw_json", callback: (eventName: string, metadataJson: string) => void): void;
-        setEventHandler(eventName: "priority_meta_data_sent", callback: (eventName: string, attachScope: SC.AttachScope, prototypeInstanceCount: number) => void): void;
-        setEventHandler(eventName: "remap_inclusion", callback: (eventName: string, attachScope: SC.AttachScope, effectiveModelKey: ModelKey, effectiveInclusionKey: InclusionKey, originalInclusionKey: InclusionKey) => void): void;
-        setEventHandler(eventName: "remap_model", callback: (eventName: string, attachScope: SC.AttachScope, effectiveModelKey: ModelKey, originalModelKey: ModelKey) => void): void;
-        setEventHandler(eventName: "session_started", callback: (eventName: string, primaryModelKey: ModelKey) => void): void;
+        setEventHandler(
+            eventName: "inclusion",
+            callback: (
+                eventName: string,
+                attachScope: SC.AttachScope,
+                inclusionKey: InclusionKey,
+                modelKey: ModelKey,
+            ) => void,
+        ): void;
+        setEventHandler(
+            eventName: "meta_data",
+            callback: (
+                eventName: string,
+                modelKey: ModelKey,
+                dataKey: DataKey,
+                data: Uint8Array,
+            ) => void,
+        ): void;
+        setEventHandler(
+            eventName: "missing_model",
+            callback: (eventName: string, attachScope: SC.AttachScope, modelPath: string) => void,
+        ): void;
+        setEventHandler(
+            eventName: "network_receive_data",
+            callback: (eventName: string, dataSize: number) => void,
+        ): void;
+        setEventHandler(
+            eventName: "open_model_failed",
+            callback: (eventName: string, data: OpenModelFailedData) => void,
+        ): void;
+        setEventHandler(
+            eventName: "post_draw",
+            callback: (
+                eventName: string,
+                stats: FrameStats,
+                camera: Camera,
+                visiblePoints: number[],
+            ) => void,
+        ): void;
+        setEventHandler(
+            eventName: "post_draw_json",
+            callback: (eventName: string, metadataJson: string) => void,
+        ): void;
+        setEventHandler(
+            eventName: "priority_meta_data_sent",
+            callback: (
+                eventName: string,
+                attachScope: SC.AttachScope,
+                prototypeInstanceCount: number,
+            ) => void,
+        ): void;
+        setEventHandler(
+            eventName: "remap_inclusion",
+            callback: (
+                eventName: string,
+                attachScope: SC.AttachScope,
+                effectiveModelKey: ModelKey,
+                effectiveInclusionKey: InclusionKey,
+                originalInclusionKey: InclusionKey,
+            ) => void,
+        ): void;
+        setEventHandler(
+            eventName: "remap_model",
+            callback: (
+                eventName: string,
+                attachScope: SC.AttachScope,
+                effectiveModelKey: ModelKey,
+                originalModelKey: ModelKey,
+            ) => void,
+        ): void;
+        setEventHandler(
+            eventName: "session_started",
+            callback: (eventName: string, primaryModelKey: ModelKey) => void,
+        ): void;
         setEventHandler(eventName: "socket_error", callback: (eventName: string) => void): void;
-        setEventHandler(eventName: "socket_open_failed", callback: (eventName: string) => void): void;
+        setEventHandler(
+            eventName: "socket_open_failed",
+            callback: (eventName: string) => void,
+        ): void;
         setEventHandler(eventName: "stream_active", callback: (eventName: string) => void): void;
         setEventHandler(eventName: "stream_idle", callback: (eventName: string) => void): void;
-        setEventHandler(eventName: "webgl_context_lost", callback: (eventName: string) => void): void;
-        setEventHandler(eventName: "websocket_connection_closed", callback: (eventName: string) => void): void;
+        setEventHandler(
+            eventName: "webgl_context_lost",
+            callback: (eventName: string) => void,
+        ): void;
+        setEventHandler(
+            eventName: "websocket_connection_closed",
+            callback: (eventName: string) => void,
+        ): void;
 
         // Currently [[unsetEventHandler]] is unsafe to call during the execution of an event handler with the same event name.
-        unsetEventHandler(eventName: "announce_model", callback: (eventName: string, attachScope: AttachScope, modelKey: ModelKey) => void): void;
-        unsetEventHandler(eventName: "bad_data", callback: (eventName: string, data: BadDataData) => void): void;
+        unsetEventHandler(
+            eventName: "announce_model",
+            callback: (eventName: string, attachScope: AttachScope, modelKey: ModelKey) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "bad_data",
+            callback: (eventName: string, data: BadDataData) => void,
+        ): void;
         unsetEventHandler(eventName: "bounding", callback: (eventName: string) => void): void;
         unsetEventHandler(eventName: "camera_set", callback: (eventName: string) => void): void;
-        unsetEventHandler(eventName: "capping_idle", callback: (eventName: string, isIdle: boolean, cappedInstanceCount: number) => void): void;
-        unsetEventHandler(eventName: "client_message", callback: (eventName: string, data: ClientData) => void): void;
+        unsetEventHandler(
+            eventName: "capping_idle",
+            callback: (eventName: string, isIdle: boolean, cappedInstanceCount: number) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "client_message",
+            callback: (eventName: string, data: ClientData) => void,
+        ): void;
         unsetEventHandler(eventName: "draw_complete", callback: (eventName: string) => void): void;
         unsetEventHandler(eventName: "draw_idle", callback: (eventName: string) => void): void;
-        unsetEventHandler(eventName: "inclusion", callback: (eventName: string, attachScope: SC.AttachScope, inclusionKey: InclusionKey, modelKey: ModelKey) => void): void;
-        unsetEventHandler(eventName: "meta_data", callback: (eventName: string, modelKey: ModelKey, dataKey: DataKey, data: Uint8Array) => void): void;
-        unsetEventHandler(eventName: "missing_model", callback: (eventName: string, attachScope: SC.AttachScope, modelPath: string) => void): void;
-        unsetEventHandler(eventName: "network_receive_data", callback: (eventName: string, dataSize: number) => void): void;
-        unsetEventHandler(eventName: "open_model_failed", callback: (eventName: string, data: OpenModelFailedData) => void): void;
-        unsetEventHandler(eventName: "post_draw", callback: (eventName: string, stats: FrameStats, camera: Camera, visiblePoints: number[]) => void): void;
-        unsetEventHandler(eventName: "post_draw_json", callback: (eventName: string, metadataJson: string) => void): void;
-        unsetEventHandler(eventName: "priority_meta_data_sent", callback: (eventName: string, attachScope: SC.AttachScope, prototypeInstanceCount: number) => void): void;
-        unsetEventHandler(eventName: "remap_inclusion", callback: (eventName: string, attachScope: SC.AttachScope, effectiveModelKey: ModelKey, effectiveInclusionKey: InclusionKey, originalInclusionKey: InclusionKey) => void): void;
-        unsetEventHandler(eventName: "remap_model", callback: (eventName: string, attachScope: SC.AttachScope, effectiveModelKey: ModelKey, originalModelKey: ModelKey) => void): void;
-        unsetEventHandler(eventName: "session_started", callback: (eventName: string, primaryModelKey: ModelKey) => void): void;
+        unsetEventHandler(
+            eventName: "inclusion",
+            callback: (
+                eventName: string,
+                attachScope: SC.AttachScope,
+                inclusionKey: InclusionKey,
+                modelKey: ModelKey,
+            ) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "meta_data",
+            callback: (
+                eventName: string,
+                modelKey: ModelKey,
+                dataKey: DataKey,
+                data: Uint8Array,
+            ) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "missing_model",
+            callback: (eventName: string, attachScope: SC.AttachScope, modelPath: string) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "network_receive_data",
+            callback: (eventName: string, dataSize: number) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "open_model_failed",
+            callback: (eventName: string, data: OpenModelFailedData) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "post_draw",
+            callback: (
+                eventName: string,
+                stats: FrameStats,
+                camera: Camera,
+                visiblePoints: number[],
+            ) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "post_draw_json",
+            callback: (eventName: string, metadataJson: string) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "priority_meta_data_sent",
+            callback: (
+                eventName: string,
+                attachScope: SC.AttachScope,
+                prototypeInstanceCount: number,
+            ) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "remap_inclusion",
+            callback: (
+                eventName: string,
+                attachScope: SC.AttachScope,
+                effectiveModelKey: ModelKey,
+                effectiveInclusionKey: InclusionKey,
+                originalInclusionKey: InclusionKey,
+            ) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "remap_model",
+            callback: (
+                eventName: string,
+                attachScope: SC.AttachScope,
+                effectiveModelKey: ModelKey,
+                originalModelKey: ModelKey,
+            ) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "session_started",
+            callback: (eventName: string, primaryModelKey: ModelKey) => void,
+        ): void;
         unsetEventHandler(eventName: "socket_error", callback: (eventName: string) => void): void;
-        unsetEventHandler(eventName: "socket_open_failed", callback: (eventName: string) => void): void;
+        unsetEventHandler(
+            eventName: "socket_open_failed",
+            callback: (eventName: string) => void,
+        ): void;
         unsetEventHandler(eventName: "stream_active", callback: (eventName: string) => void): void;
         unsetEventHandler(eventName: "stream_idle", callback: (eventName: string) => void): void;
-        unsetEventHandler(eventName: "webgl_context_lost", callback: (eventName: string) => void): void;
-        unsetEventHandler(eventName: "websocket_connection_closed", callback: (eventName: string) => void): void;
+        unsetEventHandler(
+            eventName: "webgl_context_lost",
+            callback: (eventName: string) => void,
+        ): void;
+        unsetEventHandler(
+            eventName: "websocket_connection_closed",
+            callback: (eventName: string) => void,
+        ): void;
 
         allowHighDpi: boolean;
         container: Element;
 
         addCuttingSection(cuttingPlanes: Plane3[]): Promise<CuttingSectionKey>;
-        addLight(type: LightType, space: LightSpace, position: Point3, color: Rgb): Promise<LightKey>;
-        advanceVolumeSelection(handle: IncrementalSelectionHandle, batchCapacity: number): Promise<InstanceIncs>;
-        attachModels(attachScope: AttachScope, modelNameWithTransform: [Communicator.ScModelName, Matrix12][], attachMeasurementUnit: number, attachInvisibly: boolean): Promise<void>;
-        attachScsBuffer(attachScope: AttachScope, buffer: Communicator.ScsBuffer, inclusionMatrix: Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean, resolveOnFullyLoaded: boolean): Promise<void>; // Actually returns Promise<ModelIncs>, but I don't want the code to depend on that if possible.
+        addLight(
+            type: LightType,
+            space: LightSpace,
+            position: Point3,
+            color: Rgb,
+        ): Promise<LightKey>;
+        advanceVolumeSelection(
+            handle: IncrementalSelectionHandle,
+            batchCapacity: number,
+        ): Promise<InstanceIncs>;
+        attachModels(
+            attachScope: AttachScope,
+            modelNameWithTransform: [Communicator.ScModelName, Matrix12][],
+            attachMeasurementUnit: number,
+            attachInvisibly: boolean,
+        ): Promise<void>;
+        attachScsBuffer(
+            attachScope: AttachScope,
+            buffer: Communicator.ScsBuffer,
+            inclusionMatrix: Matrix12,
+            attachMeasurementUnit: number,
+            attachInvisibly: boolean,
+            resolveOnFullyLoaded: boolean,
+        ): Promise<void>; // Actually returns Promise<ModelIncs>, but I don't want the code to depend on that if possible.
         feedScsBuffer(attachScope: AttachScope, buffer: Communicator.ScsBuffer | null): void;
-        attachScsModelByKey(attachScope: AttachScope, matrix: Matrix12, modelKey: SC.ModelKey, attachMeasurementUnit: number, attachInvisibly: boolean): InclusionKey;
-        beginConvexPolyhedronSelection(volumePlaneCoeffs: Plane3[], heuristicOrigin: Point3, config: VolumeSelectionConfig): Promise<IncrementalSelectionHandle>;
-        beginRayDrillSelection(rayCssOriginX: number, rayCssOriginY: number, rayCssBoxRadius: number, config: VolumeSelectionConfig): Promise<IncrementalSelectionHandle>;
-        beginScreenAreaSelection(areaCssMinX: number, areaCssMinY: number, areaCssMaxX: number, areaCssMaxY: number, config: VolumeSelectionConfig): Promise<IncrementalSelectionHandle>;
-        beginSphereSelection(sphereCenter: Point3, sphereRadius: number, config: VolumeSelectionConfig): Promise<IncrementalSelectionHandle>;
+        attachScsModelByKey(
+            attachScope: AttachScope,
+            matrix: Matrix12,
+            modelKey: SC.ModelKey,
+            attachMeasurementUnit: number,
+            attachInvisibly: boolean,
+        ): InclusionKey;
+        beginConvexPolyhedronSelection(
+            volumePlaneCoeffs: Plane3[],
+            heuristicOrigin: Point3,
+            config: VolumeSelectionConfig,
+        ): Promise<IncrementalSelectionHandle>;
+        beginRayDrillSelection(
+            rayCssOriginX: number,
+            rayCssOriginY: number,
+            rayCssBoxRadius: number,
+            config: VolumeSelectionConfig,
+        ): Promise<IncrementalSelectionHandle>;
+        beginScreenAreaSelection(
+            areaCssMinX: number,
+            areaCssMinY: number,
+            areaCssMaxX: number,
+            areaCssMaxY: number,
+            config: VolumeSelectionConfig,
+        ): Promise<IncrementalSelectionHandle>;
+        beginSphereSelection(
+            sphereCenter: Point3,
+            sphereRadius: number,
+            config: VolumeSelectionConfig,
+        ): Promise<IncrementalSelectionHandle>;
         clearLights(): void;
         cuttingSectionLimits(): CuttingSectionLimits;
         debug_log(message: string): Promise<void>;
@@ -876,7 +1216,7 @@ declare module SC {
         detachInclusions(inclusionKeys: InclusionKey[]): Promise<void>;
         disableCapping(): void;
         disconnectNetwork(): void;
-        enableCapping(lineMaterialId: MaterialId, faceMaterialId: MaterialId, quantizationGranularity: number): Promise<void>;
+        enableCapping(lineColor: Rgba, faceColor: Rgba, quantizationGranularity: number): void;
         endComparison(): void;
         endVolumeSelection(handle: IncrementalSelectionHandle): void;
         explode(distance: number): void;
@@ -918,8 +1258,16 @@ declare module SC {
         load(configuration: LoadConfig): SessionType;
         markAllMeshInstancesInteresting(interesting: boolean): void;
         markCameraAsEmpty(): void;
-        meshInstanceKeyInfo(modelKeyOrAttachScope: ModelKey | AttachScope, byModel: boolean, keyCountOnly: boolean): Promise<(ModelKey | InstanceKey)[] | [number]>;
-        metaDataKeyInfo(modelKeyOrAttachScope: ModelKey | AttachScope, byModel: boolean, keyCountOnly: boolean): Promise<(ModelKey | DataKey)[] | [number]>;
+        meshInstanceKeyInfo(
+            modelKeyOrAttachScope: ModelKey | AttachScope,
+            byModel: boolean,
+            keyCountOnly: boolean,
+        ): Promise<(ModelKey | InstanceKey)[] | [number]>;
+        metaDataKeyInfo(
+            modelKeyOrAttachScope: ModelKey | AttachScope,
+            byModel: boolean,
+            keyCountOnly: boolean,
+        ): Promise<(ModelKey | DataKey)[] | [number]>;
         modelKeysFromInclusionKeys(inclusionKeys: InclusionKey[]): Promise<ModelKey[]>;
         onResize(): void;
         pauseCapping(): void;
@@ -932,14 +1280,30 @@ declare module SC {
         replaceCuttingSection(cuttingPlanes: Plane3[], key: CuttingSectionKey): Promise<void>;
         requestGroups(groupIds: GroupIds, obtainDependentGroups: boolean): Promise<void>;
         requestImages(imageIds: ImageIds, wantThumbnails: boolean): Promise<void>;
-        requestMaterials(materialIds: MaterialIds): Promise<void>;
-        requestMeshInstances(incs: InstanceIncs, withMeshData: boolean, ignoreFailure: boolean): Promise<void>;
-        requestMeshInstancesByGroup(groupId: GroupIds, withMeshData: boolean, expandGroups: boolean): Promise<void>;
+        requestMeshInstances(
+            incs: InstanceIncs,
+            withMeshData: boolean,
+            ignoreFailure: boolean,
+        ): Promise<void>;
+        requestMeshInstancesByGroup(
+            groupId: GroupIds,
+            withMeshData: boolean,
+            expandGroups: boolean,
+        ): Promise<void>;
         resetExplode(): void;
-        resetToEmpty(whitelistInstances: SC.InstanceKey[], whitelistMeshes: SC.MeshKey[]): Promise<void>;
+        resetToEmpty(
+            whitelistInstances: SC.InstanceKey[],
+            whitelistMeshes: SC.MeshKey[],
+        ): Promise<void>;
         resumeCapping(): void;
         resumeDrawing(): void;
-        screenSelectByRay(elementMask: number, canvasX: number, canvasY: number, maxPixelTolerance: number, config: RaySelectionConfig): Promise<PickResult>;
+        screenSelectByRay(
+            elementMask: number,
+            canvasX: number,
+            canvasY: number,
+            maxPixelTolerance: number,
+            config: RaySelectionConfig,
+        ): Promise<PickResult>;
         serverSideRendering(): boolean;
         setAmbientLightColor(value: Rgb): void;
         setAmbientOcclusionBias(bias: number): void;
@@ -950,7 +1314,7 @@ declare module SC {
         setAmbientOcclusionEnabled(enabled: boolean): void;
         setAmbientOcclusionIntensity(intensity: number): void;
         setAmbientOcclusionNoiseSize(size: number): void;
-        setAmbientOcclusionOpacity(opacity: number): void
+        setAmbientOcclusionOpacity(opacity: number): void;
         setAmbientOcclusionRadius(radius: number): void;
         setAmbientOcclusionSamples(samples: number): void;
         setAntiAliasingMode(antiAliasingMode: AntiAliasingMode): void;
@@ -972,7 +1336,7 @@ declare module SC {
         setComparisonColors(sameColor: Rgb, only1Color: Rgb, only2Color: Rgb): void;
         setCurrentView(view: ViewKey): void;
         setDefaultDepthRange(min: number, max: number): void;
-        setDefaultGloss(gloss: number): void
+        setDefaultGloss(gloss: number): void;
         setDefaultMirror(mirror: number): void;
         setDefaultSpecularMix(mix: number): void;
         setDefaultSphereMap(imageId: ImageId): void;
@@ -1010,12 +1374,21 @@ declare module SC {
         setHighlightedInstanceFilter(highlightedFilter: HighlightFilter): void;
         setHighlightedInstanceOutlineColor(highlightedOutlineColor: Rgba): void;
         setHighlightMode(highlightMode: HighlightMode): void;
+        setImageBasedLightingEnabled(value: boolean): void;
+        setImageBasedLightingEnvironment(data: Uint8Array): void;
+        setImageBasedLightingEnvironmentToDefault(): void;
+        setImageBasedLightingIntensity(value: number): void;
+        setImageBasedLightingMatrix(value: Matrix9): void;
         setInstancingEnabled(value: boolean): void;
         setInteractiveDrawLimitIncreaseEnabled(enable: boolean): void;
         setInteractiveDrawLimitIncreaseInterval(milliseconds: number): void;
         setLightingEnabled(enabled: boolean): void;
         setLinesVisible(visible: boolean): void;
         setMeshLevel(incs: InstanceIncs, level: number): void;
+        setMetallicRoughnessMaterialOverride(
+            defaultMetallicFactor: number,
+            defaultRoughnessFactor: number,
+        ): void;
         setMinDrawLimit(value: number): void;
         setMinFrameRate(value: number): void;
         setMinIncrementalFrameRate(value: number): void;
@@ -1030,7 +1403,11 @@ declare module SC {
         setSilhouetteOpacity(value: number): void;
         setSilhouetteThreshold(value: number): void;
         setSilhouetteThresholdRampWidth(value: number): void;
-        setSimpleReflectionAttenuation(nearDistance: number, farDistance: number, unit: SimpleReflectionAttenuationUnit): void;
+        setSimpleReflectionAttenuation(
+            nearDistance: number,
+            farDistance: number,
+            unit: SimpleReflectionAttenuationUnit,
+        ): void;
         setSimpleReflectionBlurInterval(value: number, unit: BlurIntervalUnit): void;
         setSimpleReflectionBlurSamples(value: number): void;
         setSimpleReflectionEnabled(value: boolean): void;
@@ -1050,7 +1427,7 @@ declare module SC {
         setUnhighlightedColor(color: Rgba): void;
         setUnhighlightedFilter(highlightedFilter: HighlightFilter): void;
         setVisibilityByAttachment(attachScope: AttachScope, setVisibility: SetVisibility): void;
-        setXRayMaterial(group: XRayGroup, element: ElementType, materialId: MaterialId): Promise<void>;
+        setXRayMaterial(group: XRayGroup, element: ElementType, color: Rgba): void;
         setXRayOpacity(element: ElementType, value: number): void;
         setXRayTransparencyMode(value: TransparencyMode): void;
         shutDown(): void;
@@ -1058,7 +1435,10 @@ declare module SC {
         startExplode(incs: InstanceIncs, center: Point3): void;
         suspendDrawing(): void;
         testPointVisibility(points: Vector3[]): Promise<number[]>;
-        throttleLoad(newPauseInterval: Communicator.Milliseconds, throttleDuration: Communicator.Milliseconds): void;
+        throttleLoad(
+            newPauseInterval: Communicator.Milliseconds,
+            throttleDuration: Communicator.Milliseconds,
+        ): void;
         triangulatePolygon(polygonPoints: Float32Array | number[], normal: Vector3): number[];
         truncateMetaData(dataIds: DataIds): Promise<void>;
         unsetAllColors(): void;
@@ -1067,7 +1447,13 @@ declare module SC {
         unsetAllXRay(): void;
         unsetCurrentView(): void;
         unsetXRayMaterial(group: XRayGroup, element: ElementType): Promise<void>;
-        updateLight(key: LightKey, type: LightType, space: LightSpace, position: Point3, color: Rgb): void;
+        updateLight(
+            key: LightKey,
+            type: LightType,
+            space: LightSpace,
+            position: Point3,
+            color: Rgb,
+        ): void;
         waitForImageDecoding(): Promise<void>;
         worldSelectByRay(ray: Ray, config: RaySelectionConfig): Promise<PickResult>;
 
