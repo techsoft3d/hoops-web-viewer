@@ -417,6 +417,8 @@ declare module SC {
         Highlight,
         HiddenLine,
         XRay,
+        Gooch,
+        Toon,
     }
 
     // Mirrors C++ `TC::Web::ElementType`
@@ -601,9 +603,11 @@ declare module SC {
 
     export interface MeshInstanceInterface {
         clearAllElementHighlight(incs: InstanceIncs): void;
+        clearAllElementVisible(incs: InstanceIncs): void;
         clearAllElementXRay(incs: InstanceIncs): void;
         clearElementColors(incs: InstanceIncs, elementType: ElementType): void;
         clearElementHighlight(incs: InstanceIncs, elementType: ElementType): void;
+        clearElementVisible(incs: InstanceIncs, elementType: ElementType): void;
         clearElementXRay(incs: InstanceIncs, elementType: ElementType): void;
         computeMinimalBodyBodyDistance(
             inc1: InstanceInc,
@@ -660,6 +664,11 @@ declare module SC {
             index: number,
         ): Promise<(Rgb | null)[]>;
         getElementHighlighted(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            elementIndex: number,
+        ): Promise<boolean[]>;
+        getElementVisible(
             incs: InstanceIncs,
             elementType: ElementType,
             elementIndex: number,
@@ -724,6 +733,13 @@ declare module SC {
             color: Rgb,
         ): void;
         setElementHighlighted(
+            incs: InstanceIncs,
+            elementType: ElementType,
+            elementIndex: number,
+            elementCount: number,
+            value: boolean,
+        ): void;
+        setElementVisible(
             incs: InstanceIncs,
             elementType: ElementType,
             elementIndex: number,
@@ -1353,6 +1369,10 @@ declare module SC {
         setFaceWindingFlipped(flipped: boolean): void;
         setFixedDrawLimit(value: number): void;
         setFrontFacesVisible(visible: boolean): void;
+        setGoochBaseColorProminence(prominence: number): void;
+        setGoochBlue(blue: number): void;
+        setGoochLuminanceShiftStrength(shiftStrength: number): void;
+        setGoochYellow(yellow: number): void;
         setGroundPlane(normal: Vector3): void;
         setGroundPlaneWithPosition(normal: Vector3, position?: Point3): void;
         setHardEdgeColor(value: Rgb): void;
@@ -1383,6 +1403,10 @@ declare module SC {
         setInteractiveDrawLimitIncreaseEnabled(enable: boolean): void;
         setInteractiveDrawLimitIncreaseInterval(milliseconds: number): void;
         setLightingEnabled(enabled: boolean): void;
+        setLineJitterEnabled(enabled: boolean): void;
+        setLineJitterFrequency(value: number): void;
+        setLineJitterInstanceCount(value: number): void;
+        setLineJitterRadius(value: number): void;
         setLinesVisible(visible: boolean): void;
         setMeshLevel(incs: InstanceIncs, level: number): void;
         setMetallicRoughnessMaterialOverride(
@@ -1423,6 +1447,8 @@ declare module SC {
         setSsrQuality(opts: SsrQualityConfig): void;
         setStreamCutoffScale(value: number): void;
         setStreamIdleMarker(): Promise<void>;
+        setToonBandCount(bandCount: number): void;
+        setToonSpecularFactor(specularFactor: number): void;
         setTransparencyMode(value: TransparencyMode): void;
         setUnhighlightedColor(color: Rgba): void;
         setUnhighlightedFilter(highlightedFilter: HighlightFilter): void;

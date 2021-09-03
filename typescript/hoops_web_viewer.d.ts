@@ -119,7 +119,7 @@ declare namespace Communicator.Animation {
          * */
         constructor(name: string, property: CameraProperty, sampler: Sampler);
         /** @hidden */
-        _getValue(t: number, values: Internal.CameraValues): void;
+        _getValue(t: number, values: BatchedCameraValues): void;
         /** @hidden */
         _gatherForExport(context: Internal.ExportContext): void;
         /** @hidden */
@@ -282,6 +282,7 @@ declare namespace Communicator.Animation {
         /** If loop is set to LoopIndefinitely, the animation will play repeatedly. */
         static readonly LoopIndefinitely = -1;
         private readonly _nodeValues;
+        private readonly _disabledChannels;
         /** The current time in seconds that the animation has been running. */
         private _currentTime;
         /** The time of the last update. */
@@ -305,6 +306,13 @@ declare namespace Communicator.Animation {
         nodeIdOffset: NodeIdOffset;
         /** @hidden Do not use.  Create via Animation.Manager API instead. */
         constructor(_viewer: WebViewer, _animation: Animation);
+        /** Sets the enabled state for a channel in this players animation.
+         * All channels are enabled by default when a player is created.
+         * A channel that has been disabled will not have its value interpolated by the system until it is re-enabled
+         * @param channel a channel from the underlying animation
+         * @param enabled boolean value indicating whether the channel should be enabled.
+         */
+        setChannelEnabled(channel: NodeChannel | CameraChannel, enabled: boolean): void;
         /**
          * Updates internal state of animation player.
          *
@@ -313,10 +321,15 @@ declare namespace Communicator.Animation {
         reload(): void;
         /**
          * Called automatically by the Animation.Manager when it is updating all animations.
+         * @returns True if values were modified.
          * @hidden
-         * */
-        _tick(batch: Internal.BatchedValues): void;
-        /** Updates the animation using the supplied delta time specified in seconds. */
+         */
+        _tick(now: number, batch: BatchedValues): boolean;
+        /**
+         * Updates the animation using the supplied delta time specified in seconds.
+         * @returns True if values were modified.
+         * @hidden
+         */
         private _tickTime;
         /** Starts playing the animation. */
         play(): void;
@@ -329,7 +342,17 @@ declare namespace Communicator.Animation {
          * @param time time in milliseconds
          */
         setTime(time: number): void;
-        private _update;
+        /**
+         * Calculate the values for each channel of the associated [[Animation]]
+         * at the given time.
+         *
+         * @param time The time at which to evaluate the animation.
+         * @param out Storage for the evaluated values. If supplied, this object
+         * will be returned instead of a new [[BatchedValues]] object. This
+         * allows values gathered from multiple players to be combined into one
+         * batch.
+         */
+        evaluate(time: number, out?: BatchedValues): BatchedValues;
         /** Gets the current animation state. */
         getState(): PlayerState;
         /** Gets the current time in seconds that the animation has been playing. */
@@ -841,35 +864,66 @@ declare namespace Communicator.Animation.Internal {
         private _updateMatrixWithOrigin;
         private _updateMatrix;
     }
+}
+declare namespace Communicator.Animation {
     /**
-     * Structure which holds interpolated values for a camera.
-     * */
-    class CameraValues {
-        camera: Camera;
-        position: Point3;
-        target: Point3;
-        up: Point3;
-        width: number;
-        height: number;
-        constructor(camera: Camera);
-        updateCamera(): void;
+     * A structure that holds interpolated animation data for a camera. See
+     * [[BatchedValues]].
+     */
+    class BatchedCameraValues {
+        /** The camera's position, applied with [[Camera.setPosition]]. */
+        position: Point3 | null;
+        /** The camera's target, applied with [[Camera.setTarget]]. */
+        target: Point3 | null;
+        /** The camera's up vector, applied with [[Camera.setUp]]. */
+        up: Point3 | null;
+        /** The camera's field width, applied with [[Camera.setWidth]]. */
+        width: number | null;
+        /** The camera's field height, applied with [[Camera.setHeight]]. */
+        height: number | null;
+        /** Reset this object to its initial state. */
+        clear(): void;
+        /**
+         * Set the stored values on the supplied [[Camera]].
+         * @returns True if the camera was modified.
+         */
+        apply(camera: Camera): boolean;
     }
     /**
-     * This class holds all data that needs to be set for one tick of the animation manager.
-     * Results from all animations are gathered here so that updates can be made with the fewest possible API calls.
-     * This can result in performance benefits for large numbers of animations in SSR Mode.
+     * A structure that holds interpolated animation data for one or more nodes.
+     * See [[BatchedValues]].
+     */
+    class BatchedNodeValues {
+        /** Opacity values to be applied with [[Model.setNodesOpacities]]. */
+        readonly opacities: Map<number, number>;
+        /** Color values to be applied with [[Model.setNodesColors]]. */
+        readonly colors: Map<number, Color>;
+        /** [[NodeId]] values corresponding to the matrix values in [[matrices]]. */
+        matrixNodeIds: NodeId[];
+        /** Matrices to be set on the nodes specified in [[matrixNodeIds]]. */
+        matrices: Matrix[];
+        /** Nodes to be made visible. */
+        visibilityOn: NodeId[];
+        /** Nodes to be made invisible. */
+        visibilityOff: NodeId[];
+        /** Reset this object to its initial state. */
+        clear(): void;
+        /** Set the stored values on the supplied [[WebViewer]]. */
+        apply(viewer: WebViewer): void;
+    }
+    /**
+     * A structure that holds all interpolated data to be applied to the viewer
+     * for one tick of the [[Animation.Manager]]. See [[Player.evaluate]].
      */
     class BatchedValues {
-        private _viewer;
-        readonly opacities: Map<number, number>;
-        readonly colors: Map<number, Color>;
-        matrixNodeIds: NodeId[];
-        matrices: Matrix[];
-        nodesVisibilityOn: NodeId[];
-        nodesVisibilityOff: NodeId[];
-        constructor(_viewer: WebViewer);
+        /** Properties to be set on nodes. */
+        node: BatchedNodeValues;
+        /** Properties to be set on the camera. */
+        camera: BatchedCameraValues;
+        /** Reset this object to its initial state. */
         clear(): void;
-        update(): void;
+        /** Set the stored values on the supplied [[WebViewer]]. */
+        apply(viewer: WebViewer): void;
     }
 }
 declare namespace Communicator {
@@ -3127,7 +3181,11 @@ declare namespace Communicator {
         /** Silhouette edges and obscured lines are rendered */
         HiddenLine = 3,
         /** Selected items are drawn on top, and unselected items are drawn transparent */
-        XRay = 4
+        XRay = 4,
+        /** Shading occurs only in mid-tones so that edge lines and highlights remain visually prominent. */
+        Gooch = 5,
+        /** Conventional smooth lighting values are calculated for each pixel and then quantized to a small number of discrete shades */
+        Toon = 6
     }
     /** Enumerates ways of displaying transparent geometry */
     enum TransparencyMode {
@@ -4044,6 +4102,22 @@ declare namespace Communicator {
         /** For Avatar-Up, the avatar rotation is fixed such that it always points up, and the floorplan will
          *  rotate around it. */
         AvatarUp = 1
+    }
+    /**  Define the IFC relationships type */
+    enum RelationshipType {
+        ContainedInSpatialStructure = 0,
+        Aggregates = 1,
+        VoidsElement = 2,
+        FillsElement = 3,
+        SpaceBoundary = 4,
+        Undefined = 5
+    }
+    /** Type for the relationships ID*/
+    type BimId = string;
+    interface RelationshipInfo {
+        type: RelationshipType;
+        relateds: BimId[];
+        relatings: BimId[];
     }
 }
 /** @hidden */
@@ -6084,7 +6158,7 @@ declare namespace Communicator {
     }
     /**
      * Object representing the model geometry and its associated data.
-     * All major functionality for querying the model hierachy, retrieving geometry data and loading additional model data are part of this object.
+     * All major functionality for querying the model hierarchy, retrieving geometry data and loading additional model data are part of this object.
      *
      * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/data_model/model-tree.html).
      */
@@ -6354,6 +6428,20 @@ declare namespace Communicator {
          */
         setNodeFaceColor(partId: PartId, faceId: number, color: Color): DeprecatedPromise;
         private _setNodeFaceColor;
+        /**
+         * Sets the visibility for a face element. This visibility setting will take precedence over other element visibility settings
+         * @param partId the Id of the part containing the face
+         * @param faceId the Id of the face in the node that will have its visibility set
+         * @param visibility visibility state to be set
+         */
+        setNodeFaceVisibility(partId: PartId, faceId: number, visibility: boolean): void;
+        /**
+         * Clears the visibility for a node's face elements, resetting them to default.
+         * @param partId the Id of the part to be reset
+         */
+        clearNodeFaceVisibility(partId: PartId): void;
+        private _setNodeElementVisibility;
+        private _clearNodeElementVisibility;
         private _unsetElementColor;
         /**
          * Unsets the color for a face element. This will return the face's color to its default state.
@@ -6393,6 +6481,18 @@ declare namespace Communicator {
          */
         unsetNodeLineColor(partId: PartId, lineId: number): DeprecatedPromise;
         /**
+         * Sets the visibility for a line element. This visibility setting will take precedence over other element visibility settings
+         * @param partId the Id of the part containing the line
+         * @param lineId the Id of the line in the node that will have its visibility set
+         * @param visibility visibility state to be set
+         */
+        setNodeLineVisibility(partId: PartId, lineId: number, visibility: boolean): void;
+        /**
+         * Clears the visibility for a node's line elements, resetting them to default.
+         * @param partId the Id of the part to clear visibilities from
+         */
+        clearNodeLineVisibility(partId: PartId): void;
+        /**
          * Sets whether the line element for a given node should appear highlighted. When a line element is highlighted, the highlight color will override any color previously set on the element.
          * @param nodeId the id for the node containing the line element.
          * @param lineId the line Id that is the target of this operation.
@@ -6406,6 +6506,18 @@ declare namespace Communicator {
          * @param lineIndex the index of the line within the node
          */
         getNodeLineHighlighted(nodeId: NodeId, lineIndex: number): Promise<boolean>;
+        /**
+         * Sets the visibility for a point element. This visibility setting will take precedence over other element visibility settings
+         * @param partId the Id of the part containing the point
+         * @param pointId the Id of the point in the node that will have its visibility set
+         * @param visibility visibility state to be set
+         */
+        setNodePointVisibility(partId: PartId, pointId: number, visibility: boolean): void;
+        /**
+         * Clears the visibility for a node's point elements, resetting it to default.
+         * @param partId the Id of the part to clear visibilities from
+         */
+        clearNodePointVisibility(partId: PartId): void;
         /**
          * Sets whether the point element for a given node should appear highlighted. When a point element is highlighted, the highlight color will override any color previously set on the element.
          * @param nodeId the id for the node containing the point element.
@@ -7422,6 +7534,73 @@ declare namespace Communicator {
         isWithinExternalModel(nodeId: NodeId): boolean;
         /** @hidden */
         _firstAssemblyDataHeader(): Internal.Tree.AssemblyDataHeader | null;
+        /**
+         * Retrieves the bim id of the corresponding node id.
+         * @param node the id of the node for which you want its bim id.
+         * @returns the bim id corresponding to the node or null if none.
+         */
+        getBimIdIFromNode(node: NodeId): BimId | null;
+        /**
+         * Retrieves the bim id of the corresponding generic id.
+         * @param ifcGuid the generic id for which you want its bim id.
+         * @returns the bim id corresponding to the ifcGuid or null if none.
+         */
+        getBimIdIFromGenericId(ifcGuid: GenericId): BimId | null;
+        /**
+         * Retrieves the node id of the corresponding bim id.
+         * @param node any known node id of the working model.
+         * @param bimID bim id for which you want its node id.
+         * @returns the node id corresponding to the BimId or null if none.
+         */
+        getNodeIdFromBimId(node: NodeId, bimID: BimId): NodeId | null;
+        /**
+         * Retrieves the generic id of the corresponding bim id.
+         * @param node any known node id of the working model.
+         * @param bimId bim id for which you want its generic id.
+         * @returns the generic id corresponding to the BimId or null if none.
+         */
+        getGenericIdFromBimId(node: NodeId, bimId: BimId): GenericId | null;
+        /**
+         * Retrieves all type of relationships that a bim id has.
+         * @param node any known node id of the working model.
+         * @param bimId bim id for which you want its types of relationships.
+         * @returns array of type of relationship corresponding to the BimId.
+         */
+        getRelationshipTypesFromBimId(node: NodeId, bimId: BimId): RelationshipType[];
+        /**
+         * Retrieve all related relationships that a bim id have.
+         * @param node any known node id of the working model.
+         * @param bimId bim id for which you want its related relationships.
+         * @returns array of bim id which are the related relationship of the BimId.
+         */
+        getBimIdRelatedElements(node: NodeId, bimId: BimId, type: RelationshipType): BimId[];
+        /**
+         * Retrieve all relating relationships that a bim id have.
+         * @param node any known node id of the working model.
+         * @param bimId bim id for which you want its relating relationships.
+         * @returns array of bim id which are the relating relationship of the BimId.
+         */
+        getBimIdRelatingElements(node: NodeId, bimId: BimId, type: RelationshipType): BimId[];
+        /**
+         * Retrieve all relationships that a bim id have, sorted in 2 arrays (relateds and relatings)
+         * @param node any known node id of the working model.
+         * @param bimId bim id for which you want its relationships.
+         * @returns double array of bim id of relationship of the BimId sorted by its relateds and its relatings.
+         */
+        getBimIdConnectedElements(node: NodeId, bimId: BimId, type: RelationshipType): {
+            relateds: BimId[];
+            relatings: BimId[];
+        };
+        /**
+         * Retrieve the name of the bim element
+         * @param bimId bim id for which you want the bim element name.
+         * @param node any known node id of the working model.
+         * @returns the name and the info regarding the connection to a node of the bim element.
+         */
+        getBimInfoFromBimId(node: NodeId, bimId: BimId): {
+            name: string;
+            connected: boolean;
+        };
     }
 }
 declare namespace Communicator {
@@ -7814,6 +7993,8 @@ declare namespace Communicator {
      */
     class PickConfig {
         constructor(selectionMask?: SelectionMask);
+        /** Returns a copy of this [[PickConfig]]. */
+        copy(): PickConfig;
         allowFaces: boolean;
         allowLines: boolean;
         allowPoints: boolean;
@@ -8130,6 +8311,8 @@ declare namespace Communicator.Internal {
         getEffectiveElementColor(incs: SC.InstanceIncs, elementType: ElementType, elementOffset: number): Promise<Color[]>;
         synchronizeVisibilities(incs: SC.InstanceIncs, visible: boolean): void;
         setPartVisibility(incs: SC.InstanceIncs, visible: boolean, onlyDemanded: boolean): void;
+        setElementVisibility(incs: SC.InstanceIncs, elementType: ElementType, elementOffset: number, elementCount: number, visible: boolean): void;
+        clearElementVisibility(incs: SC.InstanceIncs, elementType: ElementType): void;
         setVisibilityByAttachment(attachScope: SC.AttachScope, setVisibility: SC.SetVisibility): void;
         requestMeshInstances(incs: SC.InstanceIncs): void;
         getRendererType(): RendererType;
@@ -8213,6 +8396,12 @@ declare namespace Communicator.Internal {
         setXRayOpacity(value: number, element?: ElementType): void;
         private _xRayTransparencyMode;
         setXRayTransparencyMode(value: XRayTransparencyMode): void;
+        setGoochBlue(value: number): void;
+        setGoochBaseColorProminence(value: number): void;
+        setGoochYellow(value: number): void;
+        setGoochLuminanceShiftStrength(value: number): void;
+        setToonShadingBandCount(bandCount: number): void;
+        setToonShadingSpecularFactor(specularFactor: number): void;
         private _transparencyMode;
         setTransparencyMode(value: TransparencyMode): void;
         private _toPointSizeUnit;
@@ -8308,6 +8497,10 @@ declare namespace Communicator.Internal {
         setImageBasedLightingMatrix(value: Matrix): void;
         setImageBasedLightingEnvironment(data: Uint8Array): void;
         setImageBasedLightingEnvironmentToDefault(): void;
+        setLineJitterEnabled(value: boolean): void;
+        setLineJitterInstanceCount(value: number): void;
+        setLineJitterRadius(value: number): void;
+        setLineJitterFrequency(value: number): void;
     }
 }
 /**
@@ -8424,6 +8617,13 @@ declare namespace Communicator.Selection {
          */
         getPosition(): Point3;
         getPoints(): Point3[];
+        /**
+         * Returns the vertex of the line that is closest to the selection
+         * point.
+         *
+         * Clipped vertices are skipped. If the vertex is occluded, then
+         * `null` is returned.
+         */
         getBestVertex(): Point3 | null;
         /**
          * Gets the kine bits for the selection Point.
@@ -8593,7 +8793,7 @@ declare namespace Communicator.Selection {
          */
         equals(selectionItem: SelectionItem): boolean;
         /** @hidden */
-        _hash(): string;
+        _hash(singleEntityToggleMode: boolean): string;
         /**
          * @returns true if the object has the fields required for an [[EntitySelectionItem]].
          * This function can be used as a TypeScript [type guard](https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards).
@@ -8688,10 +8888,12 @@ declare namespace Communicator.Internal {
     function projectOnto(source: Point3, target: Point3): Point3;
     function majorAxis(p: Point3): Point3 | null;
     function deepClone<T>(obj: T): T;
+    function copyOwnProperties<T>(from: T, to: T): void;
     function getWithDefault<T>(maybeValue: T | undefined, defaultValue: T): T;
     type VersionNumber = number[];
     function versionAtLeast(version: VersionNumber, atLeast: VersionNumber): boolean;
     function versionString(version: VersionNumber): string;
+    function getCrypto(): Crypto;
 }
 declare namespace Communicator {
     type SelectionFilter = (nodeId: NodeId, model: Model) => NodeId | null;
@@ -8724,6 +8926,8 @@ declare namespace Communicator {
         private _highlightPointElementSelection;
         private _selectParentIfSelected;
         private _pruneSelectionDescendants;
+        private _ignoreEntityWhenTogglingChildSelection;
+        private _singleEntityToggleMode;
         private _selectionFilter;
         static ifcSelectionFilter: (nodeId: number, model: Model) => number | null;
         /** @hidden */
@@ -8745,23 +8949,55 @@ declare namespace Communicator {
          */
         getSelectionFilter(): SelectionFilter | null;
         /**
-         * Sets the selection mode and clears the selection set.
-         * @param pruneSelectionDescendants when true, a parent and a child will not both be allowed in the selection set.
+         * Enables / disables descendant pruning and clears the current selection set.  When enabled, a parent and child will not be present in the same selection set.  This behavior is enabled by default.
          */
         setPruneSelectionDescendants(pruneSelectionDescendants: boolean): void;
         /**
-         * @returns boolean value indicating the selection filter mode.
+         * Gets whether descendant pruning is enabled.
+         * See also: [[setPruneSelectionDescendants]]
          */
         getPruneSelectionDescendants(): boolean;
         /**
-         * Sets the selection mode.
-         * @param selectParent when true, if a part is already selected, it's parent will be selected.
+         * Enables / disables automatic parent selection.  When enabled, if a selected part is selected again, its parent will be selected.  This behavior is enabled by default.
          */
         setSelectParentIfSelected(selectParent: boolean): void;
         /**
-         * @returns boolean value indicating the selection mode. If true, if a part is already selected, it's parent will be selected.
+         * Gets whether automatic parent selection is enabled.
+         * See also: [[setSelectParentIfSelected]]
          */
         getSelectParentIfSelected(): boolean;
+        /**
+         * Enables / disables ignore entity when toggling child selection mode.
+         *
+         * When enabled, a [[Selection.NodeSelectionItem]] that has a selected ancestor may only be toggled if it does not contain an entity selection.
+         * A selection item without an entity selection is usually generated from selecting a node via a model tree control.
+         * A selection item containing an entity selection is usually generated as a result of a viewport picking operation.
+         *
+         * This behavior is enabled by default.
+         * See Also: [[toggle]]
+         */
+        setIgnoreEntityWhenTogglingChildSelection(strictMode: boolean): void;
+        /**
+         * Gets whether ignore entity when toggling child selection mode is enabled.
+         * See also: [[setIgnoreEntityWhenTogglingChildSelection]]
+         */
+        getIgnoreEntityWhenTogglingChildSelection(): boolean;
+        /**
+         * Enables / disables single entity toggle mode.
+         *
+         * When enabled, limits the selection set to containing only one entity selection for each node id.
+         * Toggling with an entity selection that has the same node id as a [[Selection.NodeSelectionItem]]
+         * already in the selection set will remove that item from the selection set.
+         *
+         * This behavior is disabled by default.
+         * See Also: [[toggle]]
+         */
+        setSingleEntityToggleModeEnabled(enabled: boolean): void;
+        /**
+         * Gets whether single entity toggle mode is enabled.
+         * See also: [[setSingleEntityToggleModeEnabled]]
+         */
+        getSingleEntityToggleModeEnabled(): boolean;
         /**
          * Performs a selection operation from the given position on the canvas. The best candidate entity is selected.
          * This method triggers a selection event.
@@ -8802,8 +9038,8 @@ declare namespace Communicator {
         private _onSelectionItems;
         /**
          * Creates a new and active selection context for the provided selection window.
-         * @param areaCssMin The minimum coodinate in css pixel space for the selection window.
-         * @param areaCssMax The maximum coodinate in css pixel space for the selection window.
+         * @param areaCssMin The minimum coordinate in css pixel space for the selection window.
+         * @param areaCssMax The maximum coordinate in css pixel space for the selection window.
          * @param config The configuration object used for this selection operation.
          * @returns The handle for the selection context.
          */
@@ -8813,7 +9049,7 @@ declare namespace Communicator {
          * The ray is created at the supplied ray origin and is cast into the scene.
          * Faces are selected if they lie along the ray.
          * Lines and points are selected if they lie within the ray's box radius.
-         * @param rayCssOrigin The coodinate in css pixel space for the selection ray's origin.
+         * @param rayCssOrigin The coordinate in css pixel space for the selection ray's origin.
          * @param rayCssBoxRadius The radius around the ray in css pixel space used for line and point selection proximity.
          * @param config The configuration object used for this selection operation.
          * @returns The handle for the selection context.
@@ -8901,7 +9137,7 @@ declare namespace Communicator {
         /**
          * Manually adds an item or array of items to the selection set.
          * Triggers a selection event.
-         * @param itemOrItems A selectionItem or selectionItem array that will be added to the current seleciton set.
+         * @param itemOrItems A selectionItem or selectionItem array that will be added to the current selection set.
          */
         add(itemOrItems: Selection.NodeSelectionItem | Selection.NodeSelectionItem[] | null): void;
         private _filterItem;
@@ -8919,6 +9155,7 @@ declare namespace Communicator {
         remove(itemOrItems: Selection.NodeSelectionItem | Selection.NodeSelectionItem[]): void;
         /** hidden */
         private _removeImpl;
+        private static _selectionItemIsFromModelBrowser;
         /**
          * Manually adds or removes an item from the selection set.
          * Triggers a selection event.
@@ -9086,12 +9323,16 @@ declare namespace Communicator {
         /**
          * Sets the pick tolerance in pixels for line and point picking.
          * If a line or point is within this pixel tolerance of the click point,
-         * it will be prioritized over the face at the click position
+         * it will be prioritized over the face at the click position.
+         *
+         * The default value is 20.
          * @param Pick Tolerance value in pixels
          */
         setPickTolerance(tolerance: number): void;
         /**
          * Gets the pick tolerance in pixels for line and point picking.
+         *
+         * The default value is 20.
          * @returns number Pick tolerance value in pixels
          */
         getPickTolerance(): number;
@@ -9921,8 +10162,7 @@ declare namespace Communicator {
 declare namespace Communicator.UUID {
     /**
      * This function returns a RFC4122 compliant UUID string.
-     * It is important to note that strings generated by this function use the Math.random() function and are not of highest cryptographic quality.
-     * This function is provided as a convenience only.  If you need more secure identifiers, they should be generated with a fully conformant UUID package.
+     * This function is provided as a convenience only.  If you need secure identifiers, they should be generated with a fully conforming UUID package.
      */
     function create(): Uuid;
 }
@@ -9962,6 +10202,12 @@ declare namespace Communicator {
         private _bloomThresholdRampWidth;
         private _bloomIntensityScale;
         private _bloomLayers;
+        private _goochBlue;
+        private _goochYellow;
+        private _goochBaseColorProminence;
+        private _goochLuminanceShiftStrength;
+        private _toonBandCount;
+        private _toonSpecularFactor;
         private _groundPlane;
         private _simpleShadowEnabled;
         private _simpleShadowColor;
@@ -9989,6 +10235,10 @@ declare namespace Communicator {
         private _imageBasedLightingEnabled;
         private _imageBasedLightingIntensity;
         private _imageBasedLightingOrientation;
+        private _lineJitterEnabled;
+        private _lineJitterInstanceCount;
+        private _lineJitterRadius;
+        private _lineJitterFrequency;
         private readonly _determineInitialAxes;
         private readonly _hiddenLineSettings;
         private _projectionMode;
@@ -10401,6 +10651,59 @@ declare namespace Communicator {
          * If unspecified, [[XRayGroup.Selected]] will be used.
          */
         unsetXRayColor(element: ElementType, group?: XRayGroup): Promise<void>;
+        /**
+         * Sets the value to use as the blue tone in Gooch shading.
+         * @param blue the blue tone.  This value should be in the range [0,1]
+         */
+        setGoochBlue(blue: number): void;
+        /**
+         * Gets the value to use as the blue tone in Gooch shading.
+         */
+        getGoochBlue(): number;
+        /**
+         * Sets the prominence of the object's base color in Gooch shading.
+         * @param prominence this scalar value determines the amount of the object's base color is applied to the final shaded color.
+         */
+        setGoochBaseColorProminence(prominence: number): void;
+        /**
+         * Gets the prominence of the object's base color in Gooch shading.
+         */
+        getGoochBaseColorProminence(): number;
+        /**
+         * Sets the value to use as the yellow tone in Gooch shading.
+         * @param yellow the yellow tone. This value should be in the range [0,1]
+         *
+         */
+        setGoochYellow(yellow: number): void;
+        /**
+         * Gets the value to use as the yellow tone in Gooch shading.
+         */
+        getGoochYellow(): number;
+        /**
+         * Sets the number of discrete shading bands that will be used when toon shading is enabled.  Each band represents a shade between dark and light which will control the final color of the pixel based on its light intensity.  The default band count is 3.
+         */
+        setToonShadingBandCount(bandCount: number): void;
+        /**
+         * Gets the current number of discrete shading bands that will be used when toon shading is enabled.
+         */
+        getToonShadingBandCount(): number;
+        /**
+         * Sets a scale factor which controls the size of specular highlights when toon shading is enabled.  The default value is 1.0.
+         */
+        setToonShadingSpecularFactor(specularFactor: number): void;
+        /**
+         * Gets the current toon shading specular scale factor.
+         */
+        getToonShadingSpecularFactor(): number;
+        /**
+         * Sets the strength of the luminance shift in Gooch shading.
+         * @param shiftStrength this scalar values determines the amount of luminance shift that is applied to the object's base color
+         */
+        setGoochLuminanceShiftStrength(shiftStrength: number): void;
+        /**
+         * Gets the strength of the luminance shift in Gooch shading.
+         */
+        getGoochLuminanceShiftStrength(): number;
         /**
          * Sets the diameter of rendered points. (default: 1, ScreenPixels) See [[PointSizeUnit]].
          */
@@ -11351,6 +11654,109 @@ declare namespace Communicator {
          * ```
          */
         setImageBasedLightingEnvironment(data: Uint8Array | null): void;
+        /**
+         * Sets whether line jitter is enabled.
+         *
+         * Line jitter makes lines look 'sketchy' by drawing them multiple times
+         * with randomized offsets applied to the vertices.
+         *
+         * See also:
+         * - [[getLineJitterEnabled]]
+         * - [[setLineJitterInstanceCount]]
+         * - [[setLineJitterRadius]]
+         * - [[setLineJitterFrequency]]
+         */
+        setLineJitterEnabled(value?: boolean): void;
+        /**
+         * Returns whether line jitter is enabled.
+         *
+         * Line jitter makes lines look 'sketchy' by drawing them multiple times
+         * with randomized offsets applied to the vertices.
+         *
+         * See also:
+         * - [[setLineJitterEnabled]]
+         * - [[getLineJitterInstanceCount]]
+         * - [[getLineJitterRadius]]
+         * - [[getLineJitterFrequency]]
+         */
+        getLineJitterEnabled(): boolean;
+        /**
+         * Sets the number of times lines are drawn when line jitter is enabled.
+         * The default value is 4.
+         *
+         * Increasing this number can make the lines look more 'sketchy.'
+         *
+         * See also:
+         * - [[setLineJitterEnabled]]
+         * - [[getLineJitterInstanceCount]]
+         * - [[setLineJitterRadius]]
+         * - [[setLineJitterFrequency]]
+         */
+        setLineJitterInstanceCount(value: number): void;
+        /**
+         * Returns the number of times lines are drawn when line jitter is
+         * enabled. The default value is 4.
+         *
+         * See also:
+         * - [[getLineJitterEnabled]]
+         * - [[setLineJitterInstanceCount]]
+         * - [[getLineJitterRadius]]
+         * - [[getLineJitterFrequency]]
+         */
+        getLineJitterInstanceCount(): number;
+        /**
+         * Sets the radius of the random offset applied to line vertices when
+         * line jitter is enabled. The default value is 0.005.
+         *
+         * The value is specified as a proportion of the canvas height, where 1
+         * means the full height of the canvas.
+         *
+         * See also:
+         * - [[setLineJitterEnabled]]
+         * - [[setLineJitterInstanceCount]]
+         * - [[getLineJitterRadius]]
+         * - [[setLineJitterFrequency]]
+         */
+        setLineJitterRadius(value: number): void;
+        /**
+         * Returns the radius of the random offset applied to line vertices when
+         * line jitter is enabled. The default value is 0.005.
+         *
+         * The value is specified as a proportion of the canvas height, where 1
+         * means the full height of the canvas.
+         *
+         * See also:
+         * - [[getLineJitterEnabled]]
+         * - [[getLineJitterInstanceCount]]
+         * - [[setLineJitterRadius]]
+         * - [[getLineJitterFrequency]]
+         */
+        getLineJitterRadius(): number;
+        /**
+         * Sets the frequency of the noise used to offset line vertices when
+         * line jitter is enabled. The default value is 5.
+         *
+         * Decreasing this value causes lines to appear smoother, while
+         * increasing it causes lines to look more noisy.
+         *
+         * See also:
+         * - [[setLineJitterEnabled]]
+         * - [[setLineJitterInstanceCount]]
+         * - [[setLineJitterRadius]]
+         * - [[getLineJitterFrequency]]
+         */
+        setLineJitterFrequency(value: number): void;
+        /**
+         * Returns the frequency of the noise used to offset line vertices when
+         * line jitter is enabled. The default value is 5.
+         *
+         * See also:
+         * - [[getLineJitterEnabled]]
+         * - [[getLineJitterInstanceCount]]
+         * - [[getLineJitterRadius]]
+         * - [[setLineJitterFrequency]]
+         */
+        getLineJitterFrequency(): number;
     }
 }
 declare namespace Communicator.Internal.Tree {
@@ -12679,6 +13085,7 @@ declare namespace Communicator.Internal.Tree {
     }
 }
 declare namespace Communicator.Internal.Tree {
+    type LoadId = number;
     interface AssemblyTreeConfig {
         readonly disableAutomaticFitWorld: boolean;
         readonly markImplicitNodesOutOfHierarchy: boolean;
@@ -12793,14 +13200,15 @@ declare namespace Communicator.Internal.Tree {
         getActiveCadConfiguration(): ProductOccurrence | null;
         activateCadConfiguration(node: ProductOccurrence): Promise<void>;
         massageAuthoredUserId(inclusionContext: InclusionContext, authoredId: AuthoredNodeId | null): AuthoredNodeId | DynamicNodeId;
-        createNode(parent: ProductOccurrence, nodeName: string, authoredId: AuthoredNodeId | null, localMatrix: Matrix | null, visibility: boolean, measurementUnit?: number | null): ProductOccurrence;
+        createNode(parent: ProductOccurrence, nodeName: string, authoredId: AuthoredNodeId | null, localMatrix: SC.Matrix16 | null, visibility: boolean, measurementUnit?: number | null): ProductOccurrence;
         createPart(authoredNodeId: AuthoredNodeId | null): PartDefinition;
         setPart(referrer: ProductOccurrence, partDef: PartDefinition): void;
         private _createCadView;
         private _createCadViewInstance;
-        createCadView(engine: AbstractScEngine, parent: CadViewParent, name: string, camera: Camera, pmis: Pmi[], productOccurrencesToShow: RuntimeNodeId[], productOccurrencesToHide: RuntimeNodeId[], transformMap: Map<RuntimeNodeId, Matrix>, cuttingPlane: Plane | null, meshInstanceData: MeshInstanceData | null): CadView;
+        createCadView(engine: AbstractScEngine, parent: CadViewParent, name: string, camera: Camera, pmis: Pmi[], productOccurrencesToShow: RuntimeNodeId[], productOccurrencesToHide: RuntimeNodeId[], transformMap: Map<RuntimeNodeId, SC.Matrix16>, cuttingPlane: Plane | null, meshInstanceData: MeshInstanceData | null): CadView;
         createMeshInstance(markLoaded: boolean, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, preventFromResetting: boolean, isOutOfHierarchy: boolean): BodyInstance;
         createPmiInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, pmiType: PmiType, pmiSubType: PmiSubType, topoRefs: ReferenceOnTopology[]): Pmi;
+        getRelationshipsOfItem(contextNodeId: RuntimeNodeId, node: BimId): Map<RelationshipType, BimRelationship>;
         getAutomaticMeasurementUnitScaling(): boolean;
         setAutomaticMeasurementUnitScaling(value: boolean): void;
         getInitiallyHiddenStayHidden(): boolean;
@@ -12822,8 +13230,8 @@ declare namespace Communicator.Internal.Tree {
         requestNodes(treeLoader: TreeLoader, nodes: AnyTreeNode[], isImplicitlyRequested: boolean): Promise<void>;
         isBeingRequested(startNode: AnyTreeNode | AnyTreeContext): boolean;
         onDemandRequestsActive(): boolean;
-        onLoadBegin(): void;
-        onLoadEnd(): void;
+        onLoadBegin(): LoadId;
+        onLoadEnd(loadId: number): void;
         markSeenExternalModel(): void;
         seenExternalModel(): boolean;
         getNodeByGenericId(genericId: GenericId): AnyTreeNode | null;
@@ -12882,8 +13290,8 @@ declare namespace Communicator.Internal.Tree {
         private _isMeasurable;
         private _automaticMeasurementUnitScaling;
         private _initiallyHiddenStayHidden;
-        private _activeLoadTimestamp;
-        private _completedLoadTimestamp;
+        private _nextLoadId;
+        private _activeLoadIds;
         private _requestedNodes;
         private _unnamedProductCount;
         private _unnamedGroupCount;
@@ -12985,7 +13393,7 @@ declare namespace Communicator.Internal.Tree {
         setMatrix(nodeId: RuntimeNodeId, matrix: Matrix, setAsInitial: boolean): Promise<void>;
         setMatrices(nodeIds: RuntimeNodeId[], matrices: Matrix[], setAsInitial: boolean): Promise<void>;
         resetToInitialMatrix(nodeId: RuntimeNodeId): Promise<void>;
-        getNetMatrix(nodeId: RuntimeNodeId): Matrix;
+        getNetMatrix(nodeId: RuntimeNodeId): SC.Matrix16;
         private _getBodyInstanceIndexFrom;
         getNodeOrRepItem(node: AnyNode): Promise<ProductOccurrence | Pmi | CadView | PartDefinition | RepresentationItem | null>;
         private _getNodeOrRepItemFromId;
@@ -13106,8 +13514,20 @@ declare namespace Communicator.Internal.Tree {
         hasEffectiveGenericType(nodeId: NodeId, genericType: GenericType): boolean;
         registerGenericId(node: AnyTreeNode, genericId: GenericId): void;
         registerGenericType(node: AnyTreeNode, genericType: GenericType): void;
+        hasRelationships(nodeId: RuntimeNodeId): boolean;
+        getBimIdFromNode(nodeId: RuntimeNodeId): BimId | null;
+        getRuntimeNodeFromBimId(contextNodeId: RuntimeNodeId, bimId: BimId): RuntimeNodeId | null;
+        getRelationsByTypeFromNode(contextNodeId: RuntimeNodeId, nodeId: BimId): Map<RelationshipType, BimRelationship> | null;
         firstAssemblyDataHeader(): AssemblyDataHeader | null;
         setPrefetchScsCutoffScale(prefetchCutoffScale: number): void;
+        getAllRelationships(nodeId: RuntimeNodeId): Relationship[];
+        private getAllBimInfos;
+        getInfoOfBimId(nodeID: RuntimeNodeId, bimId: BimId): {
+            name: string;
+            connected: boolean;
+        };
+        private indexOfBimInfo;
+        getBimIdRelationshipTypes(contextNodeId: RuntimeNodeId, nodeId: BimId): RelationshipInfo[];
         protected readonly __ModelStructure: PhantomMember;
         private readonly _engine;
         private readonly _callbackManager;
@@ -13123,7 +13543,7 @@ declare namespace Communicator.Internal.Tree {
     }
 }
 declare namespace Communicator.Internal.Tree {
-    function getNetMatrix(startNode: AnyNode | AnyTreeContext): Matrix;
+    function getNetMatrix(startNode: AnyNode | AnyTreeContext): SC.Matrix16;
     /**
      * Retrieves the nearest `AnyTreeContext` to the input object by walking upward.
      * If the input object is already an `AnyTreeContext`, it is immediately returned instead.
@@ -13243,12 +13663,21 @@ declare namespace Communicator.Internal.Tree {
         purgeContents(): Promise<void>;
         hasChildren(): boolean;
         isLoaded(): boolean;
+        addRelationship(relationship: Relationship): void;
+        getRelationships(): Relationship[];
+        addBimInfos(bimInfo: BimObject): void;
+        getBimInfos(): BimObject[];
+        addBimIdToMap(bimId: BimId, runtimeId: RuntimeNodeId): void;
+        getRuntimeNodeFromBimId(bimId: BimId): RuntimeNodeId | null;
         protected readonly __InclusionContext: PhantomMember;
         private readonly _attachContext;
         private readonly _inclusionKey;
         private readonly _modelKey;
         private readonly _nodeIdOffset;
         private _productOccurrences;
+        private readonly _relationship;
+        private _bimNodeIdMap;
+        private _bimInfos;
     }
 }
 declare namespace Communicator.Internal.Tree {
@@ -13387,7 +13816,8 @@ declare namespace Communicator.Internal.Tree {
         GenericTypeId = 16,
         GenericId = 32,
         DoublePrecisionMatrices = 64,
-        PointAttributes = 128
+        PointAttributes = 128,
+        Relationships = 256
     }
     class NodeParseBits {
         hasBits1(bits: NodeParseBits1): boolean;
@@ -13433,6 +13863,11 @@ declare namespace Communicator.Internal.Tree {
     const enum AttributeParseBits {
         ValueName = 1
     }
+    const enum RelationshipParseBits {
+        Type = 1,
+        Related = 2,
+        Relating = 4
+    }
     class AssemblyVisibility {
         constructor(shown: boolean, removed: boolean);
         readonly shown: boolean;
@@ -13460,7 +13895,7 @@ declare namespace Communicator.Internal.Tree {
         parseMeshKey(): SC.MeshKey;
         parseModelKey(remapper: ScKeyRemapper | null): SC.ModelKey;
         parseInclusionKey(remapper: ScKeyRemapper | null, effectiveModelKey: SC.ModelKey | SC.MasterModelKey): SC.InclusionKey;
-        parseMatrix(): Matrix;
+        parseMatrix(): SC.Matrix16;
         private _parseInt_8;
         private _parseUint_8;
         private _parseUint_32;
@@ -13474,6 +13909,7 @@ declare namespace Communicator.Internal.Tree {
         parsePmiParseBits(): PmiParseBits;
         parseLayerParseBits(): LayerParseBits;
         parseAttributeParseBits(): AttributeParseBits;
+        parseRelationshipParseBits(): RelationshipParseBits;
         parseBoolean(): boolean;
         parsePoint3_32(): Point3;
         parsePoint3_64(): Point3;
@@ -13825,7 +14261,7 @@ declare namespace Communicator.Internal.Tree {
         readonly nodeId: AuthoredNodeId | DynamicNodeId;
         readonly bits: NodeBits;
         readonly name: string | null;
-        readonly localTransform: Matrix | null;
+        readonly localTransform: SC.Matrix16 | null;
         readonly attributes: SC.DataKey | Attribute[];
         readonly header: AssemblyDataHeader | null;
         readonly exchangeId: ExchangeId | null;
@@ -13837,13 +14273,13 @@ declare namespace Communicator.Internal.Tree {
     /**
      * A context is much like a node in that both live in the assembly tree.
      *
-     * The difference is that (non-context) nodes are publically known from a consumer API standpoint.
+     * The difference is that (non-context) nodes are publicly known from a consumer API standpoint.
      *
      * Contexts on the other hand, are internal to the tree's implementation. They exist to inject data into
      * the tree, where nodes can be walked up to the nearest context (by type) to retrieve essential data tied
      * to that node.
      *
-     * Since contexts are not publically known, they are transparently walked through when encountered.
+     * Since contexts are not publicly known, they are transparently walked through when encountered.
      *
      * For example, when retrieving the children of node N1 below, we get both N2 and N4 as a result instead of only N2.
      * (N1, N2, N3, N4 are nodes, and C1 is a context.)
@@ -13916,11 +14352,11 @@ declare namespace Communicator.Internal.Tree {
         protected _setVisibility(visible: boolean): void;
         isVisible(): boolean;
         isInitiallyShown(): boolean;
-        setLocalTransformAsInitial(matrix: Matrix): void;
-        overrideLocalTransform(matrix: Matrix): void;
+        setLocalTransformAsInitial(matrix: SC.Matrix16): void;
+        overrideLocalTransform(matrix: SC.Matrix16): void;
         hasLocalTransformOverride(): boolean;
         removeLocalTransformOverride(): void;
-        getLocalTransform(): Matrix | null;
+        getLocalTransform(): SC.Matrix16 | null;
         getAttributes(): Promise<Attribute[]>;
         addAttribute(attr: Attribute): void;
         getUserDataIndices(): UserDataIndex[];
@@ -13971,11 +14407,10 @@ declare namespace Communicator.Internal.Tree {
         isRequested(): boolean;
         isOutOfHierarchy(): boolean;
         preventFromResetting(): boolean;
-        getInstanceInc(): SC.InstanceInc;
         getParent(): Parent;
         protected readonly __BodyMixin: PhantomMember;
         private readonly _parent;
-        private readonly _instanceInc;
+        protected readonly _instanceKey: SC.InstanceKey;
     }
     class BodyInstance extends BodyMixin<BodyInstanceParent> {
         static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionKey: SC.InclusionKey): BodyInstanceInfo;
@@ -13984,6 +14419,7 @@ declare namespace Communicator.Internal.Tree {
         static createDynamic(assemblyTree: AssemblyTree, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, bits: AnyBodyBits): BodyInstance;
         private constructor();
         getName(): string;
+        getInstanceInc(): SC.InstanceInc;
         setVisibility(visible: boolean): void;
         getRuntimeId(): RuntimeNodeId;
         protected readonly __BodyInstance: PhantomMember;
@@ -13993,6 +14429,7 @@ declare namespace Communicator.Internal.Tree {
         static reify(assemblyTree: AssemblyTree, masterModelKey: SC.MasterModelKey, parent: PmiBodyParent, info: PmiBodyInfo): PmiBody;
         private constructor();
         getName(): string;
+        getInstanceInc(): SC.InstanceInc;
         setVisibility(visible: boolean): void;
         getRuntimeId(): RuntimeNodeId;
         protected readonly __PmiBody: PhantomMember;
@@ -14003,6 +14440,7 @@ declare namespace Communicator.Internal.Tree {
         static reify(assemblyTree: AssemblyTree, masterModelKey: SC.MasterModelKey, parent: ViewFrameParent, info: ViewFrameInfo): ViewFrame;
         private constructor();
         getName(): string;
+        getInstanceInc(): SC.InstanceInc;
         setVisibility(visible: boolean): void;
         getRuntimeId(): RuntimeNodeId;
         protected readonly __ViewFrame: PhantomMember;
@@ -14028,7 +14466,7 @@ declare namespace Communicator.Internal.Tree {
         readonly viewFrameInfo: ViewFrameInfo | null;
         readonly nodesToShow: Id[];
         readonly nodesToHide: Id[];
-        readonly transformMap: Map<Id, Matrix>;
+        readonly transformMap: Map<Id, SC.Matrix16>;
         readonly cuttingPlanes: Plane[];
         readonly bits: CadViewBits;
     }
@@ -14037,7 +14475,7 @@ declare namespace Communicator.Internal.Tree {
         static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionContext: InclusionContext): CadViewInfo<AuthoredNodeId>;
         static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser): CadViewInfo<AuthoredNodeId>;
         static reify(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, info: CadViewInfo<AuthoredNodeId>, parent: CadViewParent): CadView;
-        static createDynamic(assemblyTree: AssemblyTree, parent: CadViewParent, name: string, camera: Camera, pmis: Pmi[], productOccurrencesToShow: RuntimeNodeId[], productOccurrencesToHide: RuntimeNodeId[], transformMap: Map<RuntimeNodeId, Matrix>, cuttingPlane: Plane | null): CadView;
+        static createDynamic(assemblyTree: AssemblyTree, parent: CadViewParent, name: string, camera: Camera, pmis: Pmi[], productOccurrencesToShow: RuntimeNodeId[], productOccurrencesToHide: RuntimeNodeId[], transformMap: Map<RuntimeNodeId, SC.Matrix16>, cuttingPlane: Plane | null): CadView;
         private static isAuthoredViewInfo;
         private constructor();
         private static _toRuntimeIds;
@@ -14239,6 +14677,8 @@ declare namespace Communicator.Internal.Tree {
         readonly simpleMaterial: SimpleMaterial | null;
         readonly layerInfos: LayerInfo[];
         readonly filters: Filter[];
+        readonly relationships: Relationship[];
+        readonly bimInfos: BimObject[];
     }
     type ProductOccurrenceParent = ProductOccurrence | InclusionContext | PrototypeContext;
     class ProductOccurrence extends NodeMixin<ProductBits> {
@@ -14253,7 +14693,7 @@ declare namespace Communicator.Internal.Tree {
          */
         static reifySync(config: LoadSubtreeConfig, treeLoader: TreeLoader, assemblyTree: AssemblyTree, inclusionContext: InclusionContext, info: ProductOccurrenceInfo, parent: ProductOccurrenceParent): ProductOccurrence;
         static reify(config: LoadSubtreeConfig, treeLoader: TreeLoader, assemblyTree: AssemblyTree, inclusionContext: InclusionContext, info: ProductOccurrenceInfo, parent: ProductOccurrenceParent): Promise<ProductOccurrence>;
-        static createDynamic(assemblyTree: AssemblyTree, parent: ProductOccurrenceParent, name: string | null, authoredId: AuthoredNodeId | null, localTransform: Matrix | null, visible: boolean, outOfHierarchy?: boolean, measurementUnit?: number | null): ProductOccurrence;
+        static createDynamic(assemblyTree: AssemblyTree, parent: ProductOccurrenceParent, name: string | null, authoredId: AuthoredNodeId | null, localTransform: SC.Matrix16 | null, visible: boolean, outOfHierarchy?: boolean, measurementUnit?: number | null): ProductOccurrence;
         static createMissing(assemblyTree: AssemblyTree, parent: ProductOccurrenceParent): ProductOccurrence;
         isMissing(): boolean;
         private static _amendInfo;
@@ -14525,6 +14965,48 @@ declare namespace Communicator.Internal.Tree {
     }
 }
 declare namespace Communicator.Internal.Tree {
+    enum BimStatus {
+        Undefined = 0,
+        Unconnected = 1,
+        Connected = 2
+    }
+    /** Structure of an IFC relationship*/
+    interface BimRelationship {
+        related: BimObject[];
+        relating: BimObject[];
+    }
+    /** One part of the relationships*/
+    interface BimObject {
+        category: BimStatus;
+        id: BimId;
+        name: string;
+    }
+    class RelationshipRelated {
+        relationships: BimObject[];
+        static parseBinary(inclusionContext: InclusionContext, parser: AssemblyDataParser): RelationshipRelated;
+    }
+    class RelationshipRelating {
+        relationElt: BimObject;
+        static parseBinary(inclusionContext: InclusionContext, parser: AssemblyDataParser): RelationshipRelating;
+        static parseXml(elem: Element): RelationshipRelating;
+    }
+    class Relationship {
+        type: RelationshipType;
+        related: RelationshipRelated | null;
+        relating: RelationshipRelating | null;
+        static registerBimId(bimId: BimId, inclusionContext: InclusionContext): void;
+        static parseBinary(inclusionContext: InclusionContext, parser: AssemblyDataParser): Relationship;
+        static parseXml(elem: Element): Relationship;
+    }
+    class RelationshipUtils {
+        static pushRelatedItemFromParser(relatedParsed: RelationshipRelated): BimObject[];
+        static addFromRelatingElt(relationToAdd: Relationship, everyRelationshipByType: Map<RelationshipType, BimRelationship>): void;
+        static findBimObjectInArray(relationships: BimObject[], bimObject: BimObject): boolean;
+        static addFromRelatedElt(iterRel: Relationship, outEveryRelationships: Map<RelationshipType, BimRelationship>): void;
+        static findIndexInRelated(node: BimId, tabUnporcRel: BimObject[]): number;
+    }
+}
+declare namespace Communicator.Internal.Tree {
     class Style {
         static parseXml(elem: Element): Style;
         private constructor();
@@ -14537,8 +15019,12 @@ declare namespace Communicator.Internal.Tree {
 }
 declare namespace Communicator.Internal.Tree {
     class Transform {
-        static parseBinary(parser: AssemblyDataParser): Matrix;
-        static parseXml(transformNode: Element): Matrix;
+        static parseBinary(parser: AssemblyDataParser): SC.Matrix16;
+        static parseXml(transformNode: Element): SC.Matrix16;
+        static getIdentity(): SC.Matrix16;
+        static copy(m: SC.Matrix16): SC.Matrix16;
+        static isIdentity(m: SC.Matrix16): boolean;
+        static multiply(m1: SC.Matrix16, m2: SC.Matrix16): SC.Matrix16;
         private constructor();
         protected readonly __Transform: PhantomMember;
     }
@@ -17469,18 +17955,30 @@ declare namespace Communicator.Operator {
     class SelectionOperator extends OperatorBase {
         private _selectionButton;
         private _noteTextManager;
+        private _pickConfig;
         private _forceEffectiveSceneVisibilityMask;
         private _doubleClickFitWorld;
         /** @hidden */
         constructor(viewer: WebViewer, noteTextManager: Markup.Note.NoteTextManager);
+        /** Sets the [[PickConfig]] that will be passed to [[View.pickFromPoint]]. */
+        setPickConfig(config: PickConfig): void;
+        /** Returns the [[PickConfig]] that will be passed to [[View.pickFromPoint]]. */
+        getPickConfig(): PickConfig;
         /**
          * Gets the mask used for forcing effective scene visibility during selection.
+         * @deprecated Use [[getPickConfig]] instead.
          */
         getForceEffectiveSceneVisibilityMask(): SelectionMask;
         /**
-         * Sets the mask used for forcing effective scene visibility during selection.
+         * Sets the mask used for forcing effective scene visibility during
+         * selection.
+         *
+         * This setting overrides the value passed to [[setPickConfig]]. Passing
+         * `null` causes the value passed to [[setPickConfig]] to be used.
+         *
+         * @deprecated Use [[setPickConfig]] instead.
          */
-        setForceEffectiveSceneVisibilityMask(mask: SelectionMask): void;
+        setForceEffectiveSceneVisibilityMask(mask: SelectionMask | null): void;
         /**
          * Gets the button used for selection.
          * @returns Button
@@ -17932,9 +18430,8 @@ declare namespace Communicator.Operator {
         private _getClampedRotationMatrix;
         private _orbitByTurnTiltWithTarget;
         /**
-         * Sets the fallback mode. This is used to specify whether to orbit around a set target, the model center, or camera target
-         * when there is no selection on the model, or useSelectionPointForRotation is false.
-         * @param fallbackMode ModelCenter, CameraTarget, OrbitTarget
+         * Sets the fallback mode. This is used to specify whether to orbit
+         * around a set target, the model center, or camera target.
          */
         setOrbitFallbackMode(fallbackMode: OrbitFallbackMode): void;
         /**
@@ -18081,7 +18578,7 @@ declare namespace Communicator.Operator {
         /** @hidden */
         onTouchStart(event: Event.TouchInputEvent): void;
         /** @hidden */
-        onTouchMove(event: Event.TouchInputEvent): Promise<void>;
+        onTouchMove(event: Event.TouchInputEvent): void;
         /** @hidden */
         onTouchEnd(event: Event.TouchInputEvent): void;
         /** @hidden */
@@ -18131,7 +18628,7 @@ declare namespace Communicator.Operator {
         /** @hidden */
         onTouchStart(event: Event.TouchInputEvent): void;
         /** @hidden */
-        onTouchMove(event: Event.TouchInputEvent): Promise<void>;
+        onTouchMove(event: Event.TouchInputEvent): void;
         /** @hidden */
         onTouchEnd(event: Event.TouchInputEvent): void;
         /** @hidden */
