@@ -213,26 +213,30 @@ declare namespace Communicator.Animation {
         constructor(keyType: KeyType);
         private _validateKey;
         private _validateTangents;
+        private _findIndexFromTime;
         /** Returns the index of the keyframe at the specified time. */
         getKeyframeIndex(t: number): number;
         /** Deletes a keyframe at the specified index. */
         deleteKeyframe(index: number): void;
-        /** Appends Scalar keyframe. The type of this buffer should be [[KeyType.Scalar]] */
-        appendScalarKeyframe(t: number, val: number, inTan?: number, outTan?: number): void;
-        /** Inserts a Scalar keyframe at the specified index. The type of this buffer should be [[KeyType.Scalar]] */
-        insertScalarKeyframe(index: number, t: number, val: number, inTan?: number, outTan?: number): void;
+        /**
+         * Inserts a Scalar keyframe with the specified time. The type of this buffer should be [[KeyType.Scalar]]
+         * @returns Index at which keyframe was inserted
+         */
+        insertScalarKeyframe(t: number, val: number, inTan?: number, outTan?: number): number;
         /** Updates a Scalar keyframe at the specified index. The type of this buffer should be [[KeyType.Scalar]] */
         updateScalarKeyframe(index: number, t: number, val: number, inTan?: number, outTan?: number): void;
-        /** Appends Vec3 keyframe. The type of this buffer should be [[KeyType.Vec3]] */
-        appendVec3Keyframe(t: number, x: number, y: number, z: number, inTanX?: number, inTanY?: number, inTanZ?: number, outTanX?: number, outTanY?: number, outTanZ?: number): void;
-        /** Inserts a Vec3 keyframe at the specified index. The type of this buffer should be [[KeyType.Vec3]] */
-        insertVec3Keyframe(index: number, t: number, x: number, y: number, z: number, inTanX?: number, inTanY?: number, inTanZ?: number, outTanX?: number, outTanY?: number, outTanZ?: number): void;
+        /**
+         * Inserts a Vec3 keyframe with the specified time. The type of this buffer should be [[KeyType.Vec3]]
+         * @returns Index at which keyframe was inserted
+         */
+        insertVec3Keyframe(t: number, x: number, y: number, z: number, inTanX?: number, inTanY?: number, inTanZ?: number, outTanX?: number, outTanY?: number, outTanZ?: number): number;
         /** Updates a Vec3 keyframe at the specified index. The type of this buffer should be [[KeyType.Vec3]] */
-        updateVec3Keyframe(index: number, t: number, x: number, y: number, z: number, inTanX?: number, inTanY?: number, inTanZ?: number, outTanX?: number, outTanY?: number, outTanZ?: number): void;
-        /** Appends Quat keyframe. The type of this buffer should be [[KeyType.Quat]] */
-        appendQuatKeyframe(t: number, x: number, y: number, z: number, w: number, inTanX?: number, inTanY?: number, inTanZ?: number, inTanW?: number, outTanX?: number, outTanY?: number, outTanZ?: number, outTanW?: number): void;
-        /** Inserts a Quat keyframe at the specified index. The type of this buffer should be [[KeyType.Quat]] */
-        insertQuatKeyframe(index: number, t: number, x: number, y: number, z: number, w: number, inTanX?: number, inTanY?: number, inTanZ?: number, inTanW?: number, outTanX?: number, outTanY?: number, outTanZ?: number, outTanW?: number): void;
+        updateVec3Keyframe(index: number, t: number, x: number, y: number, z: number, inTanX?: number, inTanY?: number, inTanZ?: number, outTanX?: number, outTanY?: number, outTanZ?: number): number;
+        /**
+         * Inserts a Quat keyframe with the specified time. The type of this buffer should be [[KeyType.Quat]]
+         * @returns Index at which keyframe was inserted
+         */
+        insertQuatKeyframe(t: number, x: number, y: number, z: number, w: number, inTanX?: number, inTanY?: number, inTanZ?: number, inTanW?: number, outTanX?: number, outTanY?: number, outTanZ?: number, outTanW?: number): void;
         /** Updates a Quat keyframe at the specified index. The type of this buffer should be [[KeyType.Quat]] */
         updateQuatKeyframe(index: number, t: number, x: number, y: number, z: number, w: number, inTanX?: number, inTanY?: number, inTanZ?: number, inTanW?: number, outTanX?: number, outTanY?: number, outTanZ?: number, outTanW?: number): void;
         /** @hidden */
@@ -257,6 +261,10 @@ declare namespace Communicator.Animation {
         constructor(_viewer: WebViewer);
         /** Creates a new animation player for the supplied animation. */
         createPlayer(animation: Animation): Player;
+        /** Removes the player at the provided index from control of the manager. Returns `true` if a player was removed */
+        removePlayerByIndex(index: number): boolean;
+        /** Removes the provided player from control of the manager. Returns `true` is a player was removed */
+        removePlayer(player: Player): boolean;
         /** Removes all players from control of the manager. */
         clear(): void;
         private _tick;
@@ -278,7 +286,8 @@ declare namespace Communicator.Animation {
     }
     class Player {
         private readonly _viewer;
-        private readonly _animation;
+        /** The animation played by this player */
+        readonly animation: Animation;
         /** If loop is set to LoopIndefinitely, the animation will play repeatedly. */
         static readonly LoopIndefinitely = -1;
         private readonly _nodeValues;
@@ -305,7 +314,9 @@ declare namespace Communicator.Animation {
          * */
         nodeIdOffset: NodeIdOffset;
         /** @hidden Do not use.  Create via Animation.Manager API instead. */
-        constructor(_viewer: WebViewer, _animation: Animation);
+        constructor(_viewer: WebViewer, 
+        /** The animation played by this player */
+        animation: Animation);
         /** Sets the enabled state for a channel in this players animation.
          * All channels are enabled by default when a player is created.
          * A channel that has been disabled will not have its value interpolated by the system until it is re-enabled
@@ -952,7 +963,15 @@ declare namespace Communicator {
         private _version;
         private _topicsMap;
         constructor(bcfFileName: BCFName, id: number);
+        /**
+         * Exports BCF data to a file. Prompts the user to save it on their device.
+         * @param filename Filename BCF data will be exported as
+         */
         exportBCF(filename: BCFName): Promise<void>;
+        /**
+         * Creates a BCFZIP blob. The resulting blob is importable using `BcfManager.addBCFFromBuffer`.
+         */
+        toBcfZipBlob(): Promise<Blob>;
         /**
          * Adds a BCF topic.
          * @param topicId
@@ -1115,6 +1134,15 @@ declare namespace Communicator {
          * Gets the Markup filename.
          */
         getFilename(): string;
+        /**
+         * Gets the topic id.
+         */
+        getTopicId(): Uuid;
+        /**
+         * Sets the topic id.
+         * @param guid
+         */
+        setTopicId(guid: Uuid): void;
         /**
          * Gets the topic type.
          */
@@ -2909,34 +2937,35 @@ declare namespace Communicator {
         Orbit = 2,
         Pan = 3,
         Zoom = 4,
-        Walk = 5,
-        KeyboardWalk = 6,
-        WalkMode = 7,
-        Turntable = 8,
-        Select = 9,
-        AreaSelect = 10,
-        RayDrillSelect = 11,
-        RedlineCircle = 12,
-        RedlineText = 13,
-        RedlineRectangle = 14,
-        RedlinePolyline = 15,
-        MeasureEdgeLength = 16,
-        MeasureFaceFaceDistance = 17,
-        MeasureLineLineAngle = 18,
-        MeasurePointPointDistance = 19,
-        MeasureBodyBodyDistance = 20,
-        MeasureFaceFaceAngle = 21,
-        MeasurePolylineDistance = 22,
-        MeasurePolygonArea = 23,
-        Note = 24,
-        Cutting = 25,
-        Handle = 26,
-        NavCube = 27,
-        AxisTriad = 28,
-        Floorplan = 29
+        WindowZoom = 5,
+        Walk = 6,
+        KeyboardWalk = 7,
+        WalkMode = 8,
+        Turntable = 9,
+        Select = 10,
+        AreaSelect = 11,
+        RayDrillSelect = 12,
+        RedlineCircle = 13,
+        RedlineText = 14,
+        RedlineRectangle = 15,
+        RedlinePolyline = 16,
+        MeasureEdgeLength = 17,
+        MeasureFaceFaceDistance = 18,
+        MeasureLineLineAngle = 19,
+        MeasurePointPointDistance = 20,
+        MeasureBodyBodyDistance = 21,
+        MeasureFaceFaceAngle = 22,
+        MeasurePolylineDistance = 23,
+        MeasurePolygonArea = 24,
+        Note = 25,
+        Cutting = 26,
+        Handle = 27,
+        NavCube = 28,
+        AxisTriad = 29,
+        Floorplan = 30
     }
     /** Enumerates IDs for built-in operators */
-    type BuiltInOperatorId = OperatorId.Navigate | OperatorId.Orbit | OperatorId.Pan | OperatorId.Zoom | OperatorId.Walk | OperatorId.KeyboardWalk | OperatorId.WalkMode | OperatorId.Turntable | OperatorId.Select | OperatorId.AreaSelect | OperatorId.RayDrillSelect | OperatorId.RedlineCircle | OperatorId.RedlineText | OperatorId.RedlineRectangle | OperatorId.RedlinePolyline | OperatorId.MeasureEdgeLength | OperatorId.MeasureFaceFaceDistance | OperatorId.MeasureLineLineAngle | OperatorId.MeasurePointPointDistance | OperatorId.MeasureBodyBodyDistance | OperatorId.MeasureFaceFaceAngle | OperatorId.MeasurePolylineDistance | OperatorId.MeasurePolygonArea | OperatorId.Note | OperatorId.Cutting | OperatorId.Handle | OperatorId.NavCube | OperatorId.AxisTriad | OperatorId.Floorplan;
+    type BuiltInOperatorId = OperatorId.Navigate | OperatorId.Orbit | OperatorId.Pan | OperatorId.Zoom | OperatorId.WindowZoom | OperatorId.Walk | OperatorId.KeyboardWalk | OperatorId.WalkMode | OperatorId.Turntable | OperatorId.Select | OperatorId.AreaSelect | OperatorId.RayDrillSelect | OperatorId.RedlineCircle | OperatorId.RedlineText | OperatorId.RedlineRectangle | OperatorId.RedlinePolyline | OperatorId.MeasureEdgeLength | OperatorId.MeasureFaceFaceDistance | OperatorId.MeasureLineLineAngle | OperatorId.MeasurePointPointDistance | OperatorId.MeasureBodyBodyDistance | OperatorId.MeasureFaceFaceAngle | OperatorId.MeasurePolylineDistance | OperatorId.MeasurePolygonArea | OperatorId.Note | OperatorId.Cutting | OperatorId.Handle | OperatorId.NavCube | OperatorId.AxisTriad | OperatorId.Floorplan;
     /** Enumerates EventTypes for Operators */
     enum EventType {
         MouseDown = 0,
@@ -3853,6 +3882,42 @@ declare namespace Communicator {
          */
         blurInterval?: [number, BlurIntervalUnit];
     }
+    enum BasicUnit {
+        unitUnknown = 0,
+        unitLength = 1,
+        unitMass = 2,
+        unitTime = 3,
+        unitElectricCurrent = 4,
+        unitThermoTemperature = 5,
+        unitSubstanceAmount = 6,
+        unitLuminosityIntensity = 7,
+        unitPlaneAngle = 8,
+        unitSolidAngle = 9,
+        unitFrequency = 10,
+        unitForce = 11,
+        unitPressure = 12,
+        unitEnergy = 13,
+        unitPower = 14,
+        unitElectricCharge = 15,
+        unitElectromotiveForce = 16,
+        unitCapacitance = 17,
+        unitElectricResistance = 18,
+        unitElectricConductance = 19,
+        unitMagneticFlux = 20,
+        unitMagneticFluxDensity = 21,
+        unitInductance = 22,
+        unitLuminousFlux = 23,
+        unitIlluminance = 24,
+        unitActivityRadionuclide = 25,
+        unitKerma = 26,
+        unitDoseEquivalent = 27,
+        unitCatalyticActivity = 28
+    }
+    interface UnitElement {
+        basicUnit: BasicUnit;
+        exponent: number;
+        factor: number;
+    }
     enum AttributeType {
         Undefined = 0,
         Int = 1,
@@ -4056,6 +4121,15 @@ declare namespace Communicator {
         followViewAxes?: boolean;
     }
     /**
+     * Represents a node's metallic and roughness values when using a metallic roughness shading model.
+     */
+    interface MetallicRoughnessValue {
+        /** Metallic value */
+        metallic: number;
+        /** Roughness value */
+        roughness: number;
+    }
+    /**
      * Units in which attenuation distances are specified for simple
      * reflections.
      *
@@ -4110,7 +4184,8 @@ declare namespace Communicator {
         VoidsElement = 2,
         FillsElement = 3,
         SpaceBoundary = 4,
-        Undefined = 5
+        ConnectsPathElements = 5,
+        Undefined = 6
     }
     /** Type for the relationships ID*/
     type BimId = string;
@@ -4236,6 +4311,12 @@ declare namespace Communicator {
          * @param cam the camera to compare against
          */
         equals(cam: Camera): boolean;
+        /**
+         * Returns checks for equality with another camera with tolerance
+         * @param cam the camera to compare against
+         * @param tolerance floating point tolerance
+         */
+        equalsWithTolerance(cam: Camera, tolerance: number): boolean;
         /**
          * Move the camera along a delta
          * @param delta
@@ -4516,6 +4597,15 @@ declare namespace Communicator {
          * Creates a new InvalidIndexError
          */
         constructor(index: number | string);
+    }
+    /**
+     * Error object that is thrown when a user attempts to pick from a point outside the viewer canvas.
+     */
+    class PickOutsideCanvasError extends CommunicatorError {
+        /**
+         * Creates a new PickOutsideCanvasError
+         */
+        constructor();
     }
     /**
      * Error object that is thrown when an asynchronous selection error occurs.
@@ -5245,6 +5335,13 @@ declare namespace Communicator {
          * @returns {Point2} new point set to pt1 + pt2
          */
         static add(pt1: Point2, pt2: Point2): Point2;
+        /**
+         * Scale a point by a constant factor
+         * @param {Point2} pt Point to be scaled
+         * @param {number} k Amount to scale by
+         * @returns {Point2} The scaled point
+         */
+        static scale(pt: Point2, k: number): Point2;
         /**
          * Calculate distance between two points
          * @param {Point2} p1 first point
@@ -6253,7 +6350,7 @@ declare namespace Communicator {
         resetNodesVisibility(): Promise<void>;
         /**
          * Returns a defaultVisibility boolean value and a visibilityException set of NodeIds.
-         * defaultVisibility will be true if there are more nodes visibile than hidden, and false otherwise.
+         * defaultVisibility will be true if there are more nodes visible than hidden, and false otherwise.
          * If defaultVisibility is true, set of nodes that are hidden, if false, nodes that are visible.
          */
         getVisibilityState(startNodeId: NodeId): Promise<VisibilityState>;
@@ -6619,9 +6716,9 @@ declare namespace Communicator {
          * position in the returned array.
          * @param nodeIds IDs of the nodes to be queried
          */
-        getNodesOpacity(leafNodes: NodeId[]): Promise<number[]>;
+        getNodesOpacity(leafNodes: NodeId[]): Promise<(number | null)[]>;
         /** @deprecated use [[getNodesOpacity]] instead. */
-        getNodesTransparency(leafNodes: NodeId[]): Promise<number[]>;
+        getNodesTransparency(leafNodes: NodeId[]): Promise<(number | null)[]>;
         private _getNodesOpacity;
         /**
          * Gets the opacity set on a list of leaf nodes multiplied by the opacity
@@ -6912,7 +7009,7 @@ declare namespace Communicator {
          * @Param property value
          * @returns true if all went right, false otherwise
          */
-        addPropertyToNode(nodeId: NodeId, propertyName: string, propertyValue: string): boolean;
+        addPropertyToNode(nodeId: NodeId, propertyName: string, propertyValue: string, propertyUnit: UnitElement[]): boolean;
         /**
          * Purpose: Sets physical properties
          * @Param nodeId node id to set the property on, the node id has to be a body node
@@ -7362,6 +7459,12 @@ declare namespace Communicator {
          */
         setMetallicRoughness(nodeIds: NodeId[], metallicFactor: number, roughnessFactor: number): void;
         /**
+         * Gets the metallic and roughness factors for the supplied nodes materials.
+         * Materials that are not currently set to use the Metallic Roughness shading model will have a null entry
+         * @param nodeIds List of nodes to get material properties for
+         */
+        getMetallicRoughness(nodeIds: NodeId[]): Promise<(MetallicRoughnessValue | null)[]>;
+        /**
          * Unsets the metallic and roughness values set with [[setMetallicRoughness]]
          * These materials will no longer use the Metallic Roughness shading model.
          * @param nodeIds List of nodes to unset material properties for
@@ -7522,6 +7625,13 @@ declare namespace Communicator {
          * @throws `InvalidNodeIdError` `InvalidIndexError`
          */
         getNodeUserData(nodeId: NodeId, index: UserDataIndex): Uint8Array;
+        /**
+         * Returns a list of node IDs given a list of generic IDs. Note that the
+         * returned list of node IDs may be longer than the provided list of generic
+         * IDs since one ID can be used by more than one node.
+         * @param genericIds Array of generic IDs to find nodes fore
+         * @returns Array of node ids corresponding to the provided generic IDs
+         */
         getNodeIdsByGenericIds(genericIds: GenericId[]): NodeId[];
         /** @deprecated Use [[getNodeIdsByGenericIds]] instead. */
         getNodeIdsByIfcGuids(ifcGuids: IfcGuid[]): NodeId[];
@@ -7539,13 +7649,13 @@ declare namespace Communicator {
          * @param node the id of the node for which you want its bim id.
          * @returns the bim id corresponding to the node or null if none.
          */
-        getBimIdIFromNode(node: NodeId): BimId | null;
+        getBimIdFromNode(node: NodeId): BimId | null;
         /**
-         * Retrieves the bim id of the corresponding generic id.
+         * Retrieves the bim ids of the corresponding generic id.
          * @param ifcGuid the generic id for which you want its bim id.
          * @returns the bim id corresponding to the ifcGuid or null if none.
          */
-        getBimIdIFromGenericId(ifcGuid: GenericId): BimId | null;
+        getBimIdsFromGenericId(ifcGuid: GenericId): BimId[];
         /**
          * Retrieves the node id of the corresponding bim id.
          * @param node any known node id of the working model.
@@ -7833,6 +7943,7 @@ declare namespace Communicator {
         getOperator(id: OperatorId.Orbit): Operator.CameraOrbitOperator;
         getOperator(id: OperatorId.Pan): Operator.CameraPanOperator;
         getOperator(id: OperatorId.Zoom): Operator.CameraZoomOperator;
+        getOperator(id: OperatorId.WindowZoom): Operator.CameraWindowZoomOperator;
         getOperator(id: OperatorId.Walk): Operator.CameraKeyboardWalkOperator;
         getOperator(id: OperatorId.KeyboardWalk): Operator.CameraKeyboardWalkOperator;
         getOperator(id: OperatorId.WalkMode): Operator.CameraWalkModeOperator;
@@ -8297,7 +8408,7 @@ declare namespace Communicator.Internal {
         resetOpacity(): void;
         setPartOpacity(incs: SC.InstanceIncs, opacity: number): void;
         unsetPartOpacity(incs: SC.InstanceIncs): void;
-        getPartOpacity(incs: SC.InstanceIncs): number[];
+        getPartOpacity(incs: SC.InstanceIncs): (number | null)[];
         getEffectivePartOpacity(incs: SC.InstanceIncs, elementType: ElementType): Promise<number[]>;
         getPartHasTransparency(incs: SC.InstanceIncs): Promise<boolean[]>;
         setPartColor(incs: SC.InstanceIncs, elementType: ElementType, color: Color): void;
@@ -8377,6 +8488,7 @@ declare namespace Communicator.Internal {
         setMeshLevel(incs: SC.InstanceIncs, meshLevel: number): void;
         setMetallicRoughness(incs: SC.InstanceIncs, metallicFactor: number, roughnessFactor: number): void;
         setMetallicRoughnessMaterialOverride(defaultMetallicFactor: number, defaultRoughnessFactor: number): void;
+        getMetallicRoughness(incs: SC.InstanceIncs): Promise<(MetallicRoughnessValue | null)[]>;
         unsetMetallicRoughness(incs: SC.InstanceIncs): void;
         setOverlayVisibility(index: OverlayIndex, visibility: boolean): void;
         setOverlayCamera(index: OverlayIndex, camera: Camera): void;
@@ -8928,6 +9040,7 @@ declare namespace Communicator {
         private _pruneSelectionDescendants;
         private _ignoreEntityWhenTogglingChildSelection;
         private _singleEntityToggleMode;
+        private _suppressImplicitRemovalCallback;
         private _selectionFilter;
         static ifcSelectionFilter: (nodeId: number, model: Model) => number | null;
         /** @hidden */
@@ -8999,6 +9112,26 @@ declare namespace Communicator {
          */
         getSingleEntityToggleModeEnabled(): boolean;
         /**
+         * Sets whether to generate selectionArray callbacks with implicitly removed nodes.
+         *
+         * For example, consider the case where you have a parent node that has a multiple child nodes.
+         * Normally, if the parent begins selected and then a child is removed from the selection set
+         * there will be two selectionArray callbacks generated. The first will for the removal of the
+         * parent node. The second wil be for the addition of all of it's children except the one that was
+         * initially removed.
+         *
+         * When this behavior is enabled only a single selectionArray callback will be generated for the
+         * child node that was removed.
+         *
+         * This behavior is disabled by default.
+         */
+        setSuppressImplicitRemovalCallback(suppress: boolean): void;
+        /**
+         * Gets whether implicit removal callbacks are being suppressed
+         * See also: [[setSuppressImplicitRemovalCallback]]
+         */
+        getSuppressImplicitRemovalCallback(): boolean;
+        /**
          * Performs a selection operation from the given position on the canvas. The best candidate entity is selected.
          * This method triggers a selection event.
          * @param point The canvas position to select from.
@@ -9049,6 +9182,12 @@ declare namespace Communicator {
          * The ray is created at the supplied ray origin and is cast into the scene.
          * Faces are selected if they lie along the ray.
          * Lines and points are selected if they lie within the ray's box radius.
+         *
+         * Note: Somewhat confusingly ray drill selection is actually a selection by volume.
+         * The provided ray origin and radius are used to create a frustum to preform the selection.
+         * This has some consequences. For example, the `SelectionResult`s returned by advancing a
+         * ray drill selection will not have selection positions, since they were not selected at
+         * a single point.
          * @param rayCssOrigin The coordinate in css pixel space for the selection ray's origin.
          * @param rayCssBoxRadius The radius around the ray in css pixel space used for line and point selection proximity.
          * @param config The configuration object used for this selection operation.
@@ -9138,8 +9277,9 @@ declare namespace Communicator {
          * Manually adds an item or array of items to the selection set.
          * Triggers a selection event.
          * @param itemOrItems A selectionItem or selectionItem array that will be added to the current selection set.
+         * @param suppressCallback Optional boolean param to suppress the selectionArray callbacks calls to this generate.
          */
-        add(itemOrItems: Selection.NodeSelectionItem | Selection.NodeSelectionItem[] | null): void;
+        add(itemOrItems: Selection.NodeSelectionItem | Selection.NodeSelectionItem[] | null, suppressCallback?: boolean): void;
         private _filterItem;
         private _addImpl;
         private _removeUpdateLayers;
@@ -9151,8 +9291,9 @@ declare namespace Communicator {
          * Manually removes an item or an array of items from the selection set.
          * Triggers a selection event.
          * @param itemOrItems A selectionItem or an array of selection items that will be removed from the current selection set.
+         * @param suppressCallback Optional boolean param to suppress the selectionArray callbacks calls to this generate.
          */
-        remove(itemOrItems: Selection.NodeSelectionItem | Selection.NodeSelectionItem[]): void;
+        remove(itemOrItems: Selection.NodeSelectionItem | Selection.NodeSelectionItem[], suppressCallback?: boolean): void;
         /** hidden */
         private _removeImpl;
         private static _selectionItemIsFromModelBrowser;
@@ -10369,7 +10510,13 @@ declare namespace Communicator {
          * The ray is created at the supplied ray origin and is cast into the scene.
          * Faces are selected if they lie along the ray.
          * Lines and points are selected if they lie within the ray's box radius.
-         * @param rayCssOrigin The coodinate in CSS pixel space for the selection ray's origin.
+         *
+         * Note: Somewhat confusingly ray drill selection is actually a selection by volume.
+         * The provided ray origin and radius are used to create a frustum to preform the selection.
+         * This has some consequences. For example, the `SelectionResult`s returned by advancing a
+         * ray drill selection will not have selection positions, since they were not selected at
+         * a single point.
+         * @param rayCssOrigin The coordinate in CSS pixel space for the selection ray's origin.
          * @param rayCssBoxRadius The radius around the ray in CSS pixel space used for line and point selection proximity.
          * @param config The configuration object used for this selection operation.
          * @returns The handle for the selection context.
@@ -13043,7 +13190,7 @@ declare namespace Communicator.Internal.Tree {
         getCamera(): Camera;
         getFullCameraMatrix(): Matrix;
         fitWorld(duration: number, camera?: Camera): Promise<void>;
-        isolateNodes(nodeIds: NodeId[], duration: number, fitNodes: boolean): Promise<void>;
+        isolateNodes(nodeIds: NodeId[], duration: number, fitNodes: boolean, initiallyHiddenStayHidden: boolean): Promise<void>;
         setViewOrientation(orientation: ViewOrientation, duration: number, bounding?: Box): Promise<void>;
     }
     interface AbstractModel {
@@ -13206,7 +13353,7 @@ declare namespace Communicator.Internal.Tree {
         private _createCadView;
         private _createCadViewInstance;
         createCadView(engine: AbstractScEngine, parent: CadViewParent, name: string, camera: Camera, pmis: Pmi[], productOccurrencesToShow: RuntimeNodeId[], productOccurrencesToHide: RuntimeNodeId[], transformMap: Map<RuntimeNodeId, SC.Matrix16>, cuttingPlane: Plane | null, meshInstanceData: MeshInstanceData | null): CadView;
-        createMeshInstance(markLoaded: boolean, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, preventFromResetting: boolean, isOutOfHierarchy: boolean): BodyInstance;
+        createMeshInstance(markLoaded: boolean, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, preventFromResetting: boolean, isOutOfHierarchy: boolean, implicitBody: boolean): BodyInstance;
         createPmiInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, pmiType: PmiType, pmiSubType: PmiSubType, topoRefs: ReferenceOnTopology[]): Pmi;
         getRelationshipsOfItem(contextNodeId: RuntimeNodeId, node: BimId): Map<RelationshipType, BimRelationship>;
         getAutomaticMeasurementUnitScaling(): boolean;
@@ -13234,7 +13381,7 @@ declare namespace Communicator.Internal.Tree {
         onLoadEnd(loadId: number): void;
         markSeenExternalModel(): void;
         seenExternalModel(): boolean;
-        getNodeByGenericId(genericId: GenericId): AnyTreeNode | null;
+        getNodesByGenericId(genericId: GenericId): Set<AnyTreeNode> | null;
         getNodesByGenericType(genericType: GenericType): Set<AnyTreeNode> | null;
         genericTypeToNodes(): Map<GenericType, Set<AnyTreeNode>>;
         registerGenericGlobalId(node: AnyTreeNode, genericId: GenericId): void;
@@ -13273,7 +13420,7 @@ declare namespace Communicator.Internal.Tree {
         private readonly _layersIds;
         private _nextLayerId;
         private readonly _genericTypeToNodes;
-        private readonly _genericIdToNode;
+        private readonly _genericIdToNodes;
         private readonly _cadConfigurations;
         private readonly _modelContents;
         private readonly _inclusionContents;
@@ -13331,7 +13478,7 @@ declare namespace Communicator.Internal.Tree {
         IsMissing = 4096,
         IsExternalModelRoot = 2048,
         Requested = 1024,
-        Unused4 = 512,
+        ImplicitBody = 512,
         Unused3 = 256,
         Unused2 = 128,
         Unused1 = 64,
@@ -13381,7 +13528,7 @@ declare namespace Communicator.Internal.Tree {
         getPartReferrers(nodeId: RuntimeNodeId): Promise<RuntimeNodeId[] | null>;
         getAttributes(nodeId: RuntimeNodeId): Promise<Attribute[]>;
         getProperties(nodeId: RuntimeNodeId): Promise<StringStringMap | null>;
-        addProperty(nodeId: RuntimeNodeId, propertyName: string, propertyValue: string): boolean;
+        addProperty(nodeId: RuntimeNodeId, propertyName: string, propertyValue: string, propertyUnit: UnitElement[]): boolean;
         setPhysicalProperties(nodeId: RuntimeNodeId, centerOfGravity: Point3, surfaceArea: number, volume: number): boolean;
         getUserDataIndices(nodeId: RuntimeNodeId): UserDataIndex[];
         getUserData(nodeId: RuntimeNodeId, index: UserDataIndex): Uint8Array;
@@ -13439,7 +13586,7 @@ declare namespace Communicator.Internal.Tree {
         getPmiSubType(pmiId: RuntimeNodeId): PmiSubType;
         getUnit(nodeId: RuntimeNodeId): number;
         private _rectifyParent;
-        createMeshInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, name: string | null, parentId: RuntimeNodeId | null, preventFromResetting: boolean, isOutOfHierarchy: boolean): RuntimeNodeId;
+        createMeshInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, name: string | null, parentId: RuntimeNodeId | null, preventFromResetting: boolean, isOutOfHierarchy: boolean, implicitBody: boolean): RuntimeNodeId;
         createPmiInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, pmiType: PmiType, pmiSubType: PmiSubType, topoRefs: ReferenceOnTopology[], name: string | null, parentId: RuntimeNodeId | null): RuntimeNodeId;
         setVisibilitiesByMap(idToVisibility: Map<RuntimeNodeId, boolean>, initiallyHiddenStayHidden: boolean | null, mode: TreeWalkMode): Promise<void>;
         setVisibilitiesByValue(nodeIds: RuntimeNodeId[], visibility: boolean, initiallyHiddenStayHidden: boolean | null, mode: TreeWalkMode): Promise<void>;
@@ -13507,7 +13654,7 @@ declare namespace Communicator.Internal.Tree {
         isWithinExternalModel(nodeId: RuntimeNodeId): boolean;
         getNodeGenericType(nodeId: RuntimeNodeId): GenericType | null;
         getNodeGenericId(nodeId: RuntimeNodeId): GenericId | null;
-        getNodeByGenericId(genericId: GenericId): RuntimeNodeId | null;
+        getNodesByGenericId(genericId: GenericId): Set<RuntimeNodeId> | null;
         getNodesByGenericType(genericType: GenericType): Set<RuntimeNodeId> | null;
         getGenericTypes(): GenericType[];
         getGenericTypeIdMap(): Map<GenericType, Set<RuntimeNodeId>>;
@@ -13861,7 +14008,8 @@ declare namespace Communicator.Internal.Tree {
         Name = 1
     }
     const enum AttributeParseBits {
-        ValueName = 1
+        ValueName = 1,
+        Units = 2
     }
     const enum RelationshipParseBits {
         Type = 1,
@@ -13882,7 +14030,10 @@ declare namespace Communicator.Internal.Tree {
         parseAssemblyDataHeaderVersion(): AssemblyDataHeaderVersion;
         parseVisibility(): AssemblyVisibility;
         parseProductBits(): ProductBits;
+        parseUnits(): UnitElement[];
         parseCString(): string;
+        parseUInt32(): number;
+        parseInt32(): number;
         parseBytes(count: number): Uint8Array;
         parseNodeId(): AuthoredNodeId;
         parseLayerId(): AuthoredLayerId;
@@ -13899,6 +14050,7 @@ declare namespace Communicator.Internal.Tree {
         private _parseInt_8;
         private _parseUint_8;
         private _parseUint_32;
+        private _parseInt_32;
         private _parseFloat_32;
         private _parseFloat_64;
         parseFloat_32(): number;
@@ -14352,6 +14504,7 @@ declare namespace Communicator.Internal.Tree {
         protected _setVisibility(visible: boolean): void;
         isVisible(): boolean;
         isInitiallyShown(): boolean;
+        private _toAffineTransformation;
         setLocalTransformAsInitial(matrix: SC.Matrix16): void;
         overrideLocalTransform(matrix: SC.Matrix16): void;
         hasLocalTransformOverride(): boolean;
@@ -14383,7 +14536,8 @@ declare namespace Communicator.Internal.Tree {
     const enum AnyBodyBits {
         OutOfHierarchy = 268435456,
         PreventFromResetting = 16384,
-        Requested = 1024
+        Requested = 1024,
+        ImplicitBody = 512
     }
     const enum BodyTypeBits {
         None = 0,
@@ -14407,6 +14561,7 @@ declare namespace Communicator.Internal.Tree {
         isRequested(): boolean;
         isOutOfHierarchy(): boolean;
         preventFromResetting(): boolean;
+        isImplicitBody(): boolean;
         getParent(): Parent;
         protected readonly __BodyMixin: PhantomMember;
         private readonly _parent;
@@ -14838,17 +14993,19 @@ declare namespace Communicator.Internal.Tree {
     class Attribute {
         static parseBinary(parser: AssemblyDataParser): Attribute;
         static parseXml(attributeNode: Element): Attribute;
-        constructor(type: AttributeType, title: string, valueName: string | null, value: string);
+        constructor(type: AttributeType, title: string, valueName: string | null, value: string, unit: UnitElement[]);
         getType(): AttributeType;
         getValueName(): string | null;
         getTitle(): string;
         getValue(): string;
+        getUnit(): string;
         copy(): Attribute;
         protected readonly __Attribute: PhantomMember;
         private readonly _type;
         private readonly _valueName;
         private readonly _title;
         private readonly _value;
+        private readonly _unit;
     }
 }
 declare namespace Communicator.Internal.Tree {
@@ -14895,6 +15052,7 @@ declare namespace Communicator.Internal.Tree {
         name: LayerName | null;
         readonly nodes: AnyTreeNode[];
         readonly treeNodes: AnyTreeNode[];
+        static NoLayerId: number;
         static parseBinary(parser: AssemblyDataParser): LayerInfo;
         static parseXml(elem: Element): LayerInfo | null;
         constructor(id: LayerId, name: LayerName | null, nodes: AnyTreeNode[], treeNodes: AnyTreeNode[]);
@@ -15825,8 +15983,11 @@ declare namespace Communicator.Util {
     }
 }
 declare namespace Communicator.Internal.Unicode {
+    const Subscript1 = "\u00B9";
     const Subscript2 = "\u00B2";
     const Subscript3 = "\u00B3";
+    const SubscriptNeg = "\u207B";
+    const Ohm = "\u2126";
 }
 declare namespace Communicator.Internal {
     type Vector3 = [number, number, number];
@@ -17323,6 +17484,7 @@ declare namespace Communicator.Util {
      * @returns An array containing `segmentCount + 1` points.
      */
     function generateArcPoints(axis: Point3, angle: number, center: Point3, startOffset: Point3, segmentCount: number): Point3[];
+    function getLongUnitString(unit: UnitElement[]): string;
 }
 declare namespace Communicator {
     /**
@@ -17507,101 +17669,6 @@ declare namespace Communicator.Operator {
         setHandled(): boolean;
         /** @hidden */
         onDeactivate(): void | Promise<void>;
-    }
-}
-declare namespace Communicator.Markup.Measure {
-    /**
-     * Base class for Measure Markup. It should not be used directly.
-     */
-    class MeasureMarkup extends MarkupItem {
-        /** @hidden */
-        protected _viewer: WebViewer;
-        /** @hidden */
-        protected _stage: number;
-        /** @hidden */
-        protected _finalized: boolean;
-        /** @hidden */
-        protected _uniqueId: Uuid;
-        /** @hidden */
-        protected _positions: Point3[];
-        /** @hidden */
-        protected _lineShapes: Shape.Line[];
-        /** @hidden */
-        protected _name: string;
-        /** @hidden */
-        protected _measurementValue: number;
-        /** @hidden */
-        protected _unitMultiplier: number;
-        /** @hidden */
-        protected _textShape: Shape.TextBox;
-        /** @hidden */
-        protected _visibility: boolean;
-        /** @hidden */
-        constructor(viewer: WebViewer);
-        /**
-         * Gets the name of this measurement.
-         * @returns the measurement name
-         */
-        getName(): string;
-        /**
-         * Sets the name of this measurement
-         * @param name the name to set
-         */
-        setName(name: string): void;
-        /** @hidden */
-        _getStage(): number;
-        /** @hidden */
-        _nextStage(): void;
-        /** @hidden */
-        _setId(id: Uuid): void;
-        /** @hidden */
-        _getId(): Uuid;
-        /** @hidden */
-        adjust(position: Point2): void;
-        /** @hidden */
-        _isFinalized(): boolean;
-        /** @hidden */
-        update(): void;
-        /** @hidden */
-        draw(): void;
-        setVisibility(visibility: boolean): void;
-        getVisibility(): boolean;
-        /**
-         * Creates an object ready for JSON serialization.
-         * @returns The prepared object.
-         */
-        toJson(): Object;
-        /** @deprecated Use [[toJson]] instead. */
-        forJson(): Object;
-        /**
-         * Returns the unit agnostic value for this measurement.
-         * In the case where this value represents distance, use [[getUnitMultiplier]] to determine the measurement units.
-         * In other cases, this value will be the angle measurement in degrees.
-         * @returns the measurement value
-         */
-        getMeasurementValue(): number;
-        /**
-         * Returns the unit multiplier incorporated into the measurement value.
-         * This number is a multiplier of millimeters (for example inches will be `25.4`).
-         * The default value is `1.0`.
-         */
-        getUnitMultiplier(): number;
-        /**
-         * Sets the measurement text that is rendered with this measurement.
-         * @param measurementText the text to render with this measurement
-         */
-        setMeasurementText(measurementText: string): void;
-        /**
-         * Gets the text for this measurement. By default this will contain the measurement value and units for the model in the cases where the measurement is a distance.
-         * In other cases it will contain the angle in degrees.
-         */
-        getMeasurementText(): string;
-        /** @hidden */
-        protected _setMeasurementValue(millimeters: number): void;
-        /** @hidden */
-        protected static _serializePointArray(points: Point3[]): Object[];
-        /** @hidden */
-        protected static _constructPointArray(pointObjs: Object[]): Point3[];
     }
 }
 declare namespace Communicator.Operator {
@@ -18002,6 +18069,121 @@ declare namespace Communicator.Operator {
         setDoubleClickFitWorldEnabled(doubleClickFitWorld: boolean): void;
         private _getSelectionOrParentIfSelected;
         private _processSelectionClick;
+    }
+}
+declare namespace Communicator.Markup.Measure {
+    /**
+     * Base class for Measure Markup. It should not be used directly.
+     */
+    class MeasureMarkup extends MarkupItem {
+        /** @hidden */
+        protected _viewer: WebViewer;
+        /** @hidden */
+        protected _stage: number;
+        /** @hidden */
+        protected _finalized: boolean;
+        /** @hidden */
+        protected _uniqueId: Uuid;
+        /** @hidden */
+        protected _positions: Point3[];
+        /** @hidden */
+        protected _lineShapes: Shape.Line[];
+        /** @hidden */
+        protected _name: string;
+        /** @hidden */
+        protected _measurementValue: number;
+        /** @hidden */
+        protected _unitMultiplier: number;
+        /** @hidden */
+        protected _textShape: Shape.TextBox;
+        /** @hidden */
+        protected _visibility: boolean;
+        /** @hidden */
+        constructor(viewer: WebViewer);
+        /**
+         * Gets the name of this measurement.
+         * @returns the measurement name
+         */
+        getName(): string;
+        /**
+         * Sets the name of this measurement
+         * @param name the name to set
+         */
+        setName(name: string): void;
+        /** @hidden */
+        _getStage(): number;
+        /** @hidden */
+        _nextStage(): void;
+        /** @hidden */
+        _setId(id: Uuid): void;
+        /** @hidden */
+        _getId(): Uuid;
+        /** @hidden */
+        adjust(position: Point2): void;
+        /** @hidden */
+        _isFinalized(): boolean;
+        /** @hidden */
+        update(): void;
+        /** @hidden */
+        draw(): void;
+        setVisibility(visibility: boolean): void;
+        getVisibility(): boolean;
+        /**
+         * Creates an object ready for JSON serialization.
+         * @returns The prepared object.
+         */
+        toJson(): Object;
+        /** @deprecated Use [[toJson]] instead. */
+        forJson(): Object;
+        /**
+         * Returns the unit agnostic value for this measurement.
+         * In the case where this value represents distance, use [[getUnitMultiplier]] to determine the measurement units.
+         * In other cases, this value will be the angle measurement in degrees.
+         * @returns the measurement value
+         */
+        getMeasurementValue(): number;
+        /**
+         * Returns the unit multiplier incorporated into the measurement value.
+         * This number is a multiplier of millimeters (for example inches will be `25.4`).
+         * The default value is `1.0`.
+         */
+        getUnitMultiplier(): number;
+        /**
+         * Sets the measurement text that is rendered with this measurement.
+         * @param measurementText the text to render with this measurement
+         */
+        setMeasurementText(measurementText: string): void;
+        /**
+         * Gets the text for this measurement. By default this will contain the measurement value and units for the model in the cases where the measurement is a distance.
+         * In other cases it will contain the angle in degrees.
+         */
+        getMeasurementText(): string;
+        /** @hidden */
+        protected _setMeasurementValue(millimeters: number): void;
+        /** @hidden */
+        protected static _serializePointArray(points: Point3[]): Object[];
+        /** @hidden */
+        protected static _constructPointArray(pointObjs: Object[]): Point3[];
+    }
+}
+declare namespace Communicator.Operator {
+    /** @hidden */
+    class SelectionRectangleMarkup extends Markup.Measure.MeasureMarkup {
+        private _rectangle;
+        private _markupHandle;
+        private _dim;
+        private _constantStrokeColor;
+        initialPosition: Point2;
+        currentPosition: Point2;
+        min: Point2;
+        max: Point2;
+        constructor(viewer: WebViewer, constantStrokeColor: boolean);
+        draw(): void;
+        updateCurrentPosition(currentPosition: Point2): void;
+        private _updateRectangleVertices;
+        activate(initialPosition: Point2): void;
+        deactivate(): void;
+        isActive(): boolean;
     }
 }
 declare namespace Communicator.Operator {
@@ -18563,6 +18745,9 @@ declare namespace Communicator.Operator {
          * projection is used or might be used. When using only orthographic
          * projection, it is better to disable this.
          *
+         * If mouse wheel zoom is being using in conjunction with window zoom
+         * this setting should be the same in both.
+         *
          * This setting is enabled by default.
          */
         setPreserveViewAngle(value: boolean): void;
@@ -18779,6 +18964,62 @@ declare namespace Communicator.Operator {
         protected _onTick(): void;
         private _adjustTilt;
         private _resetCameraTarget;
+    }
+}
+declare namespace Communicator.Operator {
+    class CameraWindowZoomOperator extends OperatorBase {
+        private _rectangleMarkup;
+        private _view;
+        private _computeTarget;
+        private _preserveViewAngle;
+        /** @hidden */
+        constructor(viewer: WebViewer);
+        /**
+         * When enabled, the camera target will be computed using selection while zooming.
+         * This can provide a better zoom behavior in perspective projection mode,
+         * but comes at the cost of performing a selection on the model during each zoom operation,
+         * which may not be ideal for performance on large models.
+         *
+         * This setting is disabled by default.
+         */
+        setComputeTarget(compute: boolean): void;
+        /**
+         * Returns whether a new camera target will be computed using selection.
+         * See [[setComputeTarget]]
+         */
+        getComputeTarget(): boolean;
+        /**
+         * Sets whether to maintain a constant view angle while zooming. If
+         * enabled, when zooming causes the camera's field of view to shrink or
+         * grow, the camera's position will also be moved toward or away from
+         * the target, respectively.
+         *
+         * This may prevent confusing camera behavior when perspective
+         * projection is used or might be used. When using only orthographic
+         * projection, it is better to disable this.
+         *
+         * If window zoom is being using in conjunction with mouse wheel zoom
+         * this setting should be the same in both.
+         *
+         * This setting is enabled by default.
+         */
+        setPreserveViewAngle(preserve: boolean): void;
+        /**
+         * Gets whether to maintain a constant view angle while zooming. See
+         * [[setPreserveViewAngle]].
+         */
+        getPreserveViewAngle(): boolean;
+        private adjustPositionToPlane;
+        private computeNewField;
+        private computeReasonableTarget;
+        private getCameraTarget;
+        doZoom(rectMin: Point2, rectMax: Point2): Promise<void>;
+        /** @hidden */
+        onMouseDown(e: Event.MouseInputEvent): void;
+        /** @hidden */
+        onMouseMove(e: Event.MouseInputEvent): void;
+        /** @hidden */
+        onMouseUp(e: Event.MouseInputEvent): Promise<void>;
     }
 }
 declare namespace Communicator.Markup.Note {
@@ -20100,6 +20341,7 @@ declare namespace Communicator.Operator.Common {
          * Finds the best point to use for the given lineEntity given the snapping behavior and settings.
          */
         private _getLineSnapPoint;
+        private _clearCursorMarkup;
         onOperatorActivate(): void;
         onOperatorDeactivate(): void;
     }

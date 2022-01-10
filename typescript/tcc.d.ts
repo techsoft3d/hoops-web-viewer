@@ -687,8 +687,9 @@ declare module SC {
         getLinesVisible(incs: InstanceIncs): Promise<boolean[]>;
         getMatrix(incs: InstanceIncs, layer: number): Promise<MatrixIncs>;
         getMeshData(incs: InstanceIncs): Promise<MeshIds>;
+        getMetallicRoughness(incs: SC.InstanceIncs): Promise<number[]>;
         getObjectSpaceBounding(incs: InstanceIncs): Promise<Box[]>;
-        getOpacity(incs: InstanceIncs, elementType: ElementType): number[];
+        getOpacity(incs: InstanceIncs, elementType: ElementType): (number | null)[];
         getOverrideSceneVisibility(incs: InstanceIncs): Promise<boolean[]>;
         getPointElementBounding(elementIndices: number[], inc: InstanceInc): Promise<Box>;
         getPointsVisible(incs: InstanceIncs): Promise<boolean[]>;
@@ -958,7 +959,7 @@ declare module SC {
         ): void;
         setEventHandler(
             eventName: "client_message",
-            callback: (eventName: string, data: ClientData) => void,
+            callback: (eventName: string, data: string) => void,
         ): void;
         setEventHandler(eventName: "draw_complete", callback: (eventName: string) => void): void;
         setEventHandler(eventName: "draw_idle", callback: (eventName: string) => void): void;
@@ -1070,7 +1071,7 @@ declare module SC {
         ): void;
         unsetEventHandler(
             eventName: "client_message",
-            callback: (eventName: string, data: ClientData) => void,
+            callback: (eventName: string, data: string) => void,
         ): void;
         unsetEventHandler(eventName: "draw_complete", callback: (eventName: string) => void): void;
         unsetEventHandler(eventName: "draw_idle", callback: (eventName: string) => void): void;
