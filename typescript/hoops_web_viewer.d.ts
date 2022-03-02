@@ -600,8 +600,15 @@ declare namespace Communicator {
          * Scales all elements of the matrix.
          * @param k Constant value to scale elements by.
          * @returns This matrix object.
+         * @deprecated For multiplying all elements by a scalar see [[scalarMultiply]]. For setting scale component see [[setScaleComponent]]
          */
         scale(k: number): Matrix;
+        /**
+         * Multiply the matrix by given scalar.
+         * @param scalar Scalar to multiply the matrix with.
+         * @return This matrix object.
+         */
+        multiplyByScalar(scalar: number): Matrix;
         /**
          * Transforms a point according to this matrix. The source and destination points are allowed to be the same object.
          * @param point The point to be transformed.
@@ -3323,7 +3330,7 @@ declare namespace Communicator {
         ScreenOriented = 2,
         /** If set, the instance will not be affected by cutting planes. */
         DoNotCut = 4,
-        /** If set, the instance will not be affected by cutting planes. */
+        /** If set, the instance will not be affected by explode. */
         DoNotExplode = 8,
         /** If set, the instance will not be selectable. */
         DoNotSelect = 16,
@@ -6343,6 +6350,13 @@ declare namespace Communicator {
          * @returns Promise that resolves when the operation has completed.
          */
         setNodesVisibility(nodeIds: NodeId[], visibility: boolean, initiallyHiddenStayHidden?: boolean | null, mode?: TreeWalkMode): Promise<void>;
+        /**
+         * Sets the visibility of all body nodes starting from a given node.
+         * @param startNodeId The start node to walk when updating body nodes visibility.
+         * @param visibility If true, nodes will be shown. If false, they will be hidden.
+         * @returns Promise that resolves when the operation has completed.
+         */
+        setBodyNodesVisibility(startNodeId: NodeId, visibility: boolean): Promise<void>;
         /**
          * Resets visibility for all nodes in the model.
          * @returns Promise that resolves when the operation has completed.
@@ -13568,7 +13582,7 @@ declare namespace Communicator.Internal.Tree {
         getAuthoredNodesFromLayers(layersId: LayerId[], onlyTreeNodes?: boolean): AuthoredNodeId[] | null;
         getRuntimeNodesFromLayer(layerId: LayerId, onlyTreeNodes?: boolean): RuntimeNodeId[] | null;
         getRuntimeNodesFromLayers(layersId: LayerId[], onlyTreeNodes?: boolean): RuntimeNodeId[] | null;
-        getNodesFromLayerName(layerName: LayerName, onlyTreeNodes?: boolean): AuthoredNodeId[] | null;
+        getRuntimeNodesFromLayerName(layerName: LayerName, onlyTreeNodes?: boolean): RuntimeNodeId[] | null;
         createCadView(parentId: RuntimeNodeId, viewName: string, camera: Camera, pmiIds: RuntimeNodeId[], nodesToShow: RuntimeNodeId[], nodesToHide: RuntimeNodeId[], nodesIdAndLocalTransforms: [RuntimeNodeId, Matrix][], cuttingPlane: Plane | null, meshInstanceData: MeshInstanceData | null): RuntimeNodeId | null;
         getCadViewMap(): Map<NodeId, string>;
         activateCadView(cadViewId: RuntimeNodeId, duration: number): Promise<void>;
@@ -13589,6 +13603,7 @@ declare namespace Communicator.Internal.Tree {
         createMeshInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, name: string | null, parentId: RuntimeNodeId | null, preventFromResetting: boolean, isOutOfHierarchy: boolean, implicitBody: boolean): RuntimeNodeId;
         createPmiInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, pmiType: PmiType, pmiSubType: PmiSubType, topoRefs: ReferenceOnTopology[], name: string | null, parentId: RuntimeNodeId | null): RuntimeNodeId;
         setVisibilitiesByMap(idToVisibility: Map<RuntimeNodeId, boolean>, initiallyHiddenStayHidden: boolean | null, mode: TreeWalkMode): Promise<void>;
+        setBodyNodesVisibility(startNode: AnyTreeNode, visibility: boolean): Promise<void>;
         setVisibilitiesByValue(nodeIds: RuntimeNodeId[], visibility: boolean, initiallyHiddenStayHidden: boolean | null, mode: TreeWalkMode): Promise<void>;
         resetAllVisibilities(): Promise<void>;
         resetAllTransforms(): Promise<void>;
@@ -15225,6 +15240,7 @@ declare namespace Communicator.Internal.Tree {
     function updateScMatrices(engine: AbstractScEngine, callbackManager: CallbackManager, startNodes: AnyTreeNode[], allowOutOfHierarchy: boolean): Promise<void>;
 }
 declare namespace Communicator.Internal.Tree {
+    function updateBodyNodesVisibility(startNode: AnyTreeNode, visibility: boolean): Promise<void>;
     function updateVisibilitiesByAttachment(assemblyTree: AssemblyTree, engine: AbstractScEngine, attachContext: AttachContext, setVisibility: SC.SetVisibility): Promise<void>;
     function updateVisibilities(assemblyTree: AssemblyTree, engine: AbstractScEngine, callbackManager: CallbackManager | null, startNode: ProductOccurrence, nodeToVisibility: Map<AnyTreeNode, boolean>, resetNonAffectedToDefault: boolean, initiallyHiddenStayHidden: boolean | null, configurationNode: ProductOccurrence | null, mode: TreeWalkMode): Promise<void>;
     function synchronizePmiVisibilities(engine: AbstractScEngine, startNode: AttachContext): Promise<void>;
@@ -19217,10 +19233,11 @@ declare namespace Communicator.Markup.Measure {
         /** @hidden */
         constructor(viewer: WebViewer);
         setLineGeometry(linePoints: Point3[]): void;
+        setMeasurementEdgeColor(color: Color): void;
         reset(): void;
         adjust(position: Point2): void;
-        update(): void;
         draw(): void;
+        getLineEdgeShape(): Shape.Polyline;
         getClassName(): string;
     }
 }
@@ -19388,8 +19405,9 @@ declare namespace Communicator.Markup.Measure {
         private _selectionPosition;
         private _lineGeometryShape;
         constructor(viewer: WebViewer);
-        addPoint(position: Point3): void;
+        addPoint(position: Point3): boolean;
         setSelectionPosition(selectionPosition: Point3 | null): void;
+        getLineGeometryShape(): Shape.Polyline;
         private _drawPreviewLine;
         private _drawAngleMarkup;
         draw(): void;
