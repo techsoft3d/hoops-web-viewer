@@ -3987,6 +3987,26 @@ declare namespace Communicator {
          */
         implicitlyLoadXmlExternalModels: boolean;
         /**
+         * If true CAD views will not be loaded. This can reduce memory consumption
+         */
+        ignoreCadViews: boolean;
+        /**
+         * If true filters will not be loaded. This can reduce memory consumption
+         */
+        ignoreFilters: boolean;
+        /**
+         * If true layers will not be loaded. This can reduce memory consumption
+         */
+        ignoreLayers: boolean;
+        /**
+         * If true generic types (IFC types) will not be loaded. This can reduce memory consumption
+         */
+        ignoreGenericTypes: boolean;
+        /**
+         * If true BIM relationships will not be loaded. This can reduce memory consumption
+         */
+        ignoreBimRelationships: boolean;
+        /**
          * Allow `subtreeLoaded` callbacks to be triggered by this load.
          * @hidden
          */
@@ -6878,6 +6898,12 @@ declare namespace Communicator {
          * @returns ID of default CAD Configuration
          */
         getDefaultCadConfiguration(): NodeId | null;
+        /**
+         * Gets CAD default view
+         * @returns ID of default CAD Configuration
+         */
+        getDefaultCadView(): NodeId | null;
+        activateDefaultCadView(): Promise<void>;
         /** @deprecated Use [[getDefaultCadConfiguration]] instead. */
         getCADDefaultConfiguration(): NodeId | null;
         /**
@@ -6887,6 +6913,11 @@ declare namespace Communicator {
         getActiveCadConfiguration(): NodeId | null;
         /** @deprecated Use [[getActiveCadConfiguration]] instead. */
         getCADActiveConfiguration(): NodeId | null;
+        /**
+         * Get the configuration in which the view is defined
+         * @returns ID of CAD Configuration of the view
+         */
+        getCadViewConfiguration(cadViewNodeId: NodeId): NodeId | null;
         /**
          * Activates a CAD configuration
          * @param id ID of the CAD Configuration to activate
@@ -9248,6 +9279,14 @@ declare namespace Communicator {
         /** @deprecated Use [[advanceIncrementalSelection]] instead. */
         advanceVolumeSelection(handle: Selection.IncrementalSelectionId, predicate?: ((item: Selection.NodeSelectionItem) => Promise<boolean>) | null): Promise<boolean>;
         isSelected(item: Selection.SelectionItem): boolean;
+        /**
+         * Checks whether a node, or its parents, appear in the selection set or not.
+         * Note: for the purposes of this function element selections on a node
+         * are considered the same as node selection.
+         * @param nodeId Node to check for
+         * @returns `true` if the node or its parents appear in the selection set. `false` otherwise
+         */
+        isNodeSelected(nodeId: NodeId): boolean;
         contains(item: Selection.SelectionItem): boolean;
         /**
          * Checks if the parent of a selection item is in the selection set.
@@ -12051,7 +12090,9 @@ declare namespace Communicator {
         private readonly _params;
         private _contextMenuActiveFlag;
         private _alreadyShutDown;
+        private readonly _shutdownTimer;
         private readonly _sceneReadyPromise;
+        private _modelLoadFailure;
         /**
          * Creates a new Web Viewer instance. You must pass in a **containerId** key with the ID of an element or a **container** element to use for your viewer.
          * The system will create any required elements inside the supplied container.
@@ -13204,7 +13245,7 @@ declare namespace Communicator.Internal.Tree {
         getCamera(): Camera;
         getFullCameraMatrix(): Matrix;
         fitWorld(duration: number, camera?: Camera): Promise<void>;
-        isolateNodes(nodeIds: NodeId[], duration: number, fitNodes: boolean, initiallyHiddenStayHidden: boolean): Promise<void>;
+        isolateNodes(nodeIds: NodeId[], duration: number, fitNodes: boolean, initiallyHiddenStayHidden: boolean | null): Promise<void>;
         setViewOrientation(orientation: ViewOrientation, duration: number, bounding?: Box): Promise<void>;
     }
     interface AbstractModel {
@@ -13354,6 +13395,7 @@ declare namespace Communicator.Internal.Tree {
         hasActiveCadView(): boolean;
         activateCadView(cadView: CadView, duration: number): Promise<void>;
         deactivateActiveCadView(): Promise<void>;
+        getDefaultCadView(node: ProductOccurrence | null): CadView | null;
         getCadViewPmis(cadView: CadView): Pmi[];
         isMeasureable(): boolean;
         containsDrawings(): boolean;
@@ -13446,6 +13488,7 @@ declare namespace Communicator.Internal.Tree {
         private _activeCadView;
         private _activeCadConfiguration;
         private _defaultCadConfiguration;
+        private _defaultCadViewsByConfiguration;
         private _firstProductOccurrenceWithView;
         private _containsDrawings;
         private _isMeasurable;
@@ -13493,7 +13536,7 @@ declare namespace Communicator.Internal.Tree {
         IsExternalModelRoot = 2048,
         Requested = 1024,
         ImplicitBody = 512,
-        Unused3 = 256,
+        IsDefaultView = 256,
         Unused2 = 128,
         Unused1 = 64,
         NodeTypeDrawingSheet = 32,
@@ -13592,9 +13635,12 @@ declare namespace Communicator.Internal.Tree {
         getCadConfigurations(): IdStringMap;
         getDefaultCadConfiguration(): RuntimeNodeId | null;
         getActiveCadConfiguration(): RuntimeNodeId | null;
+        getCadViewConfiguration(nodeId: RuntimeNodeId): RuntimeNodeId | null;
         private _activateCadConfiguration;
         activateCadConfiguration(cadConfigId: RuntimeNodeId): Promise<void>;
         activateDefaultCadConfiguration(): Promise<void>;
+        getDefaultCadView(): RuntimeNodeId | null;
+        activateDefaultCadView(): Promise<void>;
         getPmis(): IdStringMap;
         getPmiType(pmiId: RuntimeNodeId): PmiType;
         getPmiSubType(pmiId: RuntimeNodeId): PmiSubType;
@@ -14005,7 +14051,8 @@ declare namespace Communicator.Internal.Tree {
         IsNotCrosssectionSet = 4096,
         IsNotExplosionSet = 8192,
         IsCombineState = 16384,
-        IsPerspective = 32768
+        IsPerspective = 32768,
+        IsDefaultView = 65536
     }
     const enum PmiParseBits {
         Name = 1,
@@ -14488,11 +14535,11 @@ declare namespace Communicator.Internal.Tree {
         /**
          * Parses the `NodeInfo` for a node without inserting it into the tree.
          */
-        static parseXml(assemblyTree: AssemblyTree, elem: Element): NodeInfo;
+        static parseXml(assemblyTree: AssemblyTree, elem: Element, config: LoadSubtreeConfig): NodeInfo;
         /**
          * Parses the `NodeInfo` for a node without inserting it into the tree.
          */
-        static parseBinary(assemblyTree: AssemblyTree, parser: AssemblyDataParser, parseBits: NodeParseBits): NodeInfo;
+        static parseBinary(assemblyTree: AssemblyTree, parser: AssemblyDataParser, parseBits: NodeParseBits, config: LoadSubtreeConfig): NodeInfo;
         private constructor();
         protected readonly __Node: PhantomMember;
     }
@@ -14583,8 +14630,8 @@ declare namespace Communicator.Internal.Tree {
         protected readonly _instanceKey: SC.InstanceKey;
     }
     class BodyInstance extends BodyMixin<BodyInstanceParent> {
-        static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionKey: SC.InclusionKey): BodyInstanceInfo;
-        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser): BodyInstanceInfo;
+        static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionKey: SC.InclusionKey, config: LoadSubtreeConfig): BodyInstanceInfo;
+        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser, config: LoadSubtreeConfig): BodyInstanceInfo;
         static reify(assemblyTree: AssemblyTree, masterModelKey: SC.MasterModelKey, parent: BodyInstanceParent, info: BodyInstanceInfo): BodyInstance;
         static createDynamic(assemblyTree: AssemblyTree, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, bits: AnyBodyBits): BodyInstance;
         private constructor();
@@ -14595,7 +14642,7 @@ declare namespace Communicator.Internal.Tree {
         protected readonly __BodyInstance: PhantomMember;
     }
     class PmiBody extends BodyMixin<PmiBodyParent> {
-        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser, forceHidden: boolean): PmiBodyInfo;
+        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser, forceHidden: boolean, config: LoadSubtreeConfig): PmiBodyInfo;
         static reify(assemblyTree: AssemblyTree, masterModelKey: SC.MasterModelKey, parent: PmiBodyParent, info: PmiBodyInfo): PmiBody;
         private constructor();
         getName(): string;
@@ -14605,8 +14652,8 @@ declare namespace Communicator.Internal.Tree {
         protected readonly __PmiBody: PhantomMember;
     }
     class ViewFrame extends BodyMixin<ViewFrameParent> {
-        static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionKey: SC.InclusionKey): ViewFrameInfo;
-        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser): ViewFrameInfo;
+        static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionKey: SC.InclusionKey, config: LoadSubtreeConfig): ViewFrameInfo;
+        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser, config: LoadSubtreeConfig): ViewFrameInfo;
         static reify(assemblyTree: AssemblyTree, masterModelKey: SC.MasterModelKey, parent: ViewFrameParent, info: ViewFrameInfo): ViewFrame;
         private constructor();
         getName(): string;
@@ -14626,7 +14673,8 @@ declare namespace Communicator.Internal.Tree {
         IsExplosionSet = 4194304,
         IsCombineState = 2097152,
         IsPerspective = 1048576,
-        HasDynamicFrame = 8192
+        HasDynamicFrame = 8192,
+        IsDefaultView = 256
     }
     interface CadViewInfo<Id> {
         readonly nodeId: AuthoredNodeId | DynamicNodeId;
@@ -14642,8 +14690,8 @@ declare namespace Communicator.Internal.Tree {
     }
     type CadViewParent = ProductOccurrence;
     class CadView extends NodeMixin<CadViewBits> {
-        static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionContext: InclusionContext): CadViewInfo<AuthoredNodeId>;
-        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser): CadViewInfo<AuthoredNodeId>;
+        static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionContext: InclusionContext, config: LoadSubtreeConfig): CadViewInfo<AuthoredNodeId>;
+        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser, config: LoadSubtreeConfig): CadViewInfo<AuthoredNodeId>;
         static reify(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, info: CadViewInfo<AuthoredNodeId>, parent: CadViewParent): CadView;
         static createDynamic(assemblyTree: AssemblyTree, parent: CadViewParent, name: string, camera: Camera, pmis: Pmi[], productOccurrencesToShow: RuntimeNodeId[], productOccurrencesToHide: RuntimeNodeId[], transformMap: Map<RuntimeNodeId, SC.Matrix16>, cuttingPlane: Plane | null): CadView;
         private static isAuthoredViewInfo;
@@ -14656,6 +14704,8 @@ declare namespace Communicator.Internal.Tree {
         getBranchVisibility(): BranchVisibility;
         setVisibility(visible: boolean): void;
         isPmiFilteringSet(): boolean;
+        isDefaultView(): boolean;
+        IsCombineState(): boolean;
         deactivate(cuttingManager: AbstractCuttingManager): Promise<void>;
         activate(assemblyTree: AssemblyTree, engine: AbstractScEngine, callbackManager: CallbackManager, cuttingManager: AbstractCuttingManager, view: AbstractView, duration: number, configurationNode: ProductOccurrence | null): Promise<void>;
         private _activateView;
@@ -14685,8 +14735,8 @@ declare namespace Communicator.Internal.Tree {
     }
     type PartDefinitionReferrer = ProductOccurrence;
     class PartDefinition extends NodeMixin<PartDefinitionBits> {
-        static parseXml(assemblyTree: AssemblyTree, elem: Element): PartDefinitionInfo;
-        static parseBinary(assemblyTree: AssemblyTree, parser: AssemblyDataParser): PartDefinitionInfo;
+        static parseXml(assemblyTree: AssemblyTree, elem: Element, config: LoadSubtreeConfig): PartDefinitionInfo;
+        static parseBinary(assemblyTree: AssemblyTree, parser: AssemblyDataParser, config: LoadSubtreeConfig): PartDefinitionInfo;
         static reify(assemblyTree: AssemblyTree, inclusionContextForNodeId: InclusionContext, modelKey: SC.ModelKey, info: PartDefinitionInfo): PartDefinition;
         static createDynamic(assemblyTree: AssemblyTree, authoredId: AuthoredNodeId | null, name: string | null): PartDefinition;
         static createMissing(assemblyTree: AssemblyTree): PartDefinition;
@@ -14787,7 +14837,7 @@ declare namespace Communicator.Internal.Tree {
     }
     type PmiParent = ProductOccurrence;
     class Pmi extends NodeMixin<0> {
-        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser): PmiInfo;
+        static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser, config: LoadSubtreeConfig): PmiInfo;
         static reify(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, pmiInfo: PmiInfo, parent: PmiParent): Pmi;
         static createDynamic(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parent: PmiParent, pmiName: string | null, pmiType: PmiType, pmiSubType: PmiSubType, pmiBodyInfo: PmiBodyInfo[], topoRefs: ReferenceOnTopology[]): Pmi;
         private constructor();
@@ -14974,8 +15024,8 @@ declare namespace Communicator.Internal.Tree {
     }
     type RepresentationItemParent = PartDefinition;
     class RepresentationItem extends NodeMixin<0> {
-        static parseXml(assemblyTree: AssemblyTree, elem: Element): RepresentationItemInfo;
-        static parseBinary(assemblyTree: AssemblyTree, parser: AssemblyDataParser): RepresentationItemInfo;
+        static parseXml(assemblyTree: AssemblyTree, elem: Element, config: LoadSubtreeConfig): RepresentationItemInfo;
+        static parseBinary(assemblyTree: AssemblyTree, parser: AssemblyDataParser, config: LoadSubtreeConfig): RepresentationItemInfo;
         static reify(assemblyTree: AssemblyTree, masterModelKey: SC.MasterModelKey, info: RepresentationItemInfo, parent: RepresentationItemParent): RepresentationItem;
         static createDynamic(assemblyTree: AssemblyTree, authoredId: AuthoredNodeId | null, name: string | null, masterModelKey: SC.MasterModelKey, parent: RepresentationItemParent): RepresentationItem;
         private constructor();
@@ -15225,7 +15275,7 @@ declare namespace Communicator.Internal.Tree {
     function getNodeColorMap(startNode: AnyTreeNode, engine: ScEngine, elementType: ElementType): Promise<Map<RuntimeNodeId, Color>>;
 }
 declare namespace Communicator.Internal.Tree {
-    function getVisibilityState(startNode: AnyTreeNode): Promise<VisibilityState>;
+    function getVisibilityState(startNode: AnyTreeNode, initialState?: boolean): Promise<VisibilityState>;
 }
 declare namespace Communicator.Internal.Tree {
     function markContextsLoaded(contexts: (LoadContext | AttachContext)[]): Promise<void>;
@@ -19356,6 +19406,7 @@ declare namespace Communicator.Markup.Measure {
         private _surfaceAxis2;
         private _cylinderAxisInfinite1;
         private _cylinderAxisInfinite2;
+        private _secondPointInitial;
         private _firstPointHelper;
         private _secondPointHelper;
         private _secondPoint;
