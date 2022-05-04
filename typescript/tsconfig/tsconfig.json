@@ -1,0 +1,26 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "module": "none",
+        "removeComments": false,
+        "noEmitOnError": true,
+        "listFiles": true,
+        "listEmittedFiles": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedParameters": true,
+        "noUnusedLocals": true,
+        "strict": true,
+        "alwaysStrict": false,
+        "experimentalDecorators": true,
+        "target": "es5",
+        "lib": [
+            "es2015.iterable",
+            "es2015.promise",
+            "es2015.collection",
+            "es5",
+            "dom"
+        ],
+        "types": []
+    }
+}

@@ -1,0 +1,10 @@
+{
+    "target": "ES6",
+    "mode": "file",
+    "excludePrivate": "true",
+    "types": [],
+    "includeDeclarations": true,
+    "externalPattern": "tcc.d.ts",
+    "excludeExternals": true,
+    "disableOutputCheck": true
+}

@@ -1,0 +1,18 @@
+{
+    "extends": "../tsconfig/tsconfig.json",
+    "compilerOptions": {
+        "outFile": "js/web_viewer_ui.js",
+        "declaration": true,
+        "typeRoots": ["../../node_modules/@types"],
+        "types": ["sizzle", "jquery", "jqueryui"]
+    },
+    "files": [
+        "js/hoops_web_viewer.d.ts"
+    ],
+    "include": [
+        "**/*.ts"
+    ],
+    "exclude": [
+        "js/web_viewer_ui.d.ts"
+    ]
+}
