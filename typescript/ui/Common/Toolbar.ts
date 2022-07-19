@@ -3,7 +3,7 @@ namespace Communicator.Ui {
     export class Toolbar {
         private readonly _viewer: WebViewer;
         private readonly _noteTextManager: Markup.Note.NoteTextManager;
-        private readonly _cuttingPlaneController: CuttingPlaneController;
+        private readonly _cuttingPlaneController: CuttingPlane.Controller;
         private readonly _viewerSettings: Desktop.ViewerSettings;
 
         private readonly _toolbarSelector: string = "#toolBar";
@@ -33,7 +33,7 @@ namespace Communicator.Ui {
 
         constructor(
             viewer: WebViewer,
-            cuttingPlaneController: CuttingPlaneController,
+            cuttingPlaneController: CuttingPlane.Controller,
             screenConfiguration: ScreenConfiguration = ScreenConfiguration.Desktop,
         ) {
             this._viewer = viewer;
@@ -717,7 +717,8 @@ namespace Communicator.Ui {
 
         private _updateCuttingPlaneIcons(): void {
             const geometryEnabled = this._cuttingPlaneController.getReferenceGeometryEnabled();
-            const individualCuttingSection = this._cuttingPlaneController.getIndividualCuttingSectionEnabled();
+            const individualCuttingSection =
+                this._cuttingPlaneController.individualCuttingSectionEnabled;
             const count = this._cuttingPlaneController.getCount();
 
             this._updateCuttingPlaneIcon(CuttingSectionIndex.X, this._cuttingPlaneXSelector);
@@ -760,13 +761,11 @@ namespace Communicator.Ui {
             $cuttingPlaneButton.removeClass(this._selectedClass);
             $cuttingPlaneButton.removeClass(this._invertedClass);
 
-            const planeInfo = this._cuttingPlaneController.getPlaneInfo(sectionIndex);
-            if (planeInfo !== undefined) {
-                if (planeInfo.status === CuttingPlaneStatus.Visible) {
-                    $cuttingPlaneButton.addClass(this._selectedClass);
-                } else if (planeInfo.status === CuttingPlaneStatus.Inverted) {
-                    $cuttingPlaneButton.addClass(this._invertedClass);
-                }
+            const planeStatus = this._cuttingPlaneController.getPlaneStatus(sectionIndex);
+            if (planeStatus === CuttingPlane.Status.Visible) {
+                $cuttingPlaneButton.addClass(this._selectedClass);
+            } else if (planeStatus === CuttingPlane.Status.Inverted) {
+                $cuttingPlaneButton.addClass(this._invertedClass);
             }
         }
 

@@ -9037,6 +9037,17 @@ declare namespace Communicator.Util {
      * @param duration number of milliseconds until the returned promise can resolve
      */
     function sleep(duration: Milliseconds): Promise<void>;
+    /**
+     * This function is an helper function that delay the call to a callback to the
+     * computation of the next 'frame' of the browser's js engine.
+     * The point is to let the js engine deal with pending promises before running
+     * the given code.
+     *
+     * @param cb the callback to call the promise to call on the next frame.
+     * @param args the arguments of the callback.
+     * @returns a timeout id in order to cancel it if necessary.
+     */
+    function delayCall(cb: (...cbArgs: any[]) => any, ...args: any[]): ReturnType<typeof setTimeout>;
 }
 declare namespace Communicator.Internal {
     function hasBits(storedBits: number, desiredBits: number): boolean;
@@ -15953,6 +15964,54 @@ declare namespace Communicator.Util {
      * @returns The resulting set.
      */
     function setSubtraction<T>(setA: Set<T>, setB: Set<T>): Set<T>;
+}
+declare namespace Communicator.Util {
+    namespace StateMachine {
+        /**
+         * @interface Action common interface for action with and without payload.
+         */
+        interface Action<ActionName, Payload = void> {
+            name: ActionName;
+            payload: Payload;
+        }
+        /**
+         * @type {StateReducer<State, ActionNames>} The signature of the
+         * function that will handle actions.
+         *
+         * It takes the current state and the action and returns the
+         * next state.
+         *
+         * @param state the current state of the state machine
+         * @param action the action that triggered the reducer
+         *
+         * @returns {State} the next state of the state machine
+         */
+        type StateReducer<State, ActionNames> = (state: State, action: Action<ActionNames, any>) => State;
+    }
+    /**
+     * @class StateMachine<State, ActionNames> is a minimalist state machine
+     *
+     * @template {State} State The type of the state
+     * @template {ActionNames} ActionNames a string union of the action names
+     */
+    class StateMachine<State, ActionNames> {
+        /**
+         * @member {State} _state the current state of the StateMachine
+         */
+        private _state;
+        /**
+         * @member {StateReducer<State, ActionNames>} _reducer the reducer of the StateMachine
+         */
+        private _reducer;
+        constructor(state: State, reducer: StateMachine.StateReducer<State, ActionNames>);
+        /**
+         * Handle an action and update the state
+         *
+         * @param evt The action to handle
+         * @param payload The payload if any
+         */
+        handle(evt: ActionNames, payload?: any): void;
+    }
 }
 declare namespace Communicator.Internal {
     interface WindowWithEscape extends Window {

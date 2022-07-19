@@ -29,7 +29,7 @@ namespace Communicator.Ui.Desktop {
         private _toolbar: Toolbar | null = null;
         private _contextMenu: RightClickContextMenu;
         private _isolateZoomHelper: IsolateZoomHelper;
-        private _cuttingPlaneController: CuttingPlaneController;
+        private _cuttingPlaneController: CuttingPlane.Controller;
         private _colorPicker: ColorPicker;
 
         /** The `ModelType` derived from the current model. */
@@ -88,7 +88,7 @@ namespace Communicator.Ui.Desktop {
                 }
             }
 
-            this._cuttingPlaneController = new CuttingPlaneController(this._viewer);
+            this._cuttingPlaneController = new CuttingPlane.Controller(this._viewer);
             this._isolateZoomHelper = new IsolateZoomHelper(this._viewer);
 
             if (showToolbar) {

@@ -117,40 +117,467 @@ declare namespace Communicator.Ui.Context {
         private _isTypeVisible;
     }
 }
-declare namespace Communicator.Ui {
-    const enum CuttingPlaneStatus {
+declare namespace Communicator.Ui.CuttingPlane {
+    const enum Status {
         Hidden = 0,
         Visible = 1,
         Inverted = 2
     }
-    class CuttingPlaneInfo {
+    class Info {
         plane: Plane | null;
         referenceGeometry: Point3[] | null;
-        status: CuttingPlaneStatus;
+        status: Status;
         updateReferenceGeometry: boolean;
     }
-    class CuttingPlaneController {
-        private readonly _viewer;
-        private readonly _cuttingSections;
-        private _modelBounding;
-        private readonly _planeInfo;
-        private _showReferenceGeometry;
+    namespace ControllerUtils {
+        interface IController {
+            init: () => Promise<void>;
+            update: () => Promise<void>;
+            refresh: () => Promise<void>;
+            clear: () => Promise<void>;
+        }
+        type EventType = "init" | "update" | "refresh" | "clear";
+        type StateName = "not initialized" | "outdated" | "updating" | "up to date" | "update triggered";
+        interface ControllerState {
+            name: StateName;
+            controller: IController;
+        }
+        type ControllerStateReducer = (state: ControllerState, event: EventType) => ControllerState;
+    }
+}
+declare namespace Communicator.Ui.CuttingPlane.ControllerUtils {
+    /**
+     * @class PlaneInfoManager encapsulates the the handling of the planes' information
+     */
+    class PlaneInfoManager {
+        /**
+         * @member _planeInfoMap a map of plane information for each CuttingSection
+         */
+        private readonly _planeInfoMap;
+        /**
+         * Get the plane Information for CuttingSectionIndex.X
+         * @returns the plane Information for CuttingSectionIndex.X
+         */
+        readonly X: Info;
+        /**
+         * Get the plane Information for CuttingSectionIndex.Y
+         * @returns the plane Information for CuttingSectionIndex.Y
+         */
+        readonly Y: Info;
+        /**
+         * Get the plane Information for CuttingSectionIndex.Z
+         * @returns the plane Information for CuttingSectionIndex.Z
+         */
+        readonly Z: Info;
+        /**
+         * Get the plane Information for CuttingSectionIndex.Face
+         * @returns the plane Information for CuttingSectionIndex.Face
+         */
+        readonly Face: Info;
+        /**
+         * Check whether a cutting plane is hidden or not for a given section
+         * @param  {CuttingSectionIndex} sectionIndex the section index of the plane to check
+         * @returns true if the cutting plane is hidden, false otherwise.
+         */
+        isHidden(sectionIndex: CuttingSectionIndex): boolean;
+        /**
+         * Get the plane information for a given cutting section
+         *
+         * If the info does not exist in the map it creates it
+         *
+         * @param  {CuttingSectionIndex} sectionIndex the section index of the info to get
+         * @returns the plane information for the given section
+         */
+        get(sectionIndex: CuttingSectionIndex): Info;
+        /**
+         * Resets a plane's information
+         *
+         * Sets plane and referenceGeometry to null
+         *
+         * @param  {CuttingSectionIndex} sectionIndex
+         */
+        reset(sectionIndex: CuttingSectionIndex): void;
+        /**
+         * Deletes the plane's information for a given section in the map
+         *
+         * @note it will be recreated if get is called with the same section index
+         *
+         * @param  {CuttingSectionIndex} sectionIndex the section index of the plane's information to delete
+         */
+        delete(sectionIndex: CuttingSectionIndex): void;
+        /**
+         * Deletes all planes' information
+         *
+         * @note they will be recreated if get is called with each of their section index
+         */
+        clear(): void;
+        /**
+         * Update all planes' info
+         *
+         * @todo check if this is still necessary after refactoring or if something more elegant is feasible
+         */
+        update(): void;
+        /**
+         * Get the status of a plane given the plain and its section index
+         * @param  {CuttingSectionIndex} sectionIndex the section index of the plane
+         * @param  {Plane} plane the plane to get its status
+         * @returns {Status} the status of the plane
+         */
+        static getCuttingStatus(sectionIndex: CuttingSectionIndex, plane: Plane): Status;
+        /**
+         * Get the section index for a given plane based on its normal
+         * @param  {Plane} plane the plane to get the section for
+         * @returns the section index of the given plane
+         */
+        static getPlaneSectionIndex(plane: Plane): CuttingSectionIndex;
+    }
+}
+declare namespace Communicator.Ui.CuttingPlane.ControllerUtils {
+    /**
+     * @class CuttingSectionManager encapsulate the access to the cutting manager sections.
+     */
+    class CuttingSectionManager {
+        /**
+         * @member _useIndividualCuttingSections a boolean representing whether the cutting section is done on a single plane or not
+         */
         private _useIndividualCuttingSections;
-        private _boundingBoxUpdate;
+        /**
+         * @member _cuttingManager The CuttingManager of the WebViewer where the cutting planes are drawn
+         */
+        private _cuttingManager;
+        /**
+         * @property useIndividualCuttingSections getter
+         * @returns  a boolean representing whether the cutting section is done on a single plane or not
+         */
+        /**
+        * @property useIndividualCuttingSections setter
+        *
+        * @todo check if this can be remove and internalize the handling of this value or make it public
+        *
+        * @param  {boolean} value
+        */
+        useIndividualCuttingSections: boolean;
+        /**
+         * @property X get the CuttingSection for CuttingSectionIndex.X
+         * @returns The CuttingSection for CuttingSectionIndex.X
+         */
+        readonly X: CuttingSection;
+        /**
+         * @property Y get the CuttingSection for CuttingSectionIndex.Y
+         * @returns The CuttingSection for CuttingSectionIndex.Y
+         */
+        readonly Y: CuttingSection;
+        /**
+         * @property Z get the CuttingSection for CuttingSectionIndex.Z
+         * @returns The CuttingSection for CuttingSectionIndex.Z
+         */
+        readonly Z: CuttingSection;
+        /**
+         * @property Face get the CuttingSection for CuttingSectionIndex.Face
+         * @returns The CuttingSection for CuttingSectionIndex.Face
+         */
+        readonly Face: CuttingSection;
+        /**
+         * @property activeStates get an array of boolean representing whether a plane in
+         * [CuttingSectionIndex.X, CuttingSectionIndex.Y, CuttingSectionIndex.Z, CuttingSectionIndex.Face]
+         * is active
+         * @returns boolean
+         */
+        readonly activeStates: [boolean, boolean, boolean, boolean];
+        /**
+         * @property planes get planes in either CuttingSectionIndex.X CuttingSection if its count is greater than 1
+         * or every first plane of every section in
+         * [CuttingSectionIndex.X, CuttingSectionIndex.Y, CuttingSectionIndex.Z, CuttingSectionIndex.Face]
+         *
+         * @todo check whether the X part is not something that must be modified due to refactoring (support use
+         * individual on other section index)
+         *
+         * @returns an array of four cells containing either a plane or null.
+         */
+        readonly planes: (Plane | null)[];
+        /**
+         * @property referenceGeometry get the reference geometry in either CuttingSectionIndex.X CuttingSection if its count
+         * is greater than 1 or every first reference geometry of every section in
+         * [CuttingSectionIndex.X, CuttingSectionIndex.Y, CuttingSectionIndex.Z, CuttingSectionIndex.Face]
+         *
+         * @todo check whether the X part is not something that must be modified due to refactoring (support use
+         * individual on other section index)
+         *
+         * @returns an array of four cells containing either a plane or null.
+         */
+        readonly referenceGeometry: (Point3[] | null)[];
+        /**
+         * Get a Cutting Section given an index
+         * @param sectionIndex The index of the cutting section
+         * @returns The appropriate cutting section for this index from the cutting manager
+         */
+        get(sectionIndex: CuttingSectionIndex): CuttingSection;
+        /**
+         * Get the total number of planes for all sections.
+         * @returns the total number of planes for all sections.
+         */
+        getCount(): number;
+        /**
+         * Initialize the component and store a reference to the CuttingManager of the WebViewer
+         * @param viewer The viewer where the cutting planes to manage are
+         */
+        init(viewer: WebViewer): void;
+        /**
+         * Check whether a section is active or not.
+         *
+         * @throws Error if the CuttingSectionManager has not been initialized yet
+         * @param  {CuttingSectionIndex} sectionIndex
+         * @returns a boolean that represent whether a section is active or not
+         */
+        isActive(sectionIndex: CuttingSectionIndex): boolean;
+        /**
+         * Activate a plane if the section count is greater than 0
+         * @param  {CuttingSectionIndex} sectionIndex the index of the plane to activate
+         *
+         * @todo improve this API, a function cannot silently fail like that at least return a boolean
+         *
+         * @returns Promise a promise returning when the plane has been activated or not
+         */
+        activate(sectionIndex: CuttingSectionIndex): Promise<void>;
+        /**
+         * Activate all planes if the section count is greater than 0 depending on activeStates
+         * if activeStates is undefined every planes are activated (if possible)
+         * if activeStates is defined
+         *  - activeStates[0] triggers activation of CuttingSectionIndex.X
+         *  - activeStates[1] triggers activation of CuttingSectionIndex.Y
+         *  - activeStates[2] triggers activation of CuttingSectionIndex.Z
+         *  - activeStates[3] triggers activation of CuttingSectionIndex.Face
+         *
+         * @param  {activeStates} activeStates
+         *
+         * @todo improve this API, a function cannot silently fail like that at least return a boolean array
+         * @todo improve this API, use named fields for activeStates
+         *
+         * @returns Promise a promise returning when the plane has been activated or not
+         */
+        activateAll(activeStates?: [boolean, boolean, boolean, boolean]): Promise<void>;
+        /**
+         * Deactivate a plane
+         * @param  {CuttingSectionIndex} sectionIndex the index of the plane to deactivate
+         *
+         * @todo improve this API, a function cannot silently fail like that at least return a boolean
+         *
+         * @returns Promise a promise returning when the plane has been activated or not
+         */
+        deactivate(sectionIndex: CuttingSectionIndex): Promise<void>;
+        /**
+         * Reset useIndividualCuttingSections to true
+         *
+         * @todo check whether it is still useful after the refactoring
+         *
+         */
+        reset(): void;
+        /**
+         * Get the section index based on whether useIndividualCuttingSections is set or not.
+         * Return CuttingSectionIndex.X (0) if useIndividualCuttingSections is set, sectionIndex otherwise.
+         *
+         * @todo maybe we can improve this API by aliasing the CuttingSectionIndex.X (0) with something like CuttingSectionIndividual = 0
+         *
+         * @param sectionIndex the index of the desired section
+         * @returns CuttingSectionIndex.X (0) if useIndividualCuttingSections is set, sectionIndex otherwise
+         */
+        getCuttingSectionIndex(sectionIndex: CuttingSectionIndex): CuttingSectionIndex;
+        /**
+         * Clear a CuttingSection given its index
+         * @param  {CuttingSectionIndex} sectionIndex the index of the section to clear
+         * @returns a promise resolved with void on completion
+         */
+        clear(sectionIndex: CuttingSectionIndex): Promise<void>;
+        /**
+         * Clear a CuttingSection given its index
+         * @param  {CuttingSectionIndex} sectionIndex the index of the section to clear
+         * @returns a promise resolved with void on completion
+         */
+        clearAll(): Promise<void>;
+        /**
+         * get the index of a plane given section index
+         * @param  {CuttingSectionIndex} sectionIndex the index of the section of the plane
+         * @param  {Point3} normal? an optional normal used if sectionIndex === CuttingSectionIndex.Face
+         * @returns the index of the plane according to the sec or -1 if not found.
+         */
+        getPlaneIndex(sectionIndex: CuttingSectionIndex, normal?: Point3): number;
+        /**
+         * Get the plane and the reference geometry for a given section index
+         * @param  {CuttingSectionIndex} sectionIndex the section index of the data to get
+         * @param  {Point3} normal? an optional normal used if sectionIndex === CuttingSectionIndex.Face
+         * @returns {plane: Plane | null; referenceGeometry: Point3[] | null} an Object containing the
+         * plane or null as plane and the reference geometry or null as referenceGeometry
+         */
+        getPlaneAndGeometry(sectionIndex: CuttingSectionIndex, normal?: Point3): {
+            plane: Plane | null;
+            referenceGeometry: Point3[] | null;
+        };
+        /**
+         * Get the reference geometry for a given section index
+         *
+         * @param  {CuttingSectionIndex} sectionIndex the section index of the reference geometry to get
+         * @param  {Box} boundingBox the bounding box of the model
+         * @returns {Point3[]} the reference geometry of the section
+         */
+        getReferenceGeometry(sectionIndex: CuttingSectionIndex, boundingBox: Box): Point3[];
+        /**
+         * Add a plane to a section
+         * @param  {CuttingSectionIndex} sectionIndex the section where the plane should be added
+         * @param  {Plane} plane the plane to add.
+         * @param  {Point[]|null} referenceGeometry the reference geometry of the plane or null
+         * @returns Promise a promise completed with undefined when its done
+         */
+        addPlane(sectionIndex: CuttingSectionIndex, plane: Plane, referenceGeometry: Point3[] | null): Promise<void>;
+    }
+}
+declare namespace Communicator.Ui.CuttingPlane.ControllerUtils {
+    /**
+     * @class BoundingManager this is a buffer class that holds the model bounding
+     * box and update it if needed
+     */
+    class BoundingManager {
+        /**
+         * @member _modelBounding Copy of the bounding box model used as a buffer value yo allow synchronous access
+         */
+        private _modelBounding;
+        /**
+         * @property @readonly box the latest bounding box
+         */
+        readonly box: Box;
+        /**
+         * Initialize the bounding box with the current model bounding box value
+         * @param viewer the WebViewer of the cutting planes
+         */
+        init(viewer: WebViewer): Promise<void>;
+        /**
+         * update the bounding box if the model bounding box is different than the current one
+         * @param viewer the WebViewer of the cutting planes
+         * @returns true if the bounding boxed changed, false otherwise
+         */
+        update(viewer: WebViewer): Promise<boolean>;
+    }
+}
+declare namespace Communicator.Ui.CuttingPlane.ControllerUtils {
+    /**
+     * @class FaceSelectionManager encapsulates Face Selection for cutting planes
+     */
+    class FaceSelectionManager {
+        /**
+         * @member _faceSelection the current face selection item if there is one or null;
+         */
         private _faceSelection;
-        private _initSectionCalled;
-        private readonly _pendingFuncs;
+        /**
+         * Set the face selection item or reset it to null
+         * @param  {Selection.FaceSelectionItem|null=null} item
+         */
+        reset(item?: Selection.FaceSelectionItem | null): void;
+        /**
+         * @property  isSet is true if the current face selection item is not null
+         * @returns true if the current face selection item is not null, false otherwise
+         */
+        readonly isSet: boolean;
+        /**
+         * @property normal is the normal of the current face selection entity if any
+         * @returns the normal of the current face selection entity if any, undefined otherwise
+         */
+        readonly normal: Point3 | undefined;
+        /**
+         * @property position is the position of the current face selection entity if any
+         * @returns the position of the current face selection entity if any, undefined otherwise
+         */
+        readonly position: Point3 | undefined;
+        /**
+         * Get the reference geometry for the face section.
+         * @param  {WebViewer} viewer the WebViewer were the cutting planes are displayed
+         * @param  {Box} boundingBox the model bounding box
+         * @returns the reference geometry for the face section
+         */
+        getReferenceGeometry(viewer: WebViewer, boundingBox: Box): Point3[];
+    }
+}
+declare namespace Communicator.Ui.CuttingPlane.ControllerUtils {
+    /**
+     * @class StateMachine Helper Class to create a Controller StateMachine given a Controller
+     */
+    class StateMachine extends Util.StateMachine<ControllerState, EventType> {
+        constructor(controller: IController);
+    }
+    /**
+     * The default reducer of the Controller.
+     *
+     * The default behavior is to begin as 'not initialized'
+     *  - If it receives an init action
+     *    - it set its state to 'updating'
+     *    - it initializes the controller
+     *    - If an update action is received during the initialization it sets its states to 'update triggered'.
+     *    - when the initialization is done
+     *      - if the current state is 'updating' it is set it to 'outdated'
+     *      - if the current state is 'update triggered' it calls the default reducer with the action 'update'
+     *
+     *  - If it receives an update action
+     *    - if the current state is 'not initialized' it throws an error
+     *    - if the current state is 'update triggered' it does nothing
+     *    - if the current state is 'updating' it set the state to 'update triggered' and stops
+     *    - it set its state to 'updating'
+     *    - it updates the controller
+     *    - If an update action is received during the initialization it sets its states to 'update triggered'.
+     *    - when the initialization is done
+     *      - if the current state is 'updating' it is set it to 'up to date'
+     *      - if the current state is 'update triggered' it calls the default reducer with the action 'update'
+     *
+     *  - If it receives a clear action
+     *    - if the current state is 'not initialized' it throws an error
+     *    - it set its state to 'updating'
+     *    - it clears the controller
+     *    - If an update action is received during the initialization it sets its states to 'update triggered'.
+     *    - when the initialization is done
+     *      - if the current state is 'updating' it is set it to 'up to date'
+     *      - if the current state is 'update triggered' it calls the default reducer with the action 'update'
+     *
+     * @note COM-3280 showed that several calls to setVisibility will trigger calls of
+     * Communicator.Ui.CuttingPlane.Controller._updateBoundingBox and it interferes with the model visibility
+     * and creates bugs.
+     * To avoid collisions between the successive setVisibility and the updating of the Controller the actions
+     * are delayed using @function delayCall.
+     *
+     * @see delayCall
+     *
+     * {@link https://techsoft3d.atlassian.net/browse/COM-3280}
+     *
+     * @param  {ControllerState} state the current state of the controller's state machine
+     * @param  {Util.StateMachine.Action<EventType>} action the action that triggered the transition
+     * @param  {EventType} action.name the name of the action
+     * @param  {undefined} action.payload the payload of the action
+     *
+     * @note The action's payload is always undefined as the Controller does not use it
+     *
+     * @returns State
+     */
+    function defaultReducer(state: ControllerState, { name, payload }: Util.StateMachine.Action<EventType>): ControllerState;
+}
+declare namespace Communicator.Ui.CuttingPlane {
+    class Controller implements ControllerUtils.IController {
+        protected readonly _viewer: WebViewer;
+        protected readonly _stateMachine: ControllerUtils.StateMachine;
+        protected readonly _planeInfoMgr: ControllerUtils.PlaneInfoManager;
+        protected readonly _cuttingSectionsMgr: ControllerUtils.CuttingSectionManager;
+        protected readonly _modelBoundingMgr: ControllerUtils.BoundingManager;
+        protected readonly _faceSelectionMgr: ControllerUtils.FaceSelectionManager;
+        protected _showReferenceGeometry: boolean;
+        protected readonly _pendingFuncs: {
+            visibility?: () => Promise<void>;
+            inverted?: () => Promise<void>;
+        };
         constructor(viewer: WebViewer);
-        private _getCuttingStatus;
+        init(): Promise<void>;
+        update(): Promise<void>;
+        refresh(): Promise<void>;
+        clear(): Promise<void>;
+        readonly individualCuttingSectionEnabled: boolean;
+        getPlaneStatus(sectionIndex: CuttingSectionIndex): Status;
         onSectionsChanged(): Promise<void>;
-        private _getPlaneSectionIndex;
         getReferenceGeometryEnabled(): boolean;
-        getIndividualCuttingSectionEnabled(): boolean;
-        getPlaneInfo(sectionIndex: CuttingSectionIndex): CuttingPlaneInfo | undefined;
-        private _ensurePlaneInfo;
-        private _setStatus;
         private _updateBoundingBox;
-        private _resetAxis;
         private _resetCuttingData;
         resetCuttingPlanes(): Promise<void>;
         private _initSection;
@@ -162,21 +589,38 @@ declare namespace Communicator.Ui {
         toggleReferenceGeometry(): Promise<void>;
         refreshPlaneGeometry(): Promise<void>;
         toggleCuttingMode(): Promise<void>;
-        private _isActive;
-        private _deactivateAxis;
-        private _getCuttingSectionIndex;
-        private _clearCuttingSection;
-        private _clearCuttingSections;
-        private _activateSection;
-        private _activatePlanes;
-        private _getPlaneIndex;
         private _setSection;
         private _restorePlane;
         private _restorePlanes;
-        private _storePlane;
         private _storePlanes;
         private _generateReferenceGeometry;
-        private _generateCuttingPlane;
+    }
+}
+declare namespace Communicator.Ui {
+    /**
+     * @deprecated CuttingPlaneStatus is deprecated in favor of CuttingPlane.Status
+     */
+    type CuttingPlaneStatus = CuttingPlane.Status;
+    /**
+     * @deprecated CuttingPlaneInfo is deprecated in favor of CuttingPlane.Info
+     */
+    class CuttingPlaneInfo extends CuttingPlane.Info {
+    }
+    /**
+     * @deprecated CuttingPlaneController is deprecated in favor of CuttingPlane.Controller
+     */
+    class CuttingPlaneController extends CuttingPlane.Controller {
+        /**
+         * @deprecated getPlaneInfo is deprecated in favor of CuttingPlane.Controller.individualCuttingSectionEnabled
+         * @returns CuttingPlane.Controller.individualCuttingSectionEnabled
+         */
+        getIndividualCuttingSectionEnabled(): boolean;
+        /**
+         * @deprecated getPlaneInfo is deprecated in favor of CuttingPlane.Controller.getPlaneStatus
+         * @param sectionIndex the section index of the plane you want
+         * @returns the plane info of the plane in section sectionIndex
+         */
+        getPlaneInfo(sectionIndex: CuttingSectionIndex): CuttingPlaneInfo | undefined;
     }
 }
 declare namespace Communicator {
@@ -300,7 +744,7 @@ declare namespace Communicator.Ui {
         private readonly _actionsBoolean;
         private _isInitialized;
         private readonly _screenConfiguration;
-        constructor(viewer: WebViewer, cuttingPlaneController: CuttingPlaneController, screenConfiguration?: ScreenConfiguration);
+        constructor(viewer: WebViewer, cuttingPlaneController: CuttingPlane.Controller, screenConfiguration?: ScreenConfiguration);
         init(): void;
         /** @hidden */
         _getViewerSettings(): Desktop.ViewerSettings;
