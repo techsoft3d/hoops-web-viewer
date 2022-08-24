@@ -37,6 +37,10 @@ namespace Communicator.Ui {
                 modelSwitched: onNewModel,
                 subtreeLoaded: onNewModel,
                 selectionArray: (events: Event.NodeSelectionEvent[]) => {
+                    if (this._layerNames.length === 0) {
+                        return;
+                    }
+
                     this._tree.updateSelection(events);
 
                     // Expand layers tree to reveal parts
@@ -170,13 +174,13 @@ namespace Communicator.Ui {
             nodeIds.forEach((nodeId) => {
                 const nodeType = model.getNodeType(nodeId);
                 const fileType = model.getModelFileTypeFromNode(nodeId);
- 
+
                 /*
                  * Don't add BodyInstance nodes for BIM models.
                  *
-                 * Drawing files (both 2D and 3D) should use the BodyInstance nodes, 
+                 * Drawing files (both 2D and 3D) should use the BodyInstance nodes,
                  * as each BodyInstance might be in a different layer.
-                 * 
+                 *
                  * isDrawing will be false for 3D DWG files, so also check that the file
                  * is not a DWG file before substituting the BodyInstance for the parent.
                  */

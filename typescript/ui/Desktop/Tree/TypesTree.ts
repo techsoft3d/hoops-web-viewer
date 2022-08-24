@@ -39,7 +39,9 @@ namespace Communicator.Ui {
                 modelStructureReady: onNewModel,
                 modelLoaded: onNewModel,
                 selectionArray: (events: Event.NodeSelectionEvent[]) => {
-                    this._tree.updateSelection(events);
+                    if (this._ifcNodesMap.size > 0) {
+                        this._tree.updateSelection(events);
+                    }
                 },
                 visibilityChanged: () => {
                     this._tree.updateTypesVisibilityIcons();

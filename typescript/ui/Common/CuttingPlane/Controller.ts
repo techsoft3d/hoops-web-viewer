@@ -198,13 +198,8 @@ namespace Communicator.Ui.CuttingPlane {
             if (visibility) {
                 const planeInfo = this._planeInfoMgr.get(sectionIndex);
                 if (planeInfo.plane === null) {
-                    const { plane, referenceGeometry } =
-                        this._cuttingSectionsMgr.getPlaneAndGeometry(
-                            sectionIndex,
-                            this._faceSelectionMgr.normal,
-                        );
-                    planeInfo.plane = plane;
-                    planeInfo.referenceGeometry = referenceGeometry;
+                    planeInfo.plane = this._generateCuttingPlane(sectionIndex);
+                    planeInfo.referenceGeometry = this._generateReferenceGeometry(sectionIndex);
                 }
                 await this._setSection(sectionIndex);
             } else {
@@ -347,6 +342,35 @@ namespace Communicator.Ui.CuttingPlane {
                 sectionIndex,
                 this._modelBoundingMgr.box,
             );
+        }
+
+        private _generateCuttingPlane(sectionIndex: CuttingSectionIndex): Plane | null {
+            const plane = new Plane();
+            const box = this._modelBoundingMgr.box;
+            switch (sectionIndex) {
+                case CuttingSectionIndex.X:
+                    plane.normal.set(1, 0, 0);
+                    plane.d = -box.max.x;
+                    break;
+                case CuttingSectionIndex.Y:
+                    plane.normal.set(0, 1, 0);
+                    plane.d = -box.max.y;
+                    break;
+                case CuttingSectionIndex.Z:
+                    plane.normal.set(0, 0, 1);
+                    plane.d = -box.max.z;
+                    break;
+                case CuttingSectionIndex.Face:
+                    if (this._faceSelectionMgr.isSet) {
+                        const normal = this._faceSelectionMgr.normal!;
+                        const position = this._faceSelectionMgr.position!;
+                        plane.setFromPointAndNormal(position, normal);
+                    } else {
+                        return null;
+                    }
+            }
+
+            return plane;
         }
     }
 }

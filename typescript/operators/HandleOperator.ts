@@ -72,6 +72,9 @@ namespace Communicator.Operator {
                 measurementCreated: () => {
                     this._measureActive = false;
                 },
+                measurementDeleted: () => {
+                    this._measureActive = false; 
+                }
             });
         }
 
@@ -192,12 +195,36 @@ namespace Communicator.Operator {
                 return this.addHandles(nodeIds, boundingBox.center());
             }
 
+            const existingGroupId = this._findGroupId(nodeIds);
             if (groupId === null) {
-                groupId = this.generateGroupId();
+                groupId = existingGroupId !== null ? existingGroupId : this.generateGroupId();
             }
 
             this._nodeIdGroupMap.set(groupId, nodeIds);
+
+            // Remove existing handle for this group if exists
+            if (existingGroupId !== null) {
+                await this._handleMarkup.removeHandles(groupId);
+            }
+
             return this._handleMarkup.addHandles(position, this._handleSize, groupId);
+        }
+
+        /**
+         * Returns the group id associated to the given group of node ids, returns null if does not exist
+         * @param nodeIds
+         */
+        private _findGroupId(nodeIds: NodeId[]): number | null {
+            let groupId = null;
+            this._nodeIdGroupMap.forEach((nodes, group) => {
+                if (
+                    nodes.length === nodeIds.length &&
+                    nodes.every((node) => nodeIds.indexOf(node) !== -1)
+                ) {
+                    groupId = group;
+                }
+            });
+            return groupId;
         }
 
         /**

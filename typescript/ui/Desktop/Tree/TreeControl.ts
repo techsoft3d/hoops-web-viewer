@@ -567,7 +567,7 @@ namespace Communicator.Ui.Control {
                 }
             }
 
-            labelNode.innerHTML = name;
+            labelNode.innerHTML = $('<div>').text(name).html();
             labelNode.title = name;
             itemNode.appendChild(labelNode);
 

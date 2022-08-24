@@ -363,20 +363,32 @@ namespace Communicator.Markup {
             }
         }
 
-        public getHandleNodeIds(): NodeId[] {
-            const nodeIds: NodeId[] = [];
-            this._handleData.forEach((_handleData, nodeId) => {
-                nodeIds.push(nodeId);
+        public getHandleNodeIds(groupId: number | null = null): NodeId[] {
+            let nodeIds: any[] = [];
+            this._handleData.forEach((data, nodeId) => {
+                nodeIds.push([nodeId, data]);
             });
-            return nodeIds;
+            if (groupId !== null) {
+                nodeIds = nodeIds.filter((data) => data[1].groupId === groupId);
+            }
+            return nodeIds.map((data) => data[0]);
         }
 
-        public async removeHandles(): Promise<void> {
-            const handleNodeIds = this.getHandleNodeIds();
-            this._handleData.clear();
-            this._groupIdRotationMatrix.clear();
-            this._id = 0;
-            this._hideOverlay();
+        public async removeHandles(groupId: number | null = null): Promise<void> {
+            const handleNodeIds = this.getHandleNodeIds(groupId);
+            if (groupId === null) {
+                this._handleData.clear();
+                this._groupIdRotationMatrix.clear();
+            } else {
+                handleNodeIds.forEach((nodeId) => {
+                    this._handleData.delete(nodeId);
+                });
+                this._groupIdRotationMatrix.delete(groupId);
+            }
+            if (this._handleData.size === 0) {
+                this._id = 0;
+                this._hideOverlay();
+            }
             await this._viewer.model.deleteMeshInstances(handleNodeIds);
         }
 

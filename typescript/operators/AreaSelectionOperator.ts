@@ -22,11 +22,6 @@ namespace Communicator.Operator {
                     await this.clearSelection();
                     return this.waitForIdle();
                 },
-                selectionArray: async (items: Event.NodeSelectionEvent[]) => {
-                    if (items.length === 0) {
-                        await this._incrementalSelection.stopSelection();
-                    }
-                },
             });
         }
 

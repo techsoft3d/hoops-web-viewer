@@ -151,6 +151,13 @@ namespace Communicator.Operator {
             this._removeMarkup();
         }
 
+        /** @hidden */
+        public onDeactivate(): void | Promise<void> {
+            const p = super.onDeactivate();
+            this._updateCameraCenterTimer.clear();
+            return p;
+        }
+
         /**
          * BIM orbit is intended to make orbiting building models easier.
          * It slows the rotation speed, clamps vertical rotation to 180 degrees, and restricts horizontal rotation to rotate around the vertical axis.

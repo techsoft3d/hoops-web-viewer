@@ -594,6 +594,7 @@ declare namespace Communicator.Ui.CuttingPlane {
         private _restorePlanes;
         private _storePlanes;
         private _generateReferenceGeometry;
+        private _generateCuttingPlane;
     }
 }
 declare namespace Communicator.Ui {
@@ -787,6 +788,17 @@ declare namespace Communicator.Ui {
         private _updateCuttingPlaneIcon;
         private _orientToFace;
     }
+}
+/**
+ * Enumerated values used when referring to the index of a cutting section.
+ */
+declare const enum CuttingSectionIndex {
+    X = 0,
+    Y = 1,
+    Z = 2,
+    Face = 3,
+    /** @hidden */
+    CadView = 4
 }
 declare namespace Communicator.Ui {
     class ColorPicker {
@@ -1236,7 +1248,6 @@ declare namespace Communicator.Ui {
         private _currentSheetId;
         private _measurementFolderId;
         private _updateVisibilityStateTimer;
-        private _updateSelectionTimer;
         constructor(viewer: WebViewer, elementId: HtmlId, iScroll: IScroll | null);
         freezeExpansion(freeze: boolean): void;
         modelStructurePresent(): boolean;

@@ -2969,10 +2969,11 @@ declare namespace Communicator {
         Handle = 27,
         NavCube = 28,
         AxisTriad = 29,
-        Floorplan = 30
+        Floorplan = 30,
+        SpaceMouse = 31
     }
     /** Enumerates IDs for built-in operators */
-    type BuiltInOperatorId = OperatorId.Navigate | OperatorId.Orbit | OperatorId.Pan | OperatorId.Zoom | OperatorId.WindowZoom | OperatorId.Walk | OperatorId.KeyboardWalk | OperatorId.WalkMode | OperatorId.Turntable | OperatorId.Select | OperatorId.AreaSelect | OperatorId.RayDrillSelect | OperatorId.RedlineCircle | OperatorId.RedlineText | OperatorId.RedlineRectangle | OperatorId.RedlinePolyline | OperatorId.MeasureEdgeLength | OperatorId.MeasureFaceFaceDistance | OperatorId.MeasureLineLineAngle | OperatorId.MeasurePointPointDistance | OperatorId.MeasureBodyBodyDistance | OperatorId.MeasureFaceFaceAngle | OperatorId.MeasurePolylineDistance | OperatorId.MeasurePolygonArea | OperatorId.Note | OperatorId.Cutting | OperatorId.Handle | OperatorId.NavCube | OperatorId.AxisTriad | OperatorId.Floorplan;
+    type BuiltInOperatorId = OperatorId.Navigate | OperatorId.Orbit | OperatorId.Pan | OperatorId.Zoom | OperatorId.WindowZoom | OperatorId.Walk | OperatorId.KeyboardWalk | OperatorId.WalkMode | OperatorId.Turntable | OperatorId.Select | OperatorId.AreaSelect | OperatorId.RayDrillSelect | OperatorId.RedlineCircle | OperatorId.RedlineText | OperatorId.RedlineRectangle | OperatorId.RedlinePolyline | OperatorId.MeasureEdgeLength | OperatorId.MeasureFaceFaceDistance | OperatorId.MeasureLineLineAngle | OperatorId.MeasurePointPointDistance | OperatorId.MeasureBodyBodyDistance | OperatorId.MeasureFaceFaceAngle | OperatorId.MeasurePolylineDistance | OperatorId.MeasurePolygonArea | OperatorId.Note | OperatorId.Cutting | OperatorId.Handle | OperatorId.NavCube | OperatorId.AxisTriad | OperatorId.Floorplan | OperatorId.SpaceMouse;
     /** Enumerates EventTypes for Operators */
     enum EventType {
         MouseDown = 0,
@@ -4412,17 +4413,6 @@ declare namespace Communicator {
 }
 declare namespace Communicator {
     /**
-     * Enumerated values used when referring to the index of a cutting section.
-     */
-    const enum CuttingSectionIndex {
-        X = 0,
-        Y = 1,
-        Z = 2,
-        Face = 3,
-        /** @hidden */
-        CadView = 4
-    }
-    /**
      * Main interface into the cutting functionality of the viewer. The object manages a number of individual CuttingSections which can be activated individually.
      */
     class CuttingManager {
@@ -4461,8 +4451,19 @@ declare namespace Communicator {
         /**
          * Removes all cutting planes and cutting plane geometry from the scene.
          * @param clearSections if true, removes all cutting planes contained in cutting sections.
+         * @deprecated Use [[deactivateAllCuttingSections]] or [[clearAllCuttingSections]] instead.
          */
         deactivateCuttingSections(clearSections?: boolean): Promise<void>;
+        /**
+         * Deactivates all cutting sections.
+         * Cutting planes are not removed from section and can be restored using [[activateCuttingSections]]
+         */
+        deactivateAllCuttingSections(): Promise<void>;
+        /**
+         * Clears all cutting sections.
+         * This causes all cutting sections to be deactivated and all their cutting planes removed.
+         */
+        clearAllCuttingSections(): Promise<void>;
         /**
          * Sets the color for all cutting plane reference geometry.
          * @param color
@@ -8301,7 +8302,7 @@ declare namespace Communicator.Internal {
         MetaData = 0,
         Count = 1
     }
-    class ScEngine {
+    class ScEngine implements Tree.AbstractScEngine {
         private readonly _callbackManager;
         private _sc;
         private _sessionType;
@@ -9590,9 +9591,11 @@ declare namespace Communicator {
         get3DNodes(): NodeId[];
         /**
          * Deactivate sheets and only display 3D content
+         * @param triggerCallback triggers a "sheetDeactivated" callback if true
+         * @param ignoreFitNodes camera will not fit nodes if true
          * @returns promise that resolves when the operation has completed
          */
-        deactivateSheets(triggerCallback?: boolean): Promise<void>;
+        deactivateSheets(triggerCallback?: boolean, ignoreFitNodes?: boolean): Promise<void>;
         /**
          * Sets the id of the current active sheet
          * @param activeSheetId id of the sheet which will be activated.
@@ -11038,7 +11041,9 @@ declare namespace Communicator {
          */
         getInteractiveDrawLimitIncreaseEnabled(): Promise<boolean>;
         getNavCube(): NavCube;
+        readonly navCube: NavCube;
         getAxisTriad(): AxisTriad;
+        readonly axisTriad: AxisTriad;
         private _determineViewAxes;
         /**
          * Sets the color of the ambient light applied to the scene.
@@ -12802,8 +12807,8 @@ declare namespace Communicator.Internal {
 }
 declare namespace Communicator.Internal {
     enum AdvanceSelectionCapacity {
-        Batch = 1000,
-        Chunk = 100
+        Batch = 5000,
+        Chunk = 500
     }
     const enum ScSelectionBits {
         SelectionBitsFaceHasMeasurementData = 1,
@@ -13264,6 +13269,9 @@ declare namespace Communicator.Internal.Tree {
     }
     interface AbstractCuttingManager {
         getCuttingSection(index: number): AbstractCuttingSection | null;
+        clearAllCuttingSections(): Promise<void>;
+        getCuttingSectionCount(): number;
+        activateCuttingSections(): Promise<void>;
     }
     interface AbstractCuttingSection {
         activate(): Promise<void>;
@@ -14718,6 +14726,7 @@ declare namespace Communicator.Internal.Tree {
         isDefaultView(): boolean;
         IsCombineState(): boolean;
         deactivate(cuttingManager: AbstractCuttingManager): Promise<void>;
+        private _replaceCuttingPlanes;
         activate(assemblyTree: AssemblyTree, engine: AbstractScEngine, callbackManager: CallbackManager, cuttingManager: AbstractCuttingManager, view: AbstractView, duration: number, configurationNode: ProductOccurrence | null): Promise<void>;
         private _activateView;
         private _activateCamera;
@@ -14730,7 +14739,6 @@ declare namespace Communicator.Internal.Tree {
         private readonly _instanceMarkupKeysToShow;
         private readonly _nodesToShow;
         private readonly _nodesToHide;
-        private _activatedCuttingSectionIndex;
         private _viewFrame;
         private readonly _transformMap;
         private readonly _cuttingPlanes;
@@ -17969,6 +17977,11 @@ declare namespace Communicator.Operator {
          */
         addHandles(nodeIds: NodeId[], position?: Point3 | null, groupId?: number | null): Promise<void>;
         /**
+         * Returns the group id associated to the given group of node ids, returns null if does not exist
+         * @param nodeIds
+         */
+        private _findGroupId;
+        /**
          * This will generate a unique id to associate a group of handles with a group of NodeIds.
          */
         generateGroupId(): number;
@@ -18309,6 +18322,27 @@ declare namespace Communicator.Operator {
         activate(initialPosition: Point2): void;
         deactivate(): void;
         isActive(): boolean;
+    }
+}
+declare namespace Communicator.Operator {
+    /**
+     * Provide camera movement for the 3Dconnexion SpaceMouse.
+     */
+    class SpaceMouseOperator extends OperatorBase {
+        private _modelBounding;
+        private _selectionBounding;
+        private _pivot;
+        private _hitRayOrigin;
+        private _hitRayDirection;
+        private _hitRayAperture;
+        private _hitRaySelectionOnly;
+        private _hitRaySelectionItem;
+        private _connexion;
+        private _3dMouseInitialized;
+        private _updateModelBounding;
+        private _updateSelectionBounding;
+        private _updateHitTest;
+        constructor(viewer: WebViewer);
     }
 }
 declare namespace Communicator.Operator {
@@ -18722,6 +18756,8 @@ declare namespace Communicator.Operator {
         onMouseDown(event: Event.MouseInputEvent): Promise<void>;
         /** @hidden */
         onMouseUp(event: Event.MouseInputEvent): void;
+        /** @hidden */
+        onDeactivate(): void | Promise<void>;
         /**
          * BIM orbit is intended to make orbiting building models easier.
          * It slows the rotation speed, clamps vertical rotation to 180 degrees, and restricts horizontal rotation to rotate around the vertical axis.
@@ -19276,8 +19312,8 @@ declare namespace Communicator.Markup {
         getHandleType(nodeId: NodeId): HandleType | null;
         getHandleGroupId(nodeId: NodeId): number;
         getPosition(nodeId: NodeId): Point3 | null;
-        getHandleNodeIds(): NodeId[];
-        removeHandles(): Promise<void>;
+        getHandleNodeIds(groupId?: number | null): NodeId[];
+        removeHandles(groupId?: number | null): Promise<void>;
         isEmpty(): boolean;
         createDefaultHandles(position: Point3, groupId: number): Promise<void>;
         private _createMeshId;

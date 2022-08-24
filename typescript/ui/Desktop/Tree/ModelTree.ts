@@ -10,7 +10,6 @@ namespace Communicator.Ui {
         private _measurementFolderId: HtmlId = "measurementitems";
 
         private _updateVisibilityStateTimer = new Util.Timer();
-        private _updateSelectionTimer = new Util.Timer();
 
         constructor(viewer: WebViewer, elementId: HtmlId, iScroll: IScroll | null) {
             super(viewer, elementId, iScroll);
@@ -45,11 +44,6 @@ namespace Communicator.Ui {
                 modelSwitched: reset,
                 selectionArray: (events: Event.NodeSelectionEvent[]) => {
                     this._onPartSelection(events);
-                },
-                incrementalSelectionBatchEnd: () => {
-                    this._updateSelectionTimer.set(50, () => {
-                        this.updateSelection(null);
-                    });
                 },
                 visibilityChanged: () => {
                     this._tree.getVisibilityControl().updateModelTreeVisibilityState();

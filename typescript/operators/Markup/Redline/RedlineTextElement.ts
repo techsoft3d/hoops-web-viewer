@@ -30,6 +30,9 @@ namespace Communicator.Markup.Redline {
             this._textArea.style.pointerEvents = "none";
             this._textArea.style.resize = "none";
 
+            // Workaround to have html2canvas to break words
+            this._textArea.style.letterSpacing = "1px";
+
             this.setBorderWidth(2);
 
             this._textArea.onmousemove = (event: Event) => {
