@@ -1,16 +1,4 @@
 namespace Communicator.Operator {
-    function isMeasurable(selectionItem: Selection.FaceSelectionItem): boolean {
-        if (selectionItem.getSelectionType() !== SelectionType.None) {
-            const faceEntity = selectionItem.getFaceEntity();
-            return (
-                (faceEntity.getCadFaceBits() &
-                    Internal.ScSelectionBits.SelectionBitsFaceHasMeasurementData) !==
-                0
-            );
-        }
-        return false;
-    }
-
     export class MeasureFaceFaceDistanceOperator extends OperatorBase {
         private readonly _measureManager: MeasureManager;
         private readonly _moveSelectionAction = new Util.CurrentAction(true);
@@ -64,7 +52,11 @@ namespace Communicator.Operator {
             if (this._currentHighlight !== null) {
                 if (!selectionItem.equals(this._currentHighlight)) {
                     this._unsetCurrentHighlight();
-                    if (isMeasurable(selectionItem)) {
+                    const isMeasurable = await model.isFaceMeasurable(
+                        nodeId,
+                        faceEntity.getCadFaceIndex(),
+                    );
+                    if (isMeasurable) {
                         this._currentHighlight = selectionItem;
                         model.setNodeFaceColor(
                             nodeId,
@@ -76,7 +68,11 @@ namespace Communicator.Operator {
                     this._unsetCurrentHighlight();
                 }
             } else {
-                if (isMeasurable(selectionItem)) {
+                const isMeasurable = await model.isFaceMeasurable(
+                    nodeId,
+                    faceEntity.getCadFaceIndex(),
+                );
+                if (isMeasurable) {
                     this._currentHighlight = selectionItem;
                     model.setNodeFaceColor(nodeId, faceEntity.getCadFaceIndex(), Color.yellow());
                 }
@@ -115,7 +111,8 @@ namespace Communicator.Operator {
             const nodeId = selectionItem.getNodeId();
             const faceEntity = selectionItem.getFaceEntity();
 
-            if (!isMeasurable(selectionItem)) {
+            const isMeasurable = await model.isFaceMeasurable(nodeId, faceEntity.getCadFaceIndex());
+            if (!isMeasurable) {
                 return;
             }
 

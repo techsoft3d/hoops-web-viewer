@@ -242,16 +242,6 @@ namespace Communicator.Ui.CuttingPlane.ControllerUtils {
         }
 
         /**
-         * Reset useIndividualCuttingSections to true
-         *
-         * @todo check whether it is still useful after the refactoring
-         *
-         */
-        public reset(): void {
-            this._useIndividualCuttingSections = true;
-        }
-
-        /**
          * Get the section index based on whether useIndividualCuttingSections is set or not.
          * Return CuttingSectionIndex.X (0) if useIndividualCuttingSections is set, sectionIndex otherwise.
          *
@@ -396,7 +386,10 @@ namespace Communicator.Ui.CuttingPlane.ControllerUtils {
             plane: Plane,
             referenceGeometry: Point3[] | null,
         ): Promise<void> {
-            await this.get(sectionIndex).addPlane(plane, referenceGeometry);
+            await this.get(this.getCuttingSectionIndex(sectionIndex)).addPlane(
+                plane,
+                referenceGeometry,
+            );
         }
     }
 }

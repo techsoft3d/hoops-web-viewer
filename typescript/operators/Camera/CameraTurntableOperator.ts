@@ -52,30 +52,42 @@ namespace Communicator.Operator {
             else this._rotateAroundAxis(left, -this._tiltAmount);
         }
 
-        /**
-         * Sets the rotation axis.
-         * @param axis
-         */
-        public setRotationAxis(axis: Axis): boolean {
-            let success = true;
-            switch (axis) {
+        private _axisToPoint3(axis: Axis): Point3 | null {
+            let point: Point3 | null = null;
+            switch(axis) {
                 case Axis.X:
-                    this._rotationAxis.set(1, 0, 0);
+                    point = new Point3(1, 0, 0);
                     break;
-
                 case Axis.Y:
-                    this._rotationAxis.set(0, 1, 0);
+                    point = new Point3(0, 1, 0);
                     break;
-
                 case Axis.Z:
-                    this._rotationAxis.set(0, 0, 1);
+                    point = new Point3(0, 0, 1);
                     break;
-
                 default:
-                    success = false;
-                    break;
+                    point = null;
             }
-            return success;
+            return point;
+        }
+
+        /**
+         * Sets the rotation axis. 
+         * @param axis [[Axis]] or [[Point3]] used to set the rotation axis.
+         */
+        public setRotationAxis(axis: Axis | Point3): boolean {
+            let rotationAxis: Point3 | null = null;
+
+            if(axis instanceof Point3) {
+                rotationAxis = axis;
+            } else {
+                rotationAxis = this._axisToPoint3(axis);
+            }
+
+            if(rotationAxis !== null) {
+                this._rotationAxis.assign(rotationAxis);
+                return true;
+            }
+            return false;
         }
     }
 }

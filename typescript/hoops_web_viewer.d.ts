@@ -1434,6 +1434,10 @@ declare namespace Communicator {
     }
 }
 declare namespace Communicator {
+    interface BcfNode {
+        genericId: string | null;
+        nodeId: NodeId;
+    }
     class BCFViewpoint {
         private readonly _viewer;
         private readonly _filename;
@@ -1505,19 +1509,38 @@ declare namespace Communicator {
          */
         setVisibilityExceptions(visibilityExceptions: GenericId[]): void;
         /**
-         * Gets the visibility exceptions.
+         * Sets the visibility exceptions. These nodes will be shown or hidden based on the default visibility setting.
+         * @param visibilityExceptions Array of BcfNodes corresponding to components.
+         */
+        setVisibilityExceptionNodes(visibilityExceptions: BcfNode[]): void;
+        /**
+         * Gets the visibility exception generic ids.
          * @returns Array of GenericIds corresponding to components.
          */
         getVisibilityExceptions(): GenericId[];
+        /**
+         * Gets the visibility exception node ids.
+         * @returns Array of NodeIds corresponding to components.
+         */
+        getVisibilityExceptionNodes(): NodeId[];
         /**
          * Sets the colors.
          * @param colorGenericIdMap Map correlating color to GenericIds.
          */
         setColors(colorGenericIdMap: Map<Color, Set<GenericId>>): void;
         /**
+         * Sets the colors.
+         * @param colorNodeMap Map correlating color to BfcNodes.
+         */
+        setColorNodes(colorNodeMap: Map<Color, Set<BcfNode>>): void;
+        /**
          * @returns Map correlating color to components.
          */
         getColors(): Map<Color, Set<GenericId>>;
+        /**
+         * @returns Map correlating color to nodes.
+         */
+        getColorsToNodes(): Map<Color, Set<NodeId>>;
         /**
          * Sets the markup lines.
          * @param lines array of start point and end point line pairs.
@@ -1540,14 +1563,22 @@ declare namespace Communicator {
         getClippingPlanes(): [Point3, Point3][];
         /**
          * Sets a list of items to be added to the selection set.
-         *
          */
         setSelection(selection: GenericId[]): void;
         /**
-         * Gets a list of items that are in the selection set.
+         * Sets a list of items to be added to the selection set.
+         */
+        setSelectionNodes(selection: BcfNode[]): void;
+        /**
+         * Gets a list of generic IDs that are in the selection set.
          */
         getSelection(): GenericId[];
+        /**
+         * Gets a list of node IDs that are in the selection set.
+         */
+        getSelectionNodes(): NodeId[];
         private _getGenericIdsFromComponents;
+        private _getNodeIdsFromComponents;
         private _parseComponentsV2_0;
         private _parseComponents;
         private _getCameraData;
@@ -5137,7 +5168,8 @@ declare namespace Communicator.Settings {
         private _obscuredLineOpacity;
         private _visibleLineColor;
         private _visibleLineOpacity;
-        private _backgroundColor;
+        private _backgroundColorTop;
+        private _backgroundColorBottom;
         /**
          * Returns the `Color` used for rendering obscured lines.
          * @returns The color used for obscured lines.
@@ -5195,15 +5227,19 @@ declare namespace Communicator.Settings {
          */
         setVisibleLineTransparency(transparency: number): void;
         /**
-         * Gets the `Color` used for the background in hidden line rendering.
-         * @returns The background color used for hidden line.
+         * Gets the colors used for the background in hidden line rendering.
+         * @returns The background colors used for hidden line.
          */
-        getBackgroundColor(): Color;
+        getBackgroundColor(): VerticalGradient;
         /**
-         * Sets the `Color` used for the background in hidden line rendering.
-         * @param color The background color used for hidden line.
+         * Sets the background color in hidden line rendering to a gradient interpolating from the top to bottom color.
+         * For a solid color, the top and bottom color should have the same values.
+         * To enable a transparent background, pass null to the parameters of this function.
+         *
+         * @param top the top color for the the background gradient, null for transparent.
+         * @param bottom the bottom color for the the background gradient, null for transparent.
          */
-        setBackgroundColor(color: Color): void;
+        setBackgroundColor(top?: Color | null, bottom?: Color | null): void;
     }
 }
 /**
@@ -6361,7 +6397,7 @@ declare namespace Communicator {
          * @param mode an optional walk mode to use while traversing the model tree
          * @returns Promise that resolves when the operation has completed.
          */
-        setNodesVisibilities(mapping: Map<NodeId, boolean> | IdBooleanMap, initiallyHiddenStayHidden?: boolean | null, mode?: TreeWalkMode): Promise<void>;
+        setNodesVisibilities(mapping: Map<NodeId, boolean> | IdBooleanMap, initiallyHiddenStayHidden?: boolean | null): Promise<void>;
         /**
          * Sets visibility for a given list of nodes.
          * @param nodeIds The node IDs whose visibilities will be set.
@@ -6370,7 +6406,7 @@ declare namespace Communicator {
          * @param mode an optional walk mode to use while traversing the model tree
          * @returns Promise that resolves when the operation has completed.
          */
-        setNodesVisibility(nodeIds: NodeId[], visibility: boolean, initiallyHiddenStayHidden?: boolean | null, mode?: TreeWalkMode): Promise<void>;
+        setNodesVisibility(nodeIds: NodeId[], visibility: boolean, initiallyHiddenStayHidden?: boolean | null): Promise<void>;
         /**
          * Sets the visibility of all body nodes starting from a given node.
          * @param startNodeId The start node to walk when updating body nodes visibility.
@@ -6378,6 +6414,13 @@ declare namespace Communicator {
          * @returns Promise that resolves when the operation has completed.
          */
         setBodyNodesVisibility(startNodeId: NodeId, visibility: boolean): Promise<void>;
+        /**
+         * Sets the visibility of all body nodes starting from a given node.
+         * @param startNodeId The start node to walk when updating body nodes visibility.
+         * @param visibilityFormatter A function that returns the visibility for a given node id
+         * @returns Promise that resolves when the operation has completed.
+         */
+        setBodyNodesVisibility(startNodeId: NodeId, visibilityFormatter: (node: NodeId) => boolean | undefined): Promise<void>;
         /**
          * Resets visibility for all nodes in the model.
          * @returns Promise that resolves when the operation has completed.
@@ -6460,11 +6503,13 @@ declare namespace Communicator {
         getNodesHighlighted(partIds: PartId[]): Promise<boolean[]>;
         /**
          * Sets colors for a given set of nodes.
+         *
          * @param params object mapping node IDs to color to set for that node
          * @param alsoApplyToWireframe change or not lines color
+         * @param alsoApplyToPoints change or not points color
          * @returns Promise that resolves when this operation has completed.
          */
-        setNodesColors(colorMap: Map<NodeId, Color> | IdColorMap, alsoApplyToWireframe?: boolean): DeprecatedPromise;
+        setNodesColors(colorMap: Map<NodeId, Color> | IdColorMap, alsoApplyToWireframe?: boolean, alsoApplyToPoints?: boolean): DeprecatedPromise;
         /**
          * Gets an array of PMI topology references linking a PMI node to a body element, like a face or an edge.
          * @param pmiNodeId the ID of the PMI node.
@@ -6598,6 +6643,60 @@ declare namespace Communicator {
          * @param faceIndex the index of the face within the node
          */
         getNodeFaceHighlighted(nodeId: NodeId, faceIndex: number): Promise<boolean>;
+        /**
+         * Gets the color set via [[setNodePointColor]] on a point element.
+         * If no color has been set, `null` will be returned.
+         * <br><br> See also: [[getNodeEffectivePointColor]]
+         * @param nodeId the ID of the node containing the point
+         * @param pointIndex the index of the point in the node
+         */
+        getNodePointColor(partId: PartId, pointIndex: number): Promise<Color | null>;
+        /**
+         * Gets the color set via [[setNodePointColor]] on a point element. If no color has been set,
+         * the node's point color will be returned. If the node's point color has not been set,
+         * the color specified when the model was authored will be returned.
+         * @param nodeId the ID of the node containing the point
+         * @param pointIndex the index of the point in the node
+         */
+        getNodeEffectivePointColor(partId: PartId, pointIndex: number): Promise<Color | null>;
+        /**
+         * Sets the color for a point element.
+         * @param partId the Id of the node containing the point.
+         * @param pointId the Id of the point in the node that will have its color set.
+         * @param color the color to set.
+         */
+        setNodePointColor(partId: PartId, pointId: number, color: Color): void;
+        /**
+         * Unsets the color for a point element. This will return the point's color to its default state.
+         * @param partId the Id of the node containing the point
+         * @param pointId the Id of the point in the node that will have its color unset
+         */
+        unsetNodePointColor(partId: PartId, pointId: number): void;
+        /**
+         * Gets the color set via [[setNodesPointColor]] on the points of a list of leaf nodes.
+         * If no color has been explicitly set for a particular node, `null` will appear at the corresponding
+         * position in the returned array.
+         * <br><br> See also: [[getNodesEffectivePointColor]]
+         * @param nodeIds IDs of the nodes to be queried
+         */
+        getNodesPointColor(nodeIds: NodeId[]): Promise<(Color | null)[]>;
+        /**
+         * Gets the color set on the points of a list of leaf nodes. If no color has been set,
+         * the color specified when the model was authored will be returned.
+         * @param nodeIds IDs of the nodes to be queried
+         */
+        getNodesEffectivePointColor(nodeIds: NodeId[]): Promise<Color[]>;
+        /**
+         * Sets the color on the points for a given list of nodes.
+         * @param nodeIds IDs of nodes whose color to set
+         * @returns Promise that resolves when this operation has completed.
+         */
+        setNodesPointColor(nodeIds: NodeId[], color: Color): void;
+        /**
+         * Unsets the color on the points for a given list of nodes.
+         * @param nodeIds IDs of nodes to modify
+         */
+        unsetNodesPointColor(nodeIds: NodeId[]): void;
         /**
          * Sets the color for a line element.
          * @param nodeId the Id of the node containing the line.
@@ -7387,6 +7486,21 @@ declare namespace Communicator {
         /** @deprecated Use [[loadSubtreeFromXmlBuffer]] instead. */
         loadSubtreeFromXML(nodeId: NodeId, xmlData: string): Promise<NodeId[]>;
         /**
+         * Loads measurement data from a JSON object
+         * @param json JSON object containing measurement data
+         */
+        loadMeasurementFromJson(json: any): Promise<void>;
+        /**
+         * Loads measurement data from a JSON string
+         * @param str JSON string containing measurement data
+         */
+        loadMeasurementFromString(str: string): Promise<void>;
+        /**
+         * Loads measurement data from a ZIP file
+         * @param filename Name of a file containing ZIP measurement data
+         */
+        loadMeasurementFromFile(filename: string): Promise<void>;
+        /**
          * Delete all the current scene and load the specified model instead. Also triggers a "modelSwitched" when finished.
          * @param newModelFilename Name of the model file to load after the existing scene gets deleted
          * @returns A `Promise` of the newly loaded model's root nodes IDs.
@@ -7535,6 +7649,13 @@ declare namespace Communicator {
          * @returns true if the model contains measurement data.
          */
         isMeasurable(): boolean;
+        /**
+         * @param bodyId ID of the body node containing the line
+         * @param lineIndex Index of the line ot be checked
+         * @returns true if the line has associated measurement data
+         */
+        isLineMeasurable(bodyId: NodeId, lineIndex: number): Promise<boolean>;
+        isFaceMeasurable(bodyId: NodeId, faceIndex: number): Promise<boolean>;
         /**
          * @returns the original file name of the model which contain the given node or null if the node is not found.
          */
@@ -8511,7 +8632,7 @@ declare namespace Communicator.Internal {
         attachModel(attachScope: SC.AttachScope, modelName: ScModelName, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean): Promise<void>;
         attachScsModelByKey(attachScope: SC.AttachScope, modelKey: SC.ModelKey, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean): SC.InclusionKey;
         private _attachModels;
-        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean, resolveOnFullyLoaded: boolean): Promise<void>;
+        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean, resolveOnFullyLoaded: boolean, attachExternal: boolean): Promise<void>;
         feedScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null): void;
         private _parseKeyInfo;
         instanceKeyInfo(modelKey: SC.ModelKey, by: KeyInfoBy.Model, ret: KeyInfoReturn.AllKeys): Promise<SC.InstanceKey[]>;
@@ -8604,6 +8725,8 @@ declare namespace Communicator.Internal {
         unsetLinePattern(incs: SC.InstanceIncs): void;
         createFloorplanMesh(incs: SC.InstanceIncs): Promise<SC.InstanceIncs>;
         exportToSvg(config: SvgConfig): Promise<string>;
+        beginExportToSvg(config: SvgConfig): Promise<void>;
+        advanceExportToSvg(): Promise<string | undefined>;
         waitForImageDecoding(): Promise<void>;
         registerBimInstances(incs: SC.InstanceIncs, bimType: SC.BimType): void;
         setAmbientLightColor(value: Color): void;
@@ -10649,6 +10772,11 @@ declare namespace Communicator {
          */
         pointToWindowPosition(pt: Point2): Point2;
         /**
+         * Sets the camera that will be used for the initial camera view.
+         * @param camera
+         */
+        setInitialCamera(camera: Camera): void;
+        /**
          * Sets the current camera
          * @param camera the camera to set
          * @param duration camera transition time in milliseconds
@@ -10721,6 +10849,9 @@ declare namespace Communicator {
          * For a solid color, the top and bottom color should have the same values.
          * Background Transparency is only available with client-side rendering.
          * To re-enable a transparent background, pass null to the parameters of this function.
+         *
+         * When draw mode is set to {@link DrawMode.HiddenLine}, the background color is defined in {@link Communicator.Settings.HiddenLineSettings HiddenLineSettings}.
+         * See {@link Communicator.Settings.HiddenLineSettings.setBackgroundColor HiddenLineSettings.setBackgroundColor}.
          * @param top the top color for the the background gradient.
          * @param bottom the bottom color for the the background gradient.
          * @returns a promise that resolves when the operation has completed.
@@ -12560,6 +12691,25 @@ declare namespace Communicator {
          */
         exportToSvg(config?: SvgConfig): Promise<string>;
         /**
+         * Setup the env to export the current scene to a two-dimensional SVG representation through stream.
+         *
+         * @param config Allows customization of the resultant SVG.
+         * @return A promise that resolves to void when the env is ready.
+         */
+        beginExportToSvg(config?: SvgConfig): Promise<void>;
+        /**
+         * Reset the env after SVG stream export.
+         *
+         * @return A promise that resolves to void when the env is reset.
+         */
+        endExportToSvg(): Promise<void>;
+        /**
+         * Get the next chunk of the SVG code
+         *
+         * @return A promise that resolves to a string containing the next chunk or undefined on completed..
+         */
+        advanceExportToSvg(): Promise<string | undefined>;
+        /**
          * Returns a Promise that will resolve after streaming and associated
          * asynchronous operations complete and the scene is fully drawn.
          */
@@ -12995,6 +13145,7 @@ declare namespace Communicator.SubentityProperties {
      */
     class LineElement {
         constructor(length: number);
+        static fromJson(propData: any): LineElement;
         copy(): LineElement;
         type(): EdgeType;
         protected readonly __LineElement: Internal.PhantomMember;
@@ -13005,6 +13156,7 @@ declare namespace Communicator.SubentityProperties {
      */
     class CircleElement {
         constructor(radius: number, origin: Point3, normal: Point3);
+        static fromJson(propData: any): CircleElement;
         copy(): CircleElement;
         type(): EdgeType;
         protected readonly __CircleElement: Internal.PhantomMember;
@@ -13022,6 +13174,7 @@ declare namespace Communicator.SubentityProperties {
      */
     class OtherEdgeElement {
         constructor(length: number);
+        static fromJson(propData: any): OtherEdgeElement;
         copy(): OtherEdgeElement;
         type(): EdgeType;
         protected readonly __OtherEdgeElement: Internal.PhantomMember;
@@ -13040,6 +13193,7 @@ declare namespace Communicator.SubentityProperties {
      */
     class CylinderElement {
         constructor(radius: number, origin: Point3, normal: Point3);
+        static fromJson(propData: any): CylinderElement;
         copy(): CylinderElement;
         type(): FaceType;
         protected readonly __CylinderElement: Internal.PhantomMember;
@@ -13052,6 +13206,7 @@ declare namespace Communicator.SubentityProperties {
      */
     class PlaneElement {
         constructor(origin: Point3, normal: Point3);
+        static fromJson(propData: any): PlaneElement;
         copy(): PlaneElement;
         type(): FaceType;
         protected readonly __PlaneElement: Internal.PhantomMember;
@@ -13063,6 +13218,7 @@ declare namespace Communicator.SubentityProperties {
      */
     class ConeElement {
         constructor(radius: number, origin: Point3, normal: Point3, halfAngle: number);
+        static fromJson(propData: any): ConeElement;
         copy(): ConeElement;
         type(): FaceType;
         protected readonly __ConeElement: Internal.PhantomMember;
@@ -13076,6 +13232,7 @@ declare namespace Communicator.SubentityProperties {
      */
     class SphereElement {
         constructor(radius: number, origin: Point3, normal: Point3);
+        static fromJson(propData: any): SphereElement;
         copy(): SphereElement;
         type(): FaceType;
         protected readonly __SphereElement: Internal.PhantomMember;
@@ -13088,6 +13245,7 @@ declare namespace Communicator.SubentityProperties {
      */
     class TorusElement {
         constructor(majorRadius: number, minorRadius: number, origin: Point3, normal: Point3);
+        static fromJson(propData: any): TorusElement;
         copy(): TorusElement;
         type(): FaceType;
         protected readonly __TorusElement: Internal.PhantomMember;
@@ -13222,7 +13380,7 @@ declare namespace Communicator.Internal.Tree {
 declare namespace Communicator.Internal.Tree {
     interface AbstractScEngine {
         attachModel(attachScope: SC.AttachScope, modelName: ScModelName, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean): Promise<void>;
-        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean, resolveOnFullyLoaded: boolean): Promise<void>;
+        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean, resolveOnFullyLoaded: boolean, attachExternal: boolean): Promise<void>;
         feedScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null): void;
         attachScsModelByKey(attachScope: SC.AttachScope, modelKey: SC.ModelKey, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean): SC.InclusionKey;
         beginRequestBatch(type: RequestBatchType): void;
@@ -13337,11 +13495,11 @@ declare namespace Communicator.Internal.Tree {
         registerCadView(node: CadView): void;
         getFirstProductOccurrenceWithView(): ProductOccurrence | null;
         lookupCadView(nodeId: RuntimeNodeId): CadView | null;
-        registerBodyInstance(node: BodyInstance): void;
+        registerBodyInstance(node: BodyInstance, inclusionKey: SC.InclusionKey): void;
         lookupBodyInstance(nodeId: RuntimeNodeId): BodyInstance | null;
-        registerPmiBody(node: PmiBody): void;
+        registerPmiBody(node: PmiBody, inclusionKey: SC.InclusionKey): void;
         lookupPmiBody(nodeId: RuntimeNodeId): PmiBody | null;
-        registerViewFrame(node: ViewFrame): void;
+        registerViewFrame(node: ViewFrame, inclusionKey: SC.InclusionKey): void;
         lookupViewFrame(nodeId: RuntimeNodeId): ViewFrame | null;
         registerPartDefinition(partDef: PartDefinition): void;
         lookupPartDefinition(nodeId: RuntimeNodeId): PartDefinition | null;
@@ -13416,7 +13574,7 @@ declare namespace Communicator.Internal.Tree {
         deactivateActiveCadView(): Promise<void>;
         getDefaultCadView(node: ProductOccurrence | null): CadView | null;
         getCadViewPmis(cadView: CadView): Pmi[];
-        isMeasureable(): boolean;
+        isMeasurable(): boolean;
         containsDrawings(): boolean;
         getDefaultCadConfiguration(): ProductOccurrence | null;
         getActiveCadConfiguration(): ProductOccurrence | null;
@@ -13592,6 +13750,9 @@ declare namespace Communicator.Internal.Tree {
          * I don't think this is used at all. If so, this should be removed.
          */
         loadSubtreeFromAssemblyData(nodeId: RuntimeNodeId, modelInc: SC.ModelInc, assemblyData: AssemblyData, config: LoadSubtreeConfig): Promise<RuntimeNodeId[]>;
+        loadMeasurementFromJson(json: any): Promise<void>;
+        loadMeasurementFromString(str: string): Promise<void>;
+        loadMeasurementFromFile(zipFilename: string): Promise<void>;
         private _clearImpl;
         clear(): Promise<void>;
         switchToModel(newModelFilename: string): Promise<RuntimeNodeId[]>;
@@ -13667,9 +13828,9 @@ declare namespace Communicator.Internal.Tree {
         private _rectifyParent;
         createMeshInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, name: string | null, parentId: RuntimeNodeId | null, preventFromResetting: boolean, isOutOfHierarchy: boolean, implicitBody: boolean): RuntimeNodeId;
         createPmiInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, pmiType: PmiType, pmiSubType: PmiSubType, topoRefs: ReferenceOnTopology[], name: string | null, parentId: RuntimeNodeId | null): RuntimeNodeId;
-        setVisibilitiesByMap(idToVisibility: Map<RuntimeNodeId, boolean>, initiallyHiddenStayHidden: boolean | null, mode: TreeWalkMode): Promise<void>;
-        setBodyNodesVisibility(startNode: AnyTreeNode, visibility: boolean): Promise<void>;
-        setVisibilitiesByValue(nodeIds: RuntimeNodeId[], visibility: boolean, initiallyHiddenStayHidden: boolean | null, mode: TreeWalkMode): Promise<void>;
+        setVisibilitiesByMap(idToVisibility: Map<RuntimeNodeId, boolean>, initiallyHiddenStayHidden?: boolean): Promise<void>;
+        setBodyNodesVisibility(_startNode: AnyTreeNode, visibilityFormatter: boolean | ((node: AnyTreeNode) => boolean | undefined)): Promise<void>;
+        setVisibilitiesByValue(nodeIds: RuntimeNodeId[], visibility: boolean, initiallyHiddenStayHidden: boolean | null): Promise<void>;
         resetAllVisibilities(): Promise<void>;
         resetAllTransforms(): Promise<void>;
         reset(): Promise<void>;
@@ -13690,6 +13851,8 @@ declare namespace Communicator.Internal.Tree {
         setBehaviorInitiallyHidden(value: boolean): void;
         isACadDrawing(): boolean;
         isMeasurable(): boolean;
+        isLineMeasurable(bodyId: NodeId, lineIndex: number): Promise<boolean>;
+        isFaceMeasurable(bodyId: NodeId, faceIndex: number): Promise<boolean>;
         getModelFileNameFromNode(nodeId: RuntimeNodeId): string | null;
         getModelFileTypeFromNode(nodeId: RuntimeNodeId): FileType | null;
         isAnnotationView(cadViewNodeId: RuntimeNodeId): boolean;
@@ -14392,6 +14555,7 @@ declare namespace Communicator.Internal.Tree {
         private _parseRootNodes;
         private _parseRootNode;
         private _setupRootNode;
+        private _getPartPoForExternalModels;
         private _populateInclusion;
         /**
          * COM-1701
@@ -15272,6 +15436,235 @@ declare namespace Communicator.Internal.Tree {
     }
 }
 declare namespace Communicator.Internal.Tree {
+    type VisibilityFormatter = (node: AnyTreeNode) => boolean | undefined;
+    interface VisibilityConfig {
+        containsConfig: boolean;
+        node?: ProductOccurrence;
+        setVisibility?: SC.SetVisibility;
+        initially: {
+            shown: boolean;
+            immutableHidden?: boolean;
+        };
+    }
+    interface NodeVisibilityConfig {
+        explicitVisibility?: boolean;
+        visible: boolean;
+        initiallyShown: boolean;
+        initiallyOrConfigurationShown: boolean;
+    }
+    interface VisibilityUpdaterOptions {
+        assemblyTree: AssemblyTree;
+        engine: AbstractScEngine;
+        callbackManager?: CallbackManager;
+        startNode: ProductOccurrence | AttachContext;
+        setVisibility?: SC.SetVisibility;
+        initiallyHiddenStayHidden?: boolean;
+        configurationNode?: ProductOccurrence;
+    }
+    interface VisibilityVisitorOptions {
+        visibilityFormatter?: VisibilityFormatter;
+        resetNonAffectedToDefault: boolean;
+        configuration: VisibilityConfig;
+    }
+    interface VisibilityVisitorState {
+        currentNode: AnyTreeNode | null;
+        nodeConfiguration: NodeVisibilityConfig | null;
+        appliedVisibility: boolean | null;
+        inheritedVisibilityStack: boolean[];
+        bodiesToShow: AnyBody[];
+        bodiesToHide: AnyBody[];
+    }
+    interface VisibilityVisitorResult {
+        bodies: {
+            show: AnyBody[];
+            hide: AnyBody[];
+        };
+    }
+    interface IVisibilityVisitor extends Visitor {
+        readonly result: VisibilityVisitorResult;
+        visibilityFormatter?: VisibilityFormatter;
+    }
+    function getInstanceIncs(bodies: AnyBody[]): SC.InstanceIncs;
+    function getRuntimeIds(nodes: AnyTreeNode[]): RuntimeNodeId[];
+}
+declare namespace Communicator.Internal.Tree {
+    class VisibilityVisitor implements IVisibilityVisitor {
+        /**
+         * The visibility formatter to update the model
+         */
+        private _visibilityFormatter?;
+        /**
+         * Whether or not to reset non affected nodes
+         */
+        private _resetNonAffectedToDefault;
+        /**
+         * The visibility configuration of the visitor.
+         */
+        private _configuration;
+        /**
+         * The current state of the visitor
+         */
+        private _state;
+        constructor(options: VisibilityVisitorOptions);
+        /**
+         * Get the visibility formatter of the updater.
+         */
+        /**
+        * Set the visibility formatter of the updater.
+        * @param func the formatter to use.
+        */
+        visibilityFormatter: VisibilityFormatter | undefined;
+        /**
+         * The currently visited node
+         */
+        protected readonly currentNode: AnyTreeNode | null;
+        /**
+         * Getter for the visitor's configuration
+         */
+        protected readonly configuration: VisibilityConfig;
+        /**
+         * Getter for the current node's configuration
+         */
+        protected readonly nodeConfiguration: NodeVisibilityConfig | null;
+        /**
+         * Getter for the output visibility for the current node
+         */
+        protected readonly appliedVisibility: boolean | null;
+        /**
+         * Getter for the visitor's state
+         */
+        readonly state: VisibilityVisitorState;
+        /**
+         * Getter for the visit result
+         *
+         * Mainly the bodies to update.
+         */
+        readonly result: VisibilityVisitorResult;
+        /**
+         * Update the visitor state and set the node visibility
+         * @param node the node to update
+         */
+        protected _updateNodeVisibility(node: AnyTreeNode): void;
+        /**
+         * Get the visibility config for the current node
+         * it contains several fields:
+         * explicitVisibility: the value of the node from the visibilityFormatter for the current
+         * node, if any visible: whether or not the current node is visible initiallyShown: the node
+         * initial visibility
+         * initiallyOrConfigurationShown: if configuration.initially.shown is true it
+         * returns initiallyShown, otherwise it return initiallyShown or true if the configuration
+         * is on the same branch.
+         * @returns The current node visibility config
+         */
+        protected _getVisibilityConfig(): NodeVisibilityConfig;
+        /**
+         * Get the visibility for a PmiBody node
+         *
+         * For PMI we allow to switch them to visible if you just set the visibility on the PMI
+         * (not its body instance subnode), it's because we don't display the PMI body instance in
+         * the tree anymore.
+         * @returns true or null
+         */
+        protected _getPmiBodyVisibility(): true | null;
+        /**
+         * If a node is initially hidden and has no explicit visibility set then we keep it
+         * hidden by returning null, except for a some exceptions like PmiBody nodes.
+         * @returns Null for regular node a boolean otherwise.
+         */
+        protected _getInitiallyHiddenNodeVisibility(): boolean | null;
+        /**
+         * Get the inherited visibility value of the node
+         * @returns The inherited visibility value of the node if it's different than its current visibility or null
+         */
+        protected _getInheritedVisibility(): boolean | null;
+        /**
+         * When a node is not affected by the traversal, it visibility status is reinitialized if
+         * resetNonAffectedToDefault is set and if its not already set to the expected value.
+         * @returns The new visibility status if it's different from the current, null otherwise
+         */
+        protected _handleNonAffectedNodeVisibility(): boolean | null;
+        /**
+         * Get the visibility status of the current node
+         * @param preventFromResetting whether or not unaffected node will be reinitialized
+         * @returns The new visibility status of the node if it's different from the current one, null otherwise
+         */
+        protected _getNodeVisibility(preventFromResetting: boolean): boolean | null;
+        /**
+         * Update the state of the visitor.
+         * It set the given node as the current node, generates it visibility config, update the
+         * hierarchy and compute the new visibility status.
+         * @param node The current node to visit
+         * @param preventFromResetting whether or not to reinitialize the node if its not affected.
+         */
+        protected _updateVisitorState(node: AnyTreeNode, preventFromResetting: boolean): void;
+        /**
+         * When the node is left it's popped out of the hierarchy
+         */
+        leaveNode(): void;
+        /**
+         * Check whether or not the current node is the configuration node and update the visibility.
+         * If it is the configuration node it tags the config so the visitor knows the current
+         * branch contains the configuration node.
+         *
+         * @param node the current node
+         */
+        enterProductOccurrence(node: ProductOccurrence): void;
+        /**
+         * Check whether or not the current node is the configuration node and update the visibility.
+         * If it is the configuration node it removes the tag so the visitor knows the current
+         * branch does not contains the configuration node anymore.
+         * @param node
+         */
+        leaveProductOccurrence(node: ProductOccurrence): void;
+        /**
+         * Updates visibility for Pmi node
+         * @param pmi the current Pmi Node
+         */
+        enterPmi(pmi: Pmi): void;
+        /**
+         * Pops Pmi from hierarchy
+         * @param _ not used
+         */
+        leavePmi(_: Pmi): void;
+        /**
+         * Updates visibility for CadView node
+         * @param cadView the current CadView Node
+         */
+        enterCadView(cadView: CadView): void;
+        /**
+         * Pops CadView from hierarchy
+         * @param _ not used
+         */
+        leaveCadView(_: CadView): void;
+        /**
+         * Updates the visitor's state and apply the new visibility status if any. If the Visibility
+         * changes the body is stored in the list of the bodies to hide or to show depending of it's
+         * new status.
+         * @param body the current AnyBody node
+         */
+        enterAnyBody(body: AnyBody): void;
+        /**
+         * Pops AnyBody from hierarchy
+         * @param _ not used
+         */
+        leaveAnyBody(_: AnyBody): void;
+    }
+}
+declare namespace Communicator.Internal.Tree {
+    class BodyVisibilityVisitor extends VisibilityVisitor {
+        constructor(options: VisibilityVisitorOptions);
+        /**
+         * Check whether or not the current node is the configuration node and update the visitor
+         * status without updating the node visibility status.
+         * If it is the configuration node it tags the config so the visitor knows the current
+         * branch contains the configuration node.
+         *
+         * @param node the current ProductOccurence
+         */
+        enterProductOccurrence(node: ProductOccurrence): void;
+    }
+}
+declare namespace Communicator.Internal.Tree {
     function forcePartDefinition(node: ProductOccurrence): Promise<void> | void;
     function forcePartDefinitions(startNode: ProductOccurrence): Promise<void>;
 }
@@ -15309,9 +15702,119 @@ declare namespace Communicator.Internal.Tree {
     function updateScMatrices(engine: AbstractScEngine, callbackManager: CallbackManager, startNodes: AnyTreeNode[], allowOutOfHierarchy: boolean): Promise<void>;
 }
 declare namespace Communicator.Internal.Tree {
-    function updateBodyNodesVisibility(startNode: AnyTreeNode, visibility: boolean): Promise<void>;
-    function updateVisibilitiesByAttachment(assemblyTree: AssemblyTree, engine: AbstractScEngine, attachContext: AttachContext, setVisibility: SC.SetVisibility): Promise<void>;
-    function updateVisibilities(assemblyTree: AssemblyTree, engine: AbstractScEngine, callbackManager: CallbackManager | null, startNode: ProductOccurrence, nodeToVisibility: Map<AnyTreeNode, boolean>, resetNonAffectedToDefault: boolean, initiallyHiddenStayHidden: boolean | null, configurationNode: ProductOccurrence | null, mode: TreeWalkMode): Promise<void>;
+    class VisibilityUpdater {
+        private _assemblyTree;
+        private _engine;
+        private _callbackManager?;
+        private _startNode;
+        private _setVisibility?;
+        private _initiallyHiddenStayHidden?;
+        private _configurationNode?;
+        private _configuration;
+        constructor(options: VisibilityUpdaterOptions);
+        /**
+         * Get the visibility formatter for the given attach context
+         * @param attachContext the attach context
+         * @param setVisibility the visibility directive to apply
+         * @returns the default formatter for attach context
+         */
+        static getAttachContextFormatter(attachContext: AttachContext, setVisibility: SC.SetVisibility): VisibilityFormatter;
+        /**
+         * Get the updater configuration
+         */
+        readonly configuration: VisibilityConfig | null;
+        /**
+         * Generates the configuration for the updater
+         *
+         * Determine if the configuration we're activating has initially visible nodes or not.
+         *
+         * It also checks whether the configuration node is an ancestor of the start node. In this
+         * case it tags the configuration so it knows the current branch contains the configuration.
+         *
+         * In the case of older SCs (pre 2022 SP1) non-default configurations had all their nodes
+         * set to initially hidden. Since then that has been changed so that the initial visibility states
+         * of nodes under configurations reflects their visibility when the configuration is activated.
+         * Thus, we need to know which of those cases we're dealing with, by checking for any nodes set to be
+         * initially shown.
+         *
+         * If we're working with configurations we may need to show initially hidden nodes
+         * regardless of assembly tree settings.
+         * We want to reveal hidden nodes if the configuration has marked them as hidden.
+         * See comment the comment above for more details.
+         *
+         * @returns a promise resolving with the configuration
+         */
+        private _generateConfig;
+        /**
+         * Update the visibility of the bodies in the graphic engine.
+         *
+         * Once the assembly tree has been updated we need to tell the engine that some instances
+         * need to be updated so that it can refresh the view.
+         *
+         * @param bodies the lists of the bodies to show and to hide
+         */
+        private _applyVisibilities;
+        /**
+         * Traverse the assembly tree within a walker to to allow the given visitor to update it.
+         * @param visitor The visitor that will update the assembly tree
+         * @param {optional} startNode The root of the traversal, default: the updater startNode
+         */
+        private traverse;
+        /**
+         * Initialize the configuration and the attach context if needed
+         */
+        init(): Promise<void>;
+        /**
+         * Not effect.
+         * To allow inheriting classes to cool down or check result after the update.
+         */
+        quit(): Promise<void>;
+        /**
+         * Update the assembly tree and the view using the given visitor.
+         * @param visitor the Visitor that will update the assembly tree.
+         */
+        update<T extends IVisibilityVisitor>(visitorType: new (o: VisibilityVisitorOptions, ...a: any[]) => T, options: Omit<VisibilityVisitorOptions, "configuration">, ...args: any[]): Promise<T>;
+        /**
+         * Update the assembly tree separately with each node as start node
+         * @param visitor the visitor used to update the assembly.
+         * @param nodeVisibilities the node roots and their visible status.
+         */
+        updatePerNode<T extends IVisibilityVisitor>(visitorType: new (o: VisibilityVisitorOptions, ...a: any[]) => T, nodeVisibilities: Map<AnyTreeNode, boolean>, options: Omit<VisibilityVisitorOptions, "configuration">, ...args: any[]): Promise<T>;
+    }
+}
+declare namespace Communicator.Internal.Tree {
+    function updateVisibilitiesByAttachment(options: {
+        assemblyTree: AssemblyTree;
+        engine: AbstractScEngine;
+        attachContext: AttachContext;
+        setVisibility: SC.SetVisibility;
+    }): Promise<void>;
+    function updateBodyNodesVisibilitiesByAttachment(options: {
+        assemblyTree: AssemblyTree;
+        engine: AbstractScEngine;
+        attachContext: AttachContext;
+        setVisibility: SC.SetVisibility;
+    }): Promise<void>;
+    function updateVisibilities(options: {
+        assemblyTree: AssemblyTree;
+        engine: AbstractScEngine;
+        startNode: ProductOccurrence;
+        visibilityFormatter: (node: AnyTreeNode) => boolean | undefined;
+        resetNonAffectedToDefault: boolean;
+        configurationNode?: ProductOccurrence;
+        callbackManager?: CallbackManager;
+        initiallyHiddenStayHidden?: boolean;
+    }): Promise<void>;
+    function updateBodyNodesVisibilities(options: {
+        assemblyTree: AssemblyTree;
+        engine: AbstractScEngine;
+        startNode: ProductOccurrence;
+        visibilityFormatter: (node: AnyTreeNode) => boolean | undefined;
+        resetNonAffectedToDefault: boolean;
+        configurationNode?: ProductOccurrence;
+        callbackManager?: CallbackManager;
+        initiallyHiddenStayHidden?: boolean;
+    }): Promise<void>;
     function synchronizePmiVisibilities(engine: AbstractScEngine, startNode: AttachContext): Promise<void>;
 }
 declare namespace Communicator.Internal.Tree {
@@ -15488,11 +15991,31 @@ declare namespace Communicator {
          */
         getPlaneIndexByNodeId(id: NodeId): number | null;
         /**
+         * Gets the opacity for the plane at the given index.
+         * @param index The index of the cutting plane.
+         */
+        getPlaneOpacity(index: number): number | undefined;
+        /**
          * Sets the opacity for the plane at the given index.
+         *
+         * Equivalent to `section.applyPlaneOpacity(index, opacity)`
+         *
          * @param index The index of the cutting plane.
          * @param opacity A number between 0 and 1.
          */
         setPlaneOpacity(index: number, opacity: number): void;
+        /**
+         * Apply the opacity factor to the plane.
+         *
+         * @param index The index of the cutting plane.
+         * @param opacity The value used to change the opacity if needed
+         */
+        applyPlaneOpacity(index: number, opacity?: number): void;
+        /**
+         * Reapply the opacity of the cutting planes to the engine
+         * This function must be explicitly called after _resetOpacity has been emitted by the engine
+         */
+        resetPlanesOpacity(): void;
         /** @deprecated use [[setPlaneOpacity]] instead. */
         setPlaneTransparency(index: number, transparency: number): DeprecatedPromise;
         /** @deprecated use [[setPlaneOpacity]] instead. */
@@ -15999,8 +16522,8 @@ declare namespace Communicator.Util {
     /**
      * @class StateMachine<State, ActionNames> is a minimalist state machine
      *
-     * @template {State} State The type of the state
-     * @template {ActionNames} ActionNames a string union of the action names
+     * @typeParam {State} State The type of the state
+     * @typeParam {ActionNames} ActionNames a string union of the action names
      */
     class StateMachine<State, ActionNames> {
         /**
@@ -18337,12 +18860,20 @@ declare namespace Communicator.Operator {
         private _hitRayAperture;
         private _hitRaySelectionOnly;
         private _hitRaySelectionItem;
+        private _client;
         private _connexion;
         private _3dMouseInitialized;
         private _updateModelBounding;
         private _updateSelectionBounding;
         private _updateHitTest;
         constructor(viewer: WebViewer);
+        /**
+         * Connect to the space mouse.
+         *
+         * Note: If this is called but the 3d connexion software is not running,
+         * a connection error will be shown in the console.
+         */
+        connect(): void;
     }
 }
 declare namespace Communicator.Operator {
@@ -18993,11 +19524,12 @@ declare namespace Communicator.Operator {
         private _rotateAroundAxis;
         /** @hidden */
         onMousewheel(event: Event.MouseWheelInputEvent): void;
+        private _axisToPoint3;
         /**
          * Sets the rotation axis.
-         * @param axis
+         * @param axis [[Axis]] or [[Point3]] used to set the rotation axis.
          */
-        setRotationAxis(axis: Axis): boolean;
+        setRotationAxis(axis: Axis | Point3): boolean;
     }
 }
 declare namespace Communicator.Operator {

@@ -1,12 +1,20 @@
 namespace Communicator.Operator {
-    function isMeasurable(selectionItem: Selection.FaceSelectionItem): boolean {
+    async function isMeasurable(
+        model: Model,
+        selectionItem: Selection.FaceSelectionItem,
+    ): Promise<boolean> {
         if (selectionItem.getSelectionType() !== SelectionType.None) {
+            const nodeId = selectionItem.getNodeId();
             const faceEntity = selectionItem.getFaceEntity();
-            const bits = faceEntity.getCadFaceBits();
-            return (
-                (bits & Internal.ScSelectionBits.SelectionBitsFacePlanar) !== 0 &&
-                (bits & Internal.ScSelectionBits.SelectionBitsFaceHasMeasurementData) !== 0
+            const hasMeasurementData = await model.isFaceMeasurable(
+                nodeId,
+                faceEntity.getCadFaceIndex(),
             );
+            if (!hasMeasurementData) {
+                return false;
+            }
+            const bits = faceEntity.getCadFaceBits();
+            return (bits & Internal.ScSelectionBits.SelectionBitsFacePlanar) !== 0;
         }
         return false;
     }
@@ -64,7 +72,7 @@ namespace Communicator.Operator {
             if (this._currentHighlight !== null) {
                 if (!selectionItem.equals(this._currentHighlight)) {
                     this._unsetCurrentHighlight();
-                    if (isMeasurable(selectionItem)) {
+                    if (await isMeasurable(model, selectionItem)) {
                         this._currentHighlight = selectionItem;
                         model.setNodeFaceColor(
                             nodeId,
@@ -76,7 +84,7 @@ namespace Communicator.Operator {
                     this._unsetCurrentHighlight();
                 }
             } else if (this._currentHighlight === null) {
-                if (isMeasurable(selectionItem)) {
+                if (await isMeasurable(model, selectionItem)) {
                     this._currentHighlight = selectionItem;
                     model.setNodeFaceColor(nodeId, faceEntity.getCadFaceIndex(), Color.yellow());
                 }
@@ -122,7 +130,7 @@ namespace Communicator.Operator {
                 return;
             }
 
-            if (!isMeasurable(selectionItem)) {
+            if (!(await isMeasurable(model, selectionItem))) {
                 return;
             }
 

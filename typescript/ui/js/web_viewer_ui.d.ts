@@ -366,13 +366,6 @@ declare namespace Communicator.Ui.CuttingPlane.ControllerUtils {
          */
         deactivate(sectionIndex: CuttingSectionIndex): Promise<void>;
         /**
-         * Reset useIndividualCuttingSections to true
-         *
-         * @todo check whether it is still useful after the refactoring
-         *
-         */
-        reset(): void;
-        /**
          * Get the section index based on whether useIndividualCuttingSections is set or not.
          * Return CuttingSectionIndex.X (0) if useIndividualCuttingSections is set, sectionIndex otherwise.
          *

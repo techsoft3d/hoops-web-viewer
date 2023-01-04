@@ -1,5 +1,3 @@
-/// <reference path="../../../markup/MarkupItem.ts"/>
-
 namespace Communicator.Markup.Measure {
     /**
      * Base class for Measure Markup. It should not be used directly.

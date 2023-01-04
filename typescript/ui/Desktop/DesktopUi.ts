@@ -323,8 +323,6 @@ namespace Communicator.Ui.Desktop {
         }
 
         private _onSceneReady(): void {
-            this._viewer.focusInput(true);
-
             const selectionManager = this._viewer.selectionManager;
             selectionManager.setNodeSelectionColor(DesktopUi._defaultPartSelectionColor);
             selectionManager.setNodeSelectionOutlineColor(
@@ -340,12 +338,6 @@ namespace Communicator.Ui.Desktop {
                 DesktopUi._defaultBackgroundColor,
                 DesktopUi._defaultBackgroundColor,
             );
-
-            const canvas = this._viewer.getViewElement();
-
-            canvas.addEventListener("mouseenter", () => {
-                this._viewer.focusInput(true);
-            });
         }
 
         public setDeselectOnIsolate(deselect: boolean): void {

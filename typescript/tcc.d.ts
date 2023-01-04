@@ -1192,6 +1192,7 @@ declare module SC {
             attachMeasurementUnit: number,
             attachInvisibly: boolean,
             resolveOnFullyLoaded: boolean,
+            attachExternal: boolean,
         ): Promise<void>; // Actually returns Promise<ModelIncs>, but I don't want the code to depend on that if possible.
         feedScsBuffer(attachScope: AttachScope, buffer: Communicator.ScsBuffer | null): void;
         attachScsModelByKey(
@@ -1239,6 +1240,8 @@ declare module SC {
         explode(distance: number): void;
         createFloorplanMesh(incs: InstanceIncs): Promise<InstanceIncs>;
         exportToSvg(config: SvgConfig): Promise<number[]>;
+        beginExportToSvg(config: SvgConfig): Promise<void>;
+        advanceExportToSvg(): Promise<number[]>;
         flushMetaDataCache(): void;
         getAmbientOcclusionEnabled(): Promise<boolean>;
         getAmbientOcclusionRadius(): Promise<number>;

@@ -320,7 +320,7 @@ namespace Communicator.Operator {
 
                 eyeVector = Point3.subtract(camera.getTarget(), cameraPosition);
                 camera.setPosition(
-                    Point3.add(cameraPosition, eyeVector.copy().scale((delta > 0 ? 1 : -1) * 0.05)),
+                    Point3.add(cameraPosition, eyeVector.copy().scale(delta / 10)),
                 );
             } else {
                 const eyeVector = Point3.subtract(cameraTarget, cameraPosition).scale(delta / 10);

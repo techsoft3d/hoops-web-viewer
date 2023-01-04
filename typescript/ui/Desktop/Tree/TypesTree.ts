@@ -39,7 +39,7 @@ namespace Communicator.Ui {
                 modelStructureReady: onNewModel,
                 modelLoaded: onNewModel,
                 selectionArray: (events: Event.NodeSelectionEvent[]) => {
-                    if (this._ifcNodesMap.size > 0) {
+                    if (this._ifcNodesMap !== undefined && this._ifcNodesMap.size > 0) {
                         this._tree.updateSelection(events);
                     }
                 },

@@ -116,7 +116,6 @@ namespace Communicator.Ui.CuttingPlane {
 
         private _resetCuttingData(): void {
             this._planeInfoMgr.clear();
-            this._cuttingSectionsMgr.reset();
             this._faceSelectionMgr.reset();
         }
 
@@ -271,7 +270,11 @@ namespace Communicator.Ui.CuttingPlane {
                 return;
             }
 
-            return this._cuttingSectionsMgr.addPlane(sectionIndex, plane, referenceGeometry);
+            return this._cuttingSectionsMgr.addPlane(
+                sectionIndex,
+                plane,
+                this._showReferenceGeometry ? referenceGeometry : null,
+            );
         }
 
         private async _restorePlane(sectionIndex: CuttingSectionIndex): Promise<void> {

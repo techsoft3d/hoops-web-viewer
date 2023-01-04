@@ -1,14 +1,6 @@
 /// <reference path="../../Core/MarkupManager.ts"/>
 
 namespace Communicator.Operator {
-    function isMeasureable(lineEntity: Selection.LineEntity): boolean {
-        return (
-            (lineEntity.getLineBits() &
-                Internal.ScSelectionBits.SelectionBitsEdgeHasMeasurementData) !==
-            0
-        );
-    }
-
     export class MeasureEdgeLengthOperator extends OperatorBase {
         private readonly _measureManager: MeasureManager;
         private readonly _pickConfig = new PickConfig(SelectionMask.Line);
@@ -70,9 +62,16 @@ namespace Communicator.Operator {
             const view = this._viewer.view;
 
             const selectionItem = await view.pickFromPoint(position, this._pickConfig);
+            const nodeId = selectionItem.getNodeId();
 
             const lineEntity = selectionItem.getLineEntity();
-            if (lineEntity && selectionItem.overlayIndex() === 0 && isMeasureable(lineEntity)) {
+            if (
+                nodeId &&
+                lineEntity &&
+                !lineEntity.isCappingGeometry() &&
+                selectionItem.overlayIndex() === 0 &&
+                (await this._viewer.model.isLineMeasurable(nodeId, lineEntity.getLineId()))
+            ) {
                 edgeMarkup.setLineGeometry(lineEntity.getPoints());
                 this._registerEdgeMarkup();
             } else {
@@ -104,12 +103,20 @@ namespace Communicator.Operator {
                 return;
             }
 
-            const lineEntity = selectionItem.getLineEntity();
-            if (!isMeasureable(lineEntity)) {
+            const nodeId = selectionItem.getNodeId();
+            if (!nodeId) {
                 return;
             }
 
-            const nodeId = selectionItem.getNodeId();
+            const lineEntity = selectionItem.getLineEntity();
+            const isMeasurable = await this._viewer.model.isLineMeasurable(
+                nodeId,
+                lineEntity.getLineId(),
+            );
+            if (!isMeasurable) {
+                return;
+            }
+
             const unitMultiplier = model.getNodeUnitMultiplier(nodeId);
             const edgeProps = await model.getEdgeProperty(nodeId, lineEntity.getLineId());
 
@@ -165,7 +172,9 @@ namespace Communicator.Operator {
             // If the measurement edge color parameter has changed we have to reflect it on the current edgeMarkup.
             // But doing it in MouseMove event is very ugly.
             // TODO: update here when an event MeasurementEdgeColorChanged will exist.
-            edgeMarkup.setMeasurementEdgeColor(this._viewer.measureManager.getMeasurementEdgeColor());
+            edgeMarkup.setMeasurementEdgeColor(
+                this._viewer.measureManager.getMeasurementEdgeColor(),
+            );
 
             const position = event.getPosition();
 
