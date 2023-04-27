@@ -165,7 +165,7 @@ namespace Communicator.Operator {
         }
 
         /** @hidden */
-        public onTouchMove(event: Event.TouchInputEvent): void {
+        public async onTouchMove(event: Event.TouchInputEvent): Promise<void> {
             if (this._primaryTouchId === event.getId()) {
                 const position = event.getPosition();
                 const emulatedMouseEvent = new Event.MouseInputEvent(
@@ -176,9 +176,12 @@ namespace Communicator.Operator {
                     KeyModifiers.None,
                     MouseInputType.Move,
                 );
-                this.onMouseMove(emulatedMouseEvent);
+                // We await here because children classes can override this method
+                // and return a Promise
+                await this.onMouseMove(emulatedMouseEvent);
             }
             event.setHandled(this.setHandled());
+            return Promise.resolve();
         }
 
         /** @hidden */

@@ -44,6 +44,14 @@ namespace Communicator.Ui.CuttingPlane {
             await this._updateBoundingBox();
         }
 
+        public async pause(): Promise<void> {
+            this._stateMachine.handle("pause");
+        }
+
+        public async resume(): Promise<void> {
+            this._stateMachine.handle("resume");
+        }
+
         public async refresh(): Promise<void> {
             await this._updateBoundingBox();
             await this.resetCuttingPlanes();

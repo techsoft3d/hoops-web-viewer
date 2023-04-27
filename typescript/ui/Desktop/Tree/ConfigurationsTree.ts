@@ -37,14 +37,9 @@ namespace Communicator.Ui {
             if (await model.cadConfigurationsEnabled()) {
                 if (this._createConfigurationNodes()) {
                     this.showTab();
-                    await model.activateDefaultCadConfiguration();
                 } else {
                     this.hideTab();
                 }
-            }
-            if ( model.getDefaultCadView() !== null
-            ) {
-                await model.activateDefaultCadView();
             }
         }
 

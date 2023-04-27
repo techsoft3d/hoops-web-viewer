@@ -433,7 +433,9 @@ namespace Communicator.Ui.Context {
                 const handleOperator = operatorManager.getOperator(OperatorId.Handle);
                 await handleOperator.removeHandles();
                 await model.reset();
-                model.unsetNodesFaceColor([this._viewer.model.getAbsoluteRootNode()]);
+                model.unsetNodesFaceColor([model.getAbsoluteRootNode()]);
+                // Force restore correct pmi color since unsetNodesFaceColor reset pmi color as well
+                model.setPmiColorOverride(model.getPmiColorOverride());
             };
 
             const meshLevelFunc = (meshLevel: number) => {

@@ -65,15 +65,18 @@ namespace Communicator.Ui.CuttingPlane.ControllerUtils {
         state: ControllerState,
         { name, payload }: Util.StateMachine.Action<EventType>,
     ): ControllerState {
-        const isUpdateDiscarded = (state: ControllerState) => state.name === "update triggered";
+        const isUpdateDiscarded = (state: ControllerState) =>
+            ["update triggered", "paused"].indexOf(state.name) !== -1;
 
         switch (name) {
             case "init":
-                Util.delayCall(async () => {
-                    // it is set to updating to postpone upgrade requests
-                    state.name = "updating";
-                    await state.controller.init();
-
+                if (state.name !== "not initialized") {
+                    console.info("Cutting planes module already initialized");
+                    break;
+                }
+                // it is set to updating to postpone upgrade requests
+                state.name = "updating";
+                void state.controller.init().then(() => {
                     // if the update is discarded (an update request is pending)
                     // we trigger the update
                     if (isUpdateDiscarded(state)) {
@@ -83,13 +86,13 @@ namespace Communicator.Ui.CuttingPlane.ControllerUtils {
 
                     state.name = "outdated";
                 });
+
                 break;
 
             case "update":
                 if (state.name === "not initialized") {
-                    throw new Error(
-                        "CuttingPlane.Controller.StateMachine has not been initialized",
-                    );
+                    defaultReducer(state, { name: "init", payload });
+                    break;
                 }
 
                 if (isUpdateDiscarded(state)) {
@@ -100,8 +103,12 @@ namespace Communicator.Ui.CuttingPlane.ControllerUtils {
                 }
 
                 Util.delayCall(async () => {
-                    state.name = "updating";
+                    state.name = "updating" as StateName;
                     await state.controller.update();
+                    if (state.name === "paused") {
+                        return;
+                    }
+
                     if (isUpdateDiscarded(state)) {
                         defaultReducer(state, { name: "update", payload });
                         return;
@@ -116,6 +123,10 @@ namespace Communicator.Ui.CuttingPlane.ControllerUtils {
                     throw new Error(
                         "CuttingPlane.Controller.StateMachine has not been initialized",
                     );
+                }
+
+                if (state.name === "paused") {
+                    break;
                 }
 
                 Util.delayCall(async () => {
@@ -138,7 +149,12 @@ namespace Communicator.Ui.CuttingPlane.ControllerUtils {
                 }
 
                 Util.delayCall(async () => {
-                    state.name = "updating";
+                    state.name = "updating" as StateName;
+                    await state.controller.update();
+                    if (state.name === "paused") {
+                        return;
+                    }
+
                     await state.controller.clear();
                     if (isUpdateDiscarded(state)) {
                         defaultReducer(state, { name: "update", payload });
@@ -147,6 +163,22 @@ namespace Communicator.Ui.CuttingPlane.ControllerUtils {
 
                     state.name = "up to date";
                 });
+                break;
+
+            case "pause":
+                if (state.name === "not initialized") {
+                    break;
+                }
+
+                state.name = "paused";
+                break;
+
+            case "resume":
+                if (state.name !== "paused") {
+                    break;
+                }
+
+                state.name = "up to date";
                 break;
         }
 
