@@ -519,11 +519,12 @@ namespace Communicator.Ui {
                 case "markupviews":
                 case "measurementitems":
                 case "pmipart":
+                case "pmipartfolder":
                     // do nothing
                     break;
 
                 default:
-                    console.assert(false);
+                    console.assert(false, kind);
                     break;
             }
         }

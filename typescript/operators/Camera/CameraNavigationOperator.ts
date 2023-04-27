@@ -163,7 +163,7 @@ namespace Communicator.Operator {
         }
 
         /** @hidden */
-        public onTouchMove(event: Event.TouchInputEvent): void {
+        public async onTouchMove(event: Event.TouchInputEvent): Promise<void> {
             ++this._touchMoveCount;
 
             if (this._touchMoveCount > 5) {
@@ -172,12 +172,12 @@ namespace Communicator.Operator {
                     this._orbitOperator.onTouchStart(event);
                     this._returnToOrbit = false;
                 } else if (this._activeTouchCount === 1) {
-                    this._orbitOperator.onTouchMove(event);
-                    this._zoomOperator.onTouchMove(event);
-                    this._panOperator.onTouchMove(event);
+                    await this._orbitOperator.onTouchMove(event);
+                    await this._zoomOperator.onTouchMove(event);
+                    await this._panOperator.onTouchMove(event);
                 } else if (this._activeTouchCount === 2) {
-                    this._zoomOperator.onTouchMove(event);
-                    this._panOperator.onTouchMove(event);
+                    await this._zoomOperator.onTouchMove(event);
+                    await this._panOperator.onTouchMove(event);
                 }
             }
         }

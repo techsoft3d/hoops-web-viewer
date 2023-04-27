@@ -208,8 +208,6 @@ namespace Communicator.Ui {
             );
             for (const iterRelating of relationships.relatings) {
                 const iterBimId: BimId = iterRelating;
-                let displayName =
-                    '<button class="ui-model-tree-relationships-button" type="button" id="buttonRight"><b>←</b></button>';
                 const relationHtmlId = RelationshipsTree._createIdNode(iterRelating);
                 const bimInfo = this._viewer.model.getBimInfoFromBimId(
                     this._currentNodeId,
@@ -217,10 +215,8 @@ namespace Communicator.Ui {
                 );
                 RelationshipsTree._idNameMap.set(relationHtmlId, bimInfo.name);
                 RelationshipsTree._idNameMap.set(bimInfo.name, relationHtmlId);
-                displayName = displayName.concat(" ");
-                displayName = displayName.concat(bimInfo.name);
                 this._tree.addChild(
-                    displayName,
+                    bimInfo.name,
                     relationHtmlId,
                     parentHtmlId,
                     "assembly",
@@ -231,8 +227,6 @@ namespace Communicator.Ui {
             }
             for (const iterRelated of relationships.relateds) {
                 const iterBimId: BimId = iterRelated;
-                let displayName =
-                    '<button class="ui-model-tree-relationships-button" type="button" id="buttonRight"><b>→</b> </button>';
                 const relationHtmlId = RelationshipsTree._createIdNode(iterRelated);
                 const bimInfo = this._viewer.model.getBimInfoFromBimId(
                     this._currentNodeId,
@@ -240,10 +234,8 @@ namespace Communicator.Ui {
                 );
                 RelationshipsTree._idNameMap.set(relationHtmlId, bimInfo.name);
                 RelationshipsTree._idNameMap.set(bimInfo.name, relationHtmlId);
-                displayName = displayName.concat(" ");
-                displayName = displayName.concat(bimInfo.name);
                 this._tree.addChild(
-                    displayName,
+                    bimInfo.name,
                     relationHtmlId,
                     parentHtmlId,
                     "assembly",

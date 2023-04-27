@@ -82,8 +82,8 @@ namespace Communicator.Operator {
         }
 
         /** @hidden */
-        public onTouchMove(event: Event.TouchInputEvent): void {
-            this._activeOperator.onTouchMove(event);
+        public async onTouchMove(event: Event.TouchInputEvent): Promise<void> {
+            await this._activeOperator.onTouchMove(event);
         }
 
         /** @hidden */

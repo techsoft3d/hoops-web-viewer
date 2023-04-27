@@ -69,6 +69,7 @@ namespace Communicator.Ui.Desktop {
             viewer: WebViewer,
             isolateZoomHelper: IsolateZoomHelper,
             colorPicker: ColorPicker,
+            cuttingController: CuttingPlane.Controller,
         ) {
             this._elementId = elementId;
             this._containerId = containerId;
@@ -102,7 +103,7 @@ namespace Communicator.Ui.Desktop {
             this._elementIdMap.set(Tree.BCF, "bcfTree");
 
             this._elementIdMap.forEach((elementId, treeType) => {
-                this._addTree(elementId, treeType);
+                this._addTree(elementId, treeType, cuttingController);
             });
 
             this._contextMenu = new ModelBrowserContextMenu(
@@ -277,7 +278,11 @@ namespace Communicator.Ui.Desktop {
             return this._contextMenu;
         }
 
-        public _addTree(elementId: HtmlId, treeType: Tree): void {
+        public _addTree(
+            elementId: HtmlId,
+            treeType: Tree,
+            cuttingController: CuttingPlane.Controller,
+        ): void {
             const iScroll = this._initializeIScroll(elementId);
             this._scrollTreeMap.set(treeType, iScroll);
 
@@ -286,7 +291,7 @@ namespace Communicator.Ui.Desktop {
             if (treeType === Tree.Model) {
                 tree = new ModelTree(this._viewer, elementId, iScroll);
             } else if (treeType === Tree.CadView) {
-                tree = new CadViewTree(this._viewer, elementId, iScroll);
+                tree = new CadViewTree(this._viewer, elementId, iScroll, cuttingController);
             } else if (treeType === Tree.Sheets) {
                 tree = new SheetsTree(this._viewer, elementId, iScroll);
             } else if (treeType === Tree.Configurations) {

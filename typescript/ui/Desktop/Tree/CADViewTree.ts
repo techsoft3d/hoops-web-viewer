@@ -1,4 +1,5 @@
 /// <reference path="../../js/hoops_web_viewer.d.ts"/>
+/// <reference path="../../Common/CuttingPlane/Controller.ts"/>
 /// <reference path="ViewTree.ts"/>
 
 namespace Communicator.Ui {
@@ -11,11 +12,19 @@ namespace Communicator.Ui {
 
         private _cadViewIds = new Set<NodeId>();
 
-        constructor(viewer: WebViewer, elementId: HtmlId, iScroll: IScroll | null) {
+        private _cuttingController?: CuttingPlane.Controller;
+
+        constructor(
+            viewer: WebViewer,
+            elementId: HtmlId,
+            iScroll: IScroll | null,
+            cuttingController?: CuttingPlane.Controller,
+        ) {
             super(viewer, elementId, iScroll);
 
             this._tree.setCreateVisibilityItems(false);
             this._initEvents();
+            this._cuttingController = cuttingController;
         }
 
         private _initEvents(): void {
@@ -197,7 +206,13 @@ namespace Communicator.Ui {
             if (idParts[0] === this._internalId) {
                 const handleOperator = this._viewer.operatorManager.getOperator(OperatorId.Handle);
                 await handleOperator.removeHandles();
+                if (this._cuttingController) {
+                    await this._cuttingController.pause();
+                }
                 await this._viewer.model.activateCadView(parseInt(idParts[1], 10));
+                if (this._cuttingController) {
+                    setTimeout(() => this._cuttingController!.resume(), 300);
+                }
             }
 
             // toggle recursive selection based on what is clicked

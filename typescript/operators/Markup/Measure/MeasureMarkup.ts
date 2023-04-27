@@ -151,6 +151,13 @@ namespace Communicator.Markup.Measure {
             return this._textShape.getTextString();
         }
 
+        /**
+         * Returns whether the measurement markup is valid. Override in subclasses when needed.
+         */
+        public isMarkupValid(): Boolean {
+            return true;
+        }
+
         /** @hidden */
         protected _setMeasurementValue(millimeters: number) {
             this._measurementValue = millimeters / this._unitMultiplier;

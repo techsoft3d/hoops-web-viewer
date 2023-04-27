@@ -18,17 +18,20 @@ namespace Communicator.Ui.CuttingPlane {
         export interface IController {
             init: () => Promise<void>;
             update: () => Promise<void>;
+            pause: () => Promise<void>;
+            resume: () => Promise<void>;
             refresh: () => Promise<void>;
             clear: () => Promise<void>;
         }
 
-        export type EventType = "init" | "update" | "refresh" | "clear";
+        export type EventType = "init" | "update" | "refresh" | "clear" | "pause" | "resume";
         export type StateName =
             | "not initialized"
             | "outdated"
             | "updating"
             | "up to date"
-            | "update triggered";
+            | "update triggered"
+            | "paused";
 
         export interface ControllerState {
             name: StateName;
