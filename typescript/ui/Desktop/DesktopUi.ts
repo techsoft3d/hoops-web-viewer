@@ -118,6 +118,7 @@ namespace Communicator.Ui.Desktop {
                     this._viewer,
                     this._isolateZoomHelper,
                     this._colorPicker,
+                    this._cuttingPlaneController,
                 );
             }
 

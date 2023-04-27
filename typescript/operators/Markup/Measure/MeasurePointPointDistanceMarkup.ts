@@ -342,5 +342,12 @@ namespace Communicator.Markup.Measure {
         public getClassName(): string {
             return "Communicator.Markup.Measure.MeasurePointPointDistanceMarkup";
         }
+
+        /**
+         * Returns whether the measurement markup is valid.
+         */
+        public isMarkupValid(): Boolean {
+            return this._positions.length >= 5;
+        }
     }
 }

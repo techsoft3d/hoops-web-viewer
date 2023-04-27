@@ -133,11 +133,13 @@ declare namespace Communicator.Ui.CuttingPlane {
         interface IController {
             init: () => Promise<void>;
             update: () => Promise<void>;
+            pause: () => Promise<void>;
+            resume: () => Promise<void>;
             refresh: () => Promise<void>;
             clear: () => Promise<void>;
         }
-        type EventType = "init" | "update" | "refresh" | "clear";
-        type StateName = "not initialized" | "outdated" | "updating" | "up to date" | "update triggered";
+        type EventType = "init" | "update" | "refresh" | "clear" | "pause" | "resume";
+        type StateName = "not initialized" | "outdated" | "updating" | "up to date" | "update triggered" | "paused";
         interface ControllerState {
             name: StateName;
             controller: IController;
@@ -564,6 +566,8 @@ declare namespace Communicator.Ui.CuttingPlane {
         constructor(viewer: WebViewer);
         init(): Promise<void>;
         update(): Promise<void>;
+        pause(): Promise<void>;
+        resume(): Promise<void>;
         refresh(): Promise<void>;
         clear(): Promise<void>;
         readonly individualCuttingSectionEnabled: boolean;
@@ -856,7 +860,7 @@ declare namespace Communicator.Ui.Desktop {
         private _scrollRefreshInterval;
         private _minimized;
         private _modelHasRelationships;
-        constructor(elementId: HtmlId, containerId: HtmlId, viewer: WebViewer, isolateZoomHelper: IsolateZoomHelper, colorPicker: ColorPicker);
+        constructor(elementId: HtmlId, containerId: HtmlId, viewer: WebViewer, isolateZoomHelper: IsolateZoomHelper, colorPicker: ColorPicker, cuttingController: CuttingPlane.Controller);
         private _computeRelationshipTreeVisibility;
         private _initEvents;
         private _registerScrollRefreshCallbacks;
@@ -868,7 +872,7 @@ declare namespace Communicator.Ui.Desktop {
         /** @hidden */
         _showTree(activeTreeType: Tree): void;
         _getContextMenu(): ModelBrowserContextMenu;
-        _addTree(elementId: HtmlId, treeType: Tree): void;
+        _addTree(elementId: HtmlId, treeType: Tree, cuttingController: CuttingPlane.Controller): void;
         private _createBrowserWindow;
         private _createDiv;
         private _createHeader;
@@ -1149,7 +1153,8 @@ declare namespace Communicator.Ui {
         private _viewFolderCreated;
         private _lastSelectedhtmlId;
         private _cadViewIds;
-        constructor(viewer: WebViewer, elementId: HtmlId, iScroll: IScroll | null);
+        private _cuttingController?;
+        constructor(viewer: WebViewer, elementId: HtmlId, iScroll: IScroll | null, cuttingController?: CuttingPlane.Controller);
         private _initEvents;
         private _modelSwitched;
         private _updateCadViews;

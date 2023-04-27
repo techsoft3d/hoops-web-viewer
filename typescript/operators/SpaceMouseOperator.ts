@@ -332,7 +332,10 @@ namespace Communicator.Operator {
         }
 
         /**
-         * Connect to the space mouse.
+         * Connect to the space mouse. To be successful, this method
+         * should be called in the sceneReady callback. If you want to 
+         * connect at a later time, the canvas where the mouse is
+         * to be used must have focus.
          *
          * Note: If this is called but the 3d connexion software is not running,
          * a connection error will be shown in the console.

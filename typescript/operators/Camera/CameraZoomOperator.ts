@@ -218,7 +218,7 @@ namespace Communicator.Operator {
         }
 
         /** @hidden */
-        public onTouchMove(event: Event.TouchInputEvent): void {
+        public onTouchMove(event: Event.TouchInputEvent): Promise<void> {
             const view = this._viewer.view;
             const id = event.getId();
             const position = event.getPosition();
@@ -237,6 +237,7 @@ namespace Communicator.Operator {
 
                 this._prevLen = l1;
             }
+            return Promise.resolve();
         }
 
         /** @hidden */
@@ -319,9 +320,7 @@ namespace Communicator.Operator {
                 }
 
                 eyeVector = Point3.subtract(camera.getTarget(), cameraPosition);
-                camera.setPosition(
-                    Point3.add(cameraPosition, eyeVector.copy().scale(delta / 10)),
-                );
+                camera.setPosition(Point3.add(cameraPosition, eyeVector.copy().scale(delta / 10)));
             } else {
                 const eyeVector = Point3.subtract(cameraTarget, cameraPosition).scale(delta / 10);
                 camera.setPosition(Point3.add(cameraPosition, eyeVector));
@@ -361,7 +360,7 @@ namespace Communicator.Operator {
             mousePosition?: Point2,
         ): Promise<void> {
             const view = this._viewer.view;
-            const zoom = 1.0 / (1.0 - delta);
+            const zoom = Math.max(1.0 / (1.0 - delta), 0.001);
 
             if (mousePosition && this._zoomToMousePosition) {
                 if (this._adjustCameraTarget) {
@@ -416,7 +415,8 @@ namespace Communicator.Operator {
                 const target = camera.getTarget();
 
                 const newDelta = Point3.subtract(target, position).scale(zoom);
-                camera.setPosition(Point3.subtract(target, newDelta));
+                const newPosition = Point3.subtract(target, newDelta);
+                camera.setPosition(newPosition);
             }
 
             view.setCamera(camera);

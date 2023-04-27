@@ -891,10 +891,12 @@ declare module SC {
         create(
             mainFormat: ImageFormat,
             mainData: Uint8Array,
+            mainHasAlpha: boolean,
             mainWidth?: number,
             mainHeight?: number,
             thumbFormat?: ImageFormat,
             thumbData?: Uint8Array,
+            thumbHasAlpha?: boolean,
             thumbWidth?: number,
             thumbHeight?: number,
         ): Promise<ImageId>;
@@ -1192,7 +1194,6 @@ declare module SC {
             attachMeasurementUnit: number,
             attachInvisibly: boolean,
             resolveOnFullyLoaded: boolean,
-            attachExternal: boolean,
         ): Promise<void>; // Actually returns Promise<ModelIncs>, but I don't want the code to depend on that if possible.
         feedScsBuffer(attachScope: AttachScope, buffer: Communicator.ScsBuffer | null): void;
         attachScsModelByKey(
@@ -1349,7 +1350,13 @@ declare module SC {
         setBloomLayerCount(value: number): void;
         setBloomThreshold(value: number): void;
         setBloomThresholdRampWidth(value: number): void;
+        setBoundingPreviewUnderdrawColor(color: Rgba): void;
+        setBoundingPreviewTestedColor(color: Rgba): void;
+        setBoundingPreviewEjectedColor(color: Rgba): void;
         setBoundingPreviewColor(color: Rgba): void;
+        setBoundingPreviewUnderdraw(points: Vector3[]): void;
+        setBoundingPreviewTested(points: Vector3[]): void;
+        setBoundingPreviewEjected(points: Vector3[]): void;
         setCamera(camera: Camera): void;
         setCappingIdleHookEnabled(enable: boolean): Promise<boolean>;
         setClumpingEnabled(value: boolean): void;

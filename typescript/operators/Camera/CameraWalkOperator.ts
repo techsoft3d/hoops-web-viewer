@@ -102,15 +102,16 @@ namespace Communicator.Operator {
         }
 
         /** @hidden */
-        public onTouchMove(event: Event.TouchInputEvent): void {
+        public async onTouchMove(event: Event.TouchInputEvent): Promise<void> {
             if (this._activeTouchCount === 3 && this._primaryTouchId === event.getId()) {
                 this._ptCurrent.assign(event.getPosition());
 
                 const delta = Point2.subtract(this._ptCurrent, this._ptPrevious);
                 this._adjustTilt((delta.y / 100) * 1.5);
             } else if (this._activeTouchCount < 3) {
-                super.onTouchMove(event);
+                await super.onTouchMove(event);
             }
+            return Promise.resolve();
         }
 
         /** @hidden */

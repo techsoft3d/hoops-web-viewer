@@ -7003,7 +7003,12 @@ declare namespace Communicator {
          * @returns ID of default CAD Configuration
          */
         getDefaultCadView(): NodeId | null;
-        activateDefaultCadView(): Promise<void>;
+        /**
+         * Activate the default CAD view
+         * @param duration Duration of the camera animation
+         * @returns None.
+         */
+        activateDefaultCadView(duration?: number): Promise<void>;
         /** @deprecated Use [[getDefaultCadConfiguration]] instead. */
         getCADDefaultConfiguration(): NodeId | null;
         /**
@@ -7028,9 +7033,10 @@ declare namespace Communicator {
         activateCADConfiguration(nodeId: NodeId): Promise<void>;
         /**
          * Activates Default CAD configuration
+         * @param fitNodes Fit view to visible nodes if possible (default true)
          * @returns None.
          */
-        activateDefaultCadConfiguration(): Promise<void>;
+        activateDefaultCadConfiguration(fitNodes?: boolean): Promise<void>;
         /** @deprecated Use [[activateDefaultCadConfiguration]] instead. */
         activateCADDefaultConfiguration(): Promise<void>;
         /**
@@ -8035,6 +8041,7 @@ declare namespace Communicator {
         private _customOperatorIdCount;
         private readonly _customOperatorIdIndex;
         private readonly _viewer;
+        private readonly _mergeableEvents;
         private _eventSequencePromise;
         private _events;
         /** @hidden */
@@ -8136,6 +8143,7 @@ declare namespace Communicator {
         getOperator(id: OperatorId): Operator.Operator | null;
         private _injectEvent;
         injectEvent(event: Event.MouseInputEvent | Event.TouchInputEvent | Event.KeyInputEvent | Event.MouseWheelInputEvent, eventType: EventType): Promise<void>;
+        private _addOrMergeEventToQueue;
         private _injectNextEvent;
         private _stopInteraction;
         /** @hidden */
@@ -8600,6 +8608,7 @@ declare namespace Communicator.Internal {
         destroyMeshes(meshIds: SC.MeshIds): Promise<void>;
         private _toImageFormat;
         private _validateImage;
+        private _pngImageHasAlpha;
         createImage(primaryImage: ImageOptions, thumbnailImage?: ImageOptions): Promise<SC.ImageId>;
         destroyImages(imageIds: SC.ImageIds): Promise<void>;
         _toTextureTiling(value: TextureTiling | undefined): SC.TextureTiling;
@@ -8621,6 +8630,12 @@ declare namespace Communicator.Internal {
         setLineVisibility(lineVisibility: boolean): void;
         getCanvasSize(): Point2;
         setBackgroundGradient(top: Color | null, bottom: Color | null): void;
+        setBoundingPreviewUnderDrawColor(color: Color): void;
+        setBoundingPreviewTestedColor(color: Color): void;
+        setBoundingPreviewEjectedColor(color: Color): void;
+        setBoundingPreviewUnderDraw(boxes: Box[]): void;
+        setBoundingPreviewTested(boxes: Box[]): void;
+        setBoundingPreviewEjected(boxes: Box[]): void;
         setServerRenderQuality(jpegQualityLow: number, jpegQualityHigh: number, scaleLow: number, scaleHigh: number): void;
         setMinimumFramerate(value: number): void;
         getMinimumFramerate(): Promise<number>;
@@ -8632,7 +8647,7 @@ declare namespace Communicator.Internal {
         attachModel(attachScope: SC.AttachScope, modelName: ScModelName, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean): Promise<void>;
         attachScsModelByKey(attachScope: SC.AttachScope, modelKey: SC.ModelKey, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean): SC.InclusionKey;
         private _attachModels;
-        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean, resolveOnFullyLoaded: boolean, attachExternal: boolean): Promise<void>;
+        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean, resolveOnFullyLoaded: boolean): Promise<void>;
         feedScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null): void;
         private _parseKeyInfo;
         instanceKeyInfo(modelKey: SC.ModelKey, by: KeyInfoBy.Model, ret: KeyInfoReturn.AllKeys): Promise<SC.InstanceKey[]>;
@@ -9177,6 +9192,7 @@ declare namespace Communicator.Internal {
     function hasBits(storedBits: number, desiredBits: number): boolean;
     function setBit(mask: number, bit: number, turnOn: boolean): number;
     function classFromString(this: any, qualifiedClassName: string): any;
+    function arrayBufferToBase64(buffer: Uint8Array): string;
     function projectOnto(source: Point3, target: Point3): Point3;
     function majorAxis(p: Point3): Point3 | null;
     function deepClone<T>(obj: T): T;
@@ -13380,7 +13396,7 @@ declare namespace Communicator.Internal.Tree {
 declare namespace Communicator.Internal.Tree {
     interface AbstractScEngine {
         attachModel(attachScope: SC.AttachScope, modelName: ScModelName, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean): Promise<void>;
-        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean, resolveOnFullyLoaded: boolean, attachExternal: boolean): Promise<void>;
+        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean, resolveOnFullyLoaded: boolean): Promise<void>;
         feedScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null): void;
         attachScsModelByKey(attachScope: SC.AttachScope, modelKey: SC.ModelKey, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean): SC.InclusionKey;
         beginRequestBatch(type: RequestBatchType): void;
@@ -13578,7 +13594,7 @@ declare namespace Communicator.Internal.Tree {
         containsDrawings(): boolean;
         getDefaultCadConfiguration(): ProductOccurrence | null;
         getActiveCadConfiguration(): ProductOccurrence | null;
-        activateCadConfiguration(node: ProductOccurrence): Promise<void>;
+        activateCadConfiguration(node: ProductOccurrence, fitNodes: boolean): Promise<void>;
         massageAuthoredUserId(inclusionContext: InclusionContext, authoredId: AuthoredNodeId | null): AuthoredNodeId | DynamicNodeId;
         createNode(parent: ProductOccurrence, nodeName: string, authoredId: AuthoredNodeId | null, localMatrix: SC.Matrix16 | null, visibility: boolean, measurementUnit?: number | null): ProductOccurrence;
         createPart(authoredNodeId: AuthoredNodeId | null): PartDefinition;
@@ -13817,10 +13833,10 @@ declare namespace Communicator.Internal.Tree {
         getActiveCadConfiguration(): RuntimeNodeId | null;
         getCadViewConfiguration(nodeId: RuntimeNodeId): RuntimeNodeId | null;
         private _activateCadConfiguration;
-        activateCadConfiguration(cadConfigId: RuntimeNodeId): Promise<void>;
-        activateDefaultCadConfiguration(): Promise<void>;
+        activateCadConfiguration(cadConfigId: RuntimeNodeId, fitNodes: boolean): Promise<void>;
+        activateDefaultCadConfiguration(fitNodes: boolean): Promise<void>;
         getDefaultCadView(): RuntimeNodeId | null;
-        activateDefaultCadView(): Promise<void>;
+        activateDefaultCadView(duration: number): Promise<void>;
         getPmis(): IdStringMap;
         getPmiType(pmiId: RuntimeNodeId): PmiType;
         getPmiSubType(pmiId: RuntimeNodeId): PmiSubType;
@@ -13829,7 +13845,7 @@ declare namespace Communicator.Internal.Tree {
         createMeshInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, name: string | null, parentId: RuntimeNodeId | null, preventFromResetting: boolean, isOutOfHierarchy: boolean, implicitBody: boolean): RuntimeNodeId;
         createPmiInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, pmiType: PmiType, pmiSubType: PmiSubType, topoRefs: ReferenceOnTopology[], name: string | null, parentId: RuntimeNodeId | null): RuntimeNodeId;
         setVisibilitiesByMap(idToVisibility: Map<RuntimeNodeId, boolean>, initiallyHiddenStayHidden?: boolean): Promise<void>;
-        setBodyNodesVisibility(_startNode: AnyTreeNode, visibilityFormatter: boolean | ((node: AnyTreeNode) => boolean | undefined)): Promise<void>;
+        setBodyNodesVisibility(startNode: AnyTreeNode, visibilityFormatter: boolean | ((node: AnyTreeNode) => boolean | undefined)): Promise<void>;
         setVisibilitiesByValue(nodeIds: RuntimeNodeId[], visibility: boolean, initiallyHiddenStayHidden: boolean | null): Promise<void>;
         resetAllVisibilities(): Promise<void>;
         resetAllTransforms(): Promise<void>;
@@ -13893,6 +13909,7 @@ declare namespace Communicator.Internal.Tree {
         lookupAnyBody(nodeId: RuntimeNodeId): AnyBody | null;
         lookupBodyInstance(nodeId: RuntimeNodeId): BodyInstance | null;
         gatherInstanceIncsFromNodeIds(nodeIds: RuntimeNodeId[], allowedTypes: BodyTypeBits, restriction: WalkRestriction): SC.InstanceIncs;
+        gatherInclusionKeysFromNodeIds(nodeIds: RuntimeNodeId[]): SC.InclusionKey[];
         requestNodes(nodeIds: RuntimeNodeId[]): Promise<void>;
         isWithinExternalModel(nodeId: RuntimeNodeId): boolean;
         getNodeGenericType(nodeId: RuntimeNodeId): GenericType | null;
@@ -14003,6 +14020,7 @@ declare namespace Communicator.Internal.Tree {
         getRemapper(): ScKeyRemapper;
         getParent(): AttachContextParent;
         getChildren(): ProductOccurrence[];
+        getInclusionContexts(): InclusionContext[];
         split(attachScope: SC.AttachScope, attachedInvisibly: boolean, parent: AttachContextParent): AttachContext;
         hasChildren(): boolean;
         removeProductOccurrence(node: ProductOccurrence): boolean;
@@ -14092,6 +14110,7 @@ declare namespace Communicator.Internal.Tree {
         getParent(): LoadContextParent;
         addAttachContext(context: AttachContext): void;
         getChildren(): ProductOccurrence[];
+        getAttachContexts(): AttachContext[];
         hasChildren(): boolean;
         removeProductOccurrence(node: ProductOccurrence): boolean;
         purgeContents(): Promise<void>;
@@ -14555,7 +14574,6 @@ declare namespace Communicator.Internal.Tree {
         private _parseRootNodes;
         private _parseRootNode;
         private _setupRootNode;
-        private _getPartPoForExternalModels;
         private _populateInclusion;
         /**
          * COM-1701
@@ -14808,6 +14826,7 @@ declare namespace Communicator.Internal.Tree {
         preventFromResetting(): boolean;
         isImplicitBody(): boolean;
         getParent(): Parent;
+        getInstanceKey(): SC.InstanceKey;
         protected readonly __BodyMixin: PhantomMember;
         private readonly _parent;
         protected readonly _instanceKey: SC.InstanceKey;
@@ -15084,6 +15103,7 @@ declare namespace Communicator.Internal.Tree {
         readonly bimInfos: BimObject[];
     }
     type ProductOccurrenceParent = ProductOccurrence | InclusionContext | PrototypeContext;
+    type ChildContext = LoadContext | AttachContext;
     class ProductOccurrence extends NodeMixin<ProductBits> {
         static parseXml(config: LoadSubtreeConfig, assemblyTree: AssemblyTree, inclusionContext: InclusionContext, elem: Element, toAttachData: ToAttachDataFunc): ProductOccurrenceInfo;
         static parseBinary(config: LoadSubtreeConfig, assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser): ProductOccurrenceInfo;
@@ -15132,6 +15152,7 @@ declare namespace Communicator.Internal.Tree {
         getRawPartDefinition(): Promise<Boxed<LazyPromise<PartDefinition>> | null> | LazyPromise<PartDefinition> | null;
         getPartDefinition(): Promise<Boxed<LazyPromise<PartDefinition>> | null>;
         getPartDefinitionSync(): PartDefinition | null;
+        getChildContexts(): ChildContext[];
         private _getChildren;
         getChildren(): Promise<ProductOccurrence[]>;
         getChildrenSync(): ProductOccurrence[];
@@ -15298,8 +15319,8 @@ declare namespace Communicator.Internal.Tree {
     class Layer {
         id: LayerId;
         name: LayerName | null;
-        readonly nodes: AnyTreeNode[];
-        readonly treeNodes: AnyTreeNode[];
+        nodes: AnyTreeNode[];
+        treeNodes: AnyTreeNode[];
         static NoLayerId: number;
         static parseBinary(parser: AssemblyDataParser): LayerInfo;
         static parseXml(elem: Element): LayerInfo | null;
@@ -15456,7 +15477,7 @@ declare namespace Communicator.Internal.Tree {
         assemblyTree: AssemblyTree;
         engine: AbstractScEngine;
         callbackManager?: CallbackManager;
-        startNode: ProductOccurrence | AttachContext;
+        startNode: ProductOccurrence | AttachContext | AnyTreeNode;
         setVisibility?: SC.SetVisibility;
         initiallyHiddenStayHidden?: boolean;
         configurationNode?: ProductOccurrence;
@@ -15673,6 +15694,10 @@ declare namespace Communicator.Internal.Tree {
     function forcePrototypes(startNode: ProductOccurrence): Promise<void>;
 }
 declare namespace Communicator.Internal.Tree {
+    function gatherInclusionKeysSync(startNode: AnyTreeNode, allowOutOfHierarchy: boolean, visited: Set<ProductOccurrence>, restriction: WalkRestriction): SC.InclusionKey[];
+    function gatherInclusionKeysFromNodeIdsSync(assemblyTree: AssemblyTree, nodeIds: RuntimeNodeId[], restriction: WalkRestriction): SC.InclusionKey[];
+}
+declare namespace Communicator.Internal.Tree {
     function gatherInstanceIncs(startNode: AnyTreeNode, allowedTypes: BodyTypeBits, allowOutOfHierarchy: boolean, visited: Set<AnyBody>): Promise<SC.InstanceIncs>;
     function gatherInstanceIncsSync(startNode: AnyTreeNode, allowedTypes: BodyTypeBits, allowOutOfHierarchy: boolean, visited: Set<AnyBody>, restriction: WalkRestriction): SC.InstanceIncs;
     function gatherInstanceIncsByNodeIdsSync(assemblyTree: AssemblyTree, nodeIds: RuntimeNodeId[], allowedTypes: BodyTypeBits, restriction: WalkRestriction): SC.InstanceIncs;
@@ -15798,7 +15823,7 @@ declare namespace Communicator.Internal.Tree {
     function updateVisibilities(options: {
         assemblyTree: AssemblyTree;
         engine: AbstractScEngine;
-        startNode: ProductOccurrence;
+        startNode: ProductOccurrence | AnyTreeNode;
         visibilityFormatter: (node: AnyTreeNode) => boolean | undefined;
         resetNonAffectedToDefault: boolean;
         configurationNode?: ProductOccurrence;
@@ -15808,7 +15833,7 @@ declare namespace Communicator.Internal.Tree {
     function updateBodyNodesVisibilities(options: {
         assemblyTree: AssemblyTree;
         engine: AbstractScEngine;
-        startNode: ProductOccurrence;
+        startNode: ProductOccurrence | AnyTreeNode;
         visibilityFormatter: (node: AnyTreeNode) => boolean | undefined;
         resetNonAffectedToDefault: boolean;
         configurationNode?: ProductOccurrence;
@@ -18299,7 +18324,7 @@ declare namespace Communicator.Operator {
         /** @hidden */
         onTouchStart(event: Event.TouchInputEvent): void;
         /** @hidden */
-        onTouchMove(event: Event.TouchInputEvent): void;
+        onTouchMove(event: Event.TouchInputEvent): Promise<void>;
         /** @hidden */
         onTouchEnd(event: Event.TouchInputEvent): void;
         /**
@@ -18819,6 +18844,10 @@ declare namespace Communicator.Markup.Measure {
          * In other cases it will contain the angle in degrees.
          */
         getMeasurementText(): string;
+        /**
+         * Returns whether the measurement markup is valid. Override in subclasses when needed.
+         */
+        isMarkupValid(): Boolean;
         /** @hidden */
         protected _setMeasurementValue(millimeters: number): void;
         /** @hidden */
@@ -18868,7 +18897,10 @@ declare namespace Communicator.Operator {
         private _updateHitTest;
         constructor(viewer: WebViewer);
         /**
-         * Connect to the space mouse.
+         * Connect to the space mouse. To be successful, this method
+         * should be called in the sceneReady callback. If you want to
+         * connect at a later time, the canvas where the mouse is
+         * to be used must have focus.
          *
          * Note: If this is called but the 3d connexion software is not running,
          * a connection error will be shown in the console.
@@ -19455,7 +19487,7 @@ declare namespace Communicator.Operator {
         /** @hidden */
         onTouchStart(event: Event.TouchInputEvent): void;
         /** @hidden */
-        onTouchMove(event: Event.TouchInputEvent): void;
+        onTouchMove(event: Event.TouchInputEvent): Promise<void>;
         /** @hidden */
         onTouchEnd(event: Event.TouchInputEvent): void;
         /** @hidden */
@@ -19505,7 +19537,7 @@ declare namespace Communicator.Operator {
         /** @hidden */
         onTouchStart(event: Event.TouchInputEvent): void;
         /** @hidden */
-        onTouchMove(event: Event.TouchInputEvent): void;
+        onTouchMove(event: Event.TouchInputEvent): Promise<void>;
         /** @hidden */
         onTouchEnd(event: Event.TouchInputEvent): void;
         /** @hidden */
@@ -19562,7 +19594,7 @@ declare namespace Communicator.Operator {
         /** @hidden */
         onTouchStart(event: Event.TouchInputEvent): void;
         /** @hidden */
-        onTouchMove(event: Event.TouchInputEvent): void;
+        onTouchMove(event: Event.TouchInputEvent): Promise<void>;
         /** @hidden */
         onTouchEnd(event: Event.TouchInputEvent): void;
         /** @hidden */
@@ -19644,7 +19676,7 @@ declare namespace Communicator.Operator {
         /** @hidden */
         onTouchStart(event: Event.TouchInputEvent): void;
         /** @hidden */
-        onTouchMove(event: Event.TouchInputEvent): void;
+        onTouchMove(event: Event.TouchInputEvent): Promise<void>;
         /** @hidden */
         onTouchEnd(event: Event.TouchInputEvent): void;
         /** @hidden */
@@ -20140,6 +20172,10 @@ declare namespace Communicator.Markup.Measure {
         /** @deprecated Use [[fromJson]] instead. */
         static construct(obj: any, viewer: WebViewer): MeasurePointPointDistanceMarkup;
         getClassName(): string;
+        /**
+         * Returns whether the measurement markup is valid.
+         */
+        isMarkupValid(): Boolean;
     }
 }
 declare namespace Communicator.Markup.Measure {
