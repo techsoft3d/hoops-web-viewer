@@ -3,7 +3,7 @@
 /// <reference path="../Event/KeyInputEvent.ts"/>
 
 /**
- * Operators provide hooks into various events provided by the web browser and perform well defined actions based on user input. An example of using an Operator can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/operators/operators.html).
+ * Operators provide hooks into various events provided by the web browser and perform well defined actions based on user input. An example of using an Operator can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/operators/operators.html).
  * @preferred
  */
 namespace Communicator.Operator {

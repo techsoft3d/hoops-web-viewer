@@ -542,7 +542,7 @@ declare namespace Communicator {
 }
 declare namespace Communicator {
     /**
-     * Object representing the 4x4 Matrix. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/model_attributes/matrices.html).
+     * Object representing the 4x4 Matrix. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/model_attributes/matrices.html).
      */
     class Matrix {
         m: SC.Matrix16;
@@ -648,7 +648,7 @@ declare namespace Communicator {
         /**
          * Creates a matrix from an array of numbers.
          * @param arr 16 element array of numbers.
-         * @returns New matrix with elements set to the values of the array parameter
+         * @returns New matrix with elements set to the values of the array parameter. Array elements will be in column-major order.
          */
         static createFromArray(arr: number[]): Matrix;
         /**
@@ -715,19 +715,19 @@ declare namespace Communicator {
         /** @hidden */
         static toMatrix12(m: SC.Matrix16): SC.Matrix12;
         /**
-         * Returns the matrix for a rotation around the X-axis, using the right-hand rule.
+         * Returns the matrix for a clockwise rotation around the X-axis.
          * @param degrees The degrees of the rotation.
          * @returns The rotation matrix.
          */
         static xAxisRotation(degrees: Degrees): Matrix;
         /**
-         * Returns the matrix for a rotation around the Y-axis, using the right-hand rule.
+         * Returns the matrix for a clockwise rotation around the Y-axis.
          * @param degrees The degrees of the rotation.
          * @returns The rotation matrix.
          */
         static yAxisRotation(degrees: Degrees): Matrix;
         /**
-         * Returns the matrix for a rotation around the Z-axis, using the right-hand rule.
+         * Returns the matrix for a clockwise rotation around the Z-axis.
          * @param degrees The degrees of the rotation.
          * @returns The rotation matrix.
          */
@@ -1758,7 +1758,7 @@ declare namespace Communicator {
      * This triad is initialized and associated with an overlay when the viewer is created.
      * For additional information on overlays please refer to the [[OverlayManager]].
      *
-     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/scene_attributes/axis-triad-and-navcube.html).
+     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/axis-triad-and-navcube.html).
      */
     class AxisTriad {
         private readonly _viewer;
@@ -3238,7 +3238,7 @@ declare namespace Communicator {
         /** Rendering is performed on the server */
         Server = 1
     }
-    /** Enumerates drawing modes available in the viewer. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/scene_attributes/draw-modes.html). */
+    /** Enumerates drawing modes available in the viewer. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/draw-modes.html). */
     enum DrawMode {
         /** Lines are rendered and faces are not */
         Wireframe = 0,
@@ -3276,7 +3276,7 @@ declare namespace Communicator {
         /** No anti-aliasing */
         None = 1
     }
-    /** Enumerates instance modifier modes. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/model_attributes/instance-modifiers.html). */
+    /** Enumerates instance modifier modes. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/model_attributes/instance-modifiers.html). */
     enum InstanceModifier {
         /** If set, the instance will not be affected by an explode operation. */
         DoNotExplode = 0,
@@ -4275,7 +4275,7 @@ declare namespace Communicator.Internal {
 }
 declare namespace Communicator {
     /**
-     * Object representing a viewpoint from which the scene can be rendered. More information about using Camera can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/scene_attributes/camera.html).
+     * Object representing a viewpoint from which the scene can be rendered. More information about using Camera can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/camera.html).
      */
     class Camera {
         private readonly _position;
@@ -4774,7 +4774,7 @@ declare namespace Communicator {
 }
 declare namespace Communicator {
     /**
-     * This class provides an interface to the explode related features of the viewer. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/scene_attributes/explode.html).
+     * This class provides an interface to the explode related features of the viewer. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/explode.html).
      */
     class ExplodeManager {
         private readonly _model;
@@ -5243,7 +5243,7 @@ declare namespace Communicator.Settings {
     }
 }
 /**
- * The Event module exposes UI event listeners for the WebViewer. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/operators/operators.html).
+ * The Event module exposes UI event listeners for the WebViewer. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/operators/operators.html).
  * @preferred
  */
 declare namespace Communicator.Event {
@@ -5520,7 +5520,7 @@ declare namespace Communicator {
         Camera = 1
     }
     /**
-     * Contains properties of a light. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/scene_attributes/lights.html).
+     * Contains properties of a light. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/lights.html).
      */
     class Light {
         /** The light's type. */
@@ -5621,7 +5621,7 @@ declare namespace Communicator {
         [key: string]: Object[];
     }
     /**
-     * This class provides an interface into working with markup in the viewer. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/markup/markup-basics.html).
+     * This class provides an interface into working with markup in the viewer. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/markup/markup-basics.html).
      */
     class MarkupManager {
         private readonly _viewManager;
@@ -5840,7 +5840,7 @@ declare namespace Communicator {
      * Object which represents geometry data which will be inserted into the scene at run time.
      * For performance reasons, it is not recommended to create meshes with large amounts of data on the client side as certain optimizations are not available to geometry inserted this way.
      *
-     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/geometry/meshes.html).
+     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/geometry/meshes.html).
      */
     class MeshData {
         private readonly _faceMeshData;
@@ -6321,7 +6321,7 @@ declare namespace Communicator {
      * Object representing the model geometry and its associated data.
      * All major functionality for querying the model hierarchy, retrieving geometry data and loading additional model data are part of this object.
      *
-     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/data_model/model-tree.html).
+     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/data_model/model-tree.html).
      */
     class Model {
         private readonly _engine;
@@ -7891,7 +7891,7 @@ declare namespace Communicator {
      * This class provides an interface to the navigational cube which is enabled by default. The default functionality changes the camera's view orientation based on the location the user clicks on the cube.
      * This cube is initialized and associated with an overlay when the viewer is created. For additional information on overlays please refer to the [[Communicator.OverlayManager]].
      *
-     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/scene_attributes/axis-triad-and-navcube.html).
+     * More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/axis-triad-and-navcube.html).
      */
     class NavCube {
         private readonly _viewer;
@@ -8168,7 +8168,7 @@ declare namespace Communicator {
     }
     /**
      * The OverlayManager exposes functionality for creating overlays that are layered on top of the 3d scene. More
-     * information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/scene_attributes/overlays.html).
+     * information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/overlays.html).
      * An overlay defines a viewport on the screen with an associated camera.
      * These overlays are useful for creating axis triads, navigational cubes, or similar elements.
      * The overlays are not designed to create multiple views of a model. Therefore, inserting large amounts of
@@ -15948,7 +15948,7 @@ declare namespace Communicator.Internal {
 }
 declare namespace Communicator {
     /**
-     * Object representing an individual cutting section, more information can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/scene_attributes/cutting-planes.html).
+     * Object representing an individual cutting section, more information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/cutting-planes.html).
      * A cutting section groups up to 6 cutting planes together and behaves independently of other cutting sections.
      */
     class CuttingSection {
@@ -18247,7 +18247,7 @@ declare namespace Communicator {
     }
 }
 /**
- * Operators provide hooks into various events provided by the web browser and perform well defined actions based on user input. An example of using an Operator can be found [here](https://docs.techsoft3d.com/communicator/latest/build/prog_guide/viewing/operators/operators.html).
+ * Operators provide hooks into various events provided by the web browser and perform well defined actions based on user input. An example of using an Operator can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/operators/operators.html).
  * @preferred
  */
 declare namespace Communicator.Operator {
@@ -18445,7 +18445,7 @@ declare namespace Communicator.Operator {
 }
 declare namespace Communicator.Operator {
     /**
-     * Handles are added scene elements that can update the position of your parts through user interaction. Find more information [here](https://docs.techsoft3d.com/communicator/latest/build/tutorials/additive-manufacturing/handles.html).
+     * Handles are added scene elements that can update the position of your parts through user interaction. Find more information [here](https://docs.techsoft3d.com/communicator/latest/tutorials/additive-manufacturing/handles.html).
      */
     class HandleOperator extends OperatorBase {
         private _draggingHandle;

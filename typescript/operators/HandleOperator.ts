@@ -10,7 +10,7 @@ namespace Communicator.Operator {
     }
 
     /**
-     * Handles are added scene elements that can update the position of your parts through user interaction. Find more information [here](https://docs.techsoft3d.com/communicator/latest/build/tutorials/additive-manufacturing/handles.html).
+     * Handles are added scene elements that can update the position of your parts through user interaction. Find more information [here](https://docs.techsoft3d.com/communicator/latest/tutorials/additive-manufacturing/handles.html).
      */
     export class HandleOperator extends OperatorBase {
         private _draggingHandle: boolean = false;
