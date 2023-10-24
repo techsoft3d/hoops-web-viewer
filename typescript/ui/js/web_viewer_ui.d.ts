@@ -1150,6 +1150,8 @@ declare namespace Communicator.Ui {
     class CadViewTree extends ViewTree {
         private readonly _annotationViewsString;
         private readonly _annotationViewsLabel;
+        private readonly _combineStateViewsString;
+        private readonly _combineStateViewsLabel;
         private _viewFolderCreated;
         private _lastSelectedhtmlId;
         private _cadViewIds;
@@ -1244,6 +1246,7 @@ declare namespace Communicator.Ui {
         private _startedWithoutModelStructure;
         private _partSelectionEnabled;
         private _currentSheetId;
+        private _currentConfigurationId;
         private _measurementFolderId;
         private _updateVisibilityStateTimer;
         constructor(viewer: WebViewer, elementId: HtmlId, iScroll: IScroll | null);
@@ -1251,8 +1254,8 @@ declare namespace Communicator.Ui {
         modelStructurePresent(): boolean;
         enablePartSelection(enable: boolean): void;
         private _initEvents;
-        private _refreshModelTree;
         private _reset;
+        private _updateModelTree;
         private _onNewModel;
         private _createMarkupViewFolderIfNecessary;
         private _createMeasurementFolderIfNecessary;
@@ -1402,8 +1405,7 @@ declare namespace Communicator.Ui.Control {
         registerCallback(name: "clickItemButton", func: (id: HtmlId) => void): void;
         private _triggerCallback;
         deleteNode(htmlId: HtmlId): void;
-        private _getTaggedId;
-        addChild(name: string | null, htmlId: HtmlId, parent: HtmlId, itemType: ItemType, hasChildren: boolean, treeType: Desktop.Tree, accessible?: boolean, ignoreLoaded?: boolean): HTMLElement | null;
+        addChild(name: string | null, htmlId: HtmlId, parent: HtmlId, itemType: ItemType, hasChildren: boolean, treeType: Desktop.Tree, accessible?: boolean, ignoreLoaded?: boolean, tag?: string | number): HTMLElement | null;
         private _addVisibilityToggleChild;
         private _buildPartVisibilityNode;
         freezeExpansion(freeze: boolean): void;

@@ -261,23 +261,6 @@ namespace Communicator.Ui.Control {
             jQuery(`#visibility${this._separator}${id}`).remove();
         }
 
-        private _getTaggedId(
-            id: string,
-            treeType: Desktop.Tree,
-            name: string | null,
-        ): TaggedId | null {
-            const annotationViewsLabel = "Annotation Views";
-            if (
-                name !== null &&
-                name === annotationViewsLabel &&
-                treeType === Desktop.Tree.CadView
-            ) {
-                return new TaggedId(annotationViewsLabel); // return a non null tagged id for annotation views
-            } else {
-                return this._parseTaggedId(id);
-            }
-        }
-
         public addChild(
             name: string | null,
             htmlId: HtmlId,
@@ -287,8 +270,9 @@ namespace Communicator.Ui.Control {
             treeType: Desktop.Tree,
             accessible: boolean = true,
             ignoreLoaded: boolean = false,
+            tag?: string | number,
         ): HTMLElement | null {
-            const taggedId = this._getTaggedId(htmlId, treeType, name);
+            const taggedId = tag ? new TaggedId(tag) : this._parseTaggedId(htmlId);
             if (taggedId === null) {
                 return null;
             }
@@ -567,7 +551,7 @@ namespace Communicator.Ui.Control {
                 }
             }
 
-            labelNode.innerHTML = $('<div>').text(name).html();
+            labelNode.innerHTML = $("<div>").text(name).html();
             labelNode.title = name;
             itemNode.appendChild(labelNode);
 

@@ -137,6 +137,12 @@ namespace Communicator.Operator {
         private _getSelectionOrParentIfSelected(
             selection: Selection.NodeSelectionItem,
         ): Selection.NodeSelectionItem {
+            const selectionManager = this._viewer.selectionManager;
+            if (!selectionManager.getSelectParentIfSelected()) {
+                // If we're not propagating selection to parents just skip this whole thing
+                return selection;
+            }
+
             const model = this._viewer.model;
             const nodeId = selection.getNodeId();
 
@@ -150,16 +156,12 @@ namespace Communicator.Operator {
                 return selection;
             }
 
-            const selectionManager = this._viewer.selectionManager;
-            let parent: Selection.NodeSelectionItem | null = null;
-
-            if (selectionManager.getSelectParentIfSelected()) {
-                parent = selectionManager.containsParent(selection);
-            }
-
-            if (parent !== null) {
+            const parentSelectionItem = selectionManager.containsParent(selection);
+            if (parentSelectionItem !== null) {
                 // if the parent is already selected, select the parent of the parent
-                const out = Selection.SelectionItem.create(model.getNodeParent(parent.getNodeId()));
+                const out = Selection.SelectionItem.create(
+                    model.getNodeParent(parentSelectionItem.getNodeId()),
+                );
                 return out.isNodeSelection() ? out : selection;
             } else if (selectionManager.contains(selection)) {
                 // if the item is already selected, select it's parent

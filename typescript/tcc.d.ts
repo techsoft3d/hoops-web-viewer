@@ -421,6 +421,11 @@ declare module SC {
         Toon,
     }
 
+    export const enum DrawStrategy {
+        FixedFramerate,
+        OcclusionCulling,
+    }
+
     // Mirrors C++ `TC::Web::ElementType`
     export const enum ElementType {
         Faces,
@@ -1357,6 +1362,7 @@ declare module SC {
         setBoundingPreviewUnderdraw(points: Vector3[]): void;
         setBoundingPreviewTested(points: Vector3[]): void;
         setBoundingPreviewEjected(points: Vector3[]): void;
+        setBoundingDebugLevel(level: number): void;
         setCamera(camera: Camera): void;
         setCappingIdleHookEnabled(enable: boolean): Promise<boolean>;
         setClumpingEnabled(value: boolean): void;
@@ -1370,6 +1376,7 @@ declare module SC {
         setDisplayIncompleteFrames(value: boolean): void;
         setDrawIdleDelay(delay: number): void;
         setDrawMode(drawMode: DrawMode): void;
+        setDrawStrategy(strategy: DrawStrategy): void;
         setEyeDomeLightingBlurEdgeDistance(value: number): void;
         setEyeDomeLightingBlurInterval(value: number): void;
         setEyeDomeLightingBlurSamples(value: number): void;

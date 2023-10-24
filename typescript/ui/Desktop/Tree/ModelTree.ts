@@ -6,6 +6,7 @@ namespace Communicator.Ui {
         private _startedWithoutModelStructure = false;
         private _partSelectionEnabled = true;
         private _currentSheetId: SheetId | null = null;
+        private _currentConfigurationId: NodeId | null = null;
 
         private _measurementFolderId: HtmlId = "measurementitems";
 
@@ -79,17 +80,18 @@ namespace Communicator.Ui {
                 measurementHidden: () => {
                     this._tree.updateMeasurementVisibilityIcons();
                 },
-                sheetActivated: (id: SheetId) => {
-                    if (id !== this._currentSheetId) {
-                        this._currentSheetId = id;
-                        this._refreshModelTree(id);
+                sheetActivated: (sheetid: SheetId) => {
+                    if (sheetid !== this._currentSheetId) {
+                        this._currentSheetId = sheetid;
+                        this._updateModelTree();
                     }
                 },
                 sheetDeactivated: () => {
                     this._reset();
                 },
-                configurationActivated: (id: NodeId) => {
-                    this._refreshModelTree(id);
+                configurationActivated: (configurationId: NodeId) => {
+                    this._currentConfigurationId = configurationId;
+                    this._updateModelTree();
                 },
             });
 
@@ -105,47 +107,52 @@ namespace Communicator.Ui {
             );
         }
 
-        private _refreshModelTree(nodeId: NodeId): void {
+        private _reset(): void {
+            this._tree.clear();
+            this._currentSheetId = null;
+            this._updateModelTree();
+        }
+
+        private _updateModelTree() {
             this._tree.clear();
 
             const model = this._viewer.model;
             const rootId = model.getAbsoluteRootNode();
             const name = model.getNodeName(rootId);
 
-            // add the top level root, and skip to 'id' for the first child
-            this._tree.appendTopLevelElement(
-                name,
-                this._partId(rootId),
-                "modelroot",
-                model.getNodeChildren(rootId).length > 0,
-                false,
-                true,
-            );
-            this._tree.addChild(
-                model.getNodeName(nodeId),
-                this._partId(nodeId),
-                this._partId(rootId),
-                "part",
-                true,
-                Desktop.Tree.Model,
-            );
+            if (this._currentSheetId) {
+                // add the top level root, and skip to 'id' for the first child
+                this._tree.appendTopLevelElement(
+                    name,
+                    this._partId(rootId),
+                    "modelroot",
+                    model.getNodeChildren(rootId).length > 0,
+                    false,
+                    true,
+                );
+                this._tree.addChild(
+                    model.getNodeName(this._currentSheetId),
+                    this._partId(this._currentSheetId),
+                    this._partId(rootId),
+                    "part",
+                    true,
+                    Desktop.Tree.Model,
+                );
+            } else {
+                this._lastModelRoot = this._tree.appendTopLevelElement(
+                    name,
+                    this._partId(rootId),
+                    "modelroot",
+                    model.getNodeChildren(rootId).length > 0,
+                );
+            }
 
             this._tree.expandInitialNodes(this._partId(rootId));
 
             this._refreshMarkupViews();
         }
 
-        private _reset(): void {
-            this._tree.clear();
-            this._currentSheetId = null;
-            this._onNewModel();
-        }
-
         private _onNewModel(): void {
-            const model = this._viewer.model;
-            const rootId = model.getAbsoluteRootNode();
-            const name = model.getNodeName(rootId);
-
             this.showTab();
 
             /* TODO: Clean this up: erwan currently makes a placeholder node for the root with
@@ -154,18 +161,7 @@ namespace Communicator.Ui {
              */
             this._startedWithoutModelStructure = !this.modelStructurePresent();
 
-            this._lastModelRoot = this._tree.appendTopLevelElement(
-                name,
-                this._partId(rootId),
-                "modelroot",
-                model.getNodeChildren(rootId).length > 0,
-            );
-
-            if (!this._viewer.sheetManager.isDrawingSheetActive()) {
-                this._tree.expandInitialNodes(this._partId(rootId));
-            }
-
-            this._refreshMarkupViews();
+            this._updateModelTree();
         }
 
         private _createMarkupViewFolderIfNecessary(): void {
@@ -446,6 +442,14 @@ namespace Communicator.Ui {
                 let currParentId = parentId;
                 let itemType: Control.ItemType = "assembly";
                 let ignoreNode: boolean = false;
+
+                if (
+                    this._currentConfigurationId !== null &&
+                    childId in model.getCadConfigurations() &&
+                    childId !== this._currentConfigurationId
+                ) {
+                    ignoreNode = true;
+                }
 
                 switch (model.getNodeType(childId)) {
                     case NodeType.Body:

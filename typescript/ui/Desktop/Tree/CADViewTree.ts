@@ -3,9 +3,16 @@
 /// <reference path="ViewTree.ts"/>
 
 namespace Communicator.Ui {
+    interface View {
+        name: string;
+        nodeId: NodeId;
+    }
+
     export class CadViewTree extends ViewTree {
         private readonly _annotationViewsString: string = "annotationViews";
         private readonly _annotationViewsLabel: string = "Annotation Views";
+        private readonly _combineStateViewsString: string = "combineStateViews";
+        private readonly _combineStateViewsLabel: string = "Combine State Views";
         private _viewFolderCreated: boolean = false;
 
         private _lastSelectedhtmlId: string | null = null;
@@ -103,6 +110,7 @@ namespace Communicator.Ui {
 
             this._tree.expandInitialNodes(this._internalId);
             this._tree.expandInitialNodes(this._internalId + this._annotationViewsString);
+            this._tree.expandInitialNodes(this._internalId + this._combineStateViewsString);
         }
 
         private _allowView(viewNodeId: NodeId): boolean {
@@ -134,70 +142,87 @@ namespace Communicator.Ui {
                 );
             };
 
-            // non-annotated views
-            cadViews.forEach((name: string, nodeId: NodeId) => {
-                if (
-                    !this._cadViewIds.has(nodeId) &&
-                    allowView(nodeId) &&
-                    !model.isAnnotationView(nodeId)
-                ) {
-                    this._cadViewIds.add(nodeId);
-                    this._tree.addChild(
-                        name,
-                        this._cadViewId(nodeId),
-                        this._internalId,
-                        "view",
-                        false,
-                        Desktop.Tree.CadView,
-                    );
-                }
-            });
+            const regularViews: View[] = [];
+            const annotationViews: View[] = [];
+            const combineStateViews: View[] = [];
 
-            // annotation view folder
-            cadViews.forEach((_name: string, nodeId: NodeId) => {
-                if (
-                    !this._cadViewIds.has(nodeId) &&
-                    allowView(nodeId) &&
-                    model.isAnnotationView(nodeId)
-                ) {
-                    if (
-                        document.getElementById(this._internalId + this._annotationViewsString) ===
-                        null
-                    ) {
-                        this._tree.addChild(
-                            this._annotationViewsLabel,
-                            this._internalId + this._annotationViewsString,
-                            this._internalId,
-                            "viewfolder",
-                            true,
-                            Desktop.Tree.CadView,
-                        );
+            cadViews.forEach((name: string, nodeId: NodeId) => {
+                if (!this._cadViewIds.has(nodeId) && allowView(nodeId)) {
+                    this._cadViewIds.add(nodeId);
+                    if (model.isAnnotationView(nodeId)) {
+                        annotationViews.push({ name, nodeId });
+                    } else if (model.isCombineStateView(nodeId)) {
+                        combineStateViews.push({ name, nodeId });
+                    } else {
+                        regularViews.push({ name, nodeId });
                     }
                 }
             });
 
-            // annotation views
-            cadViews.forEach((name: string, nodeId: NodeId) => {
-                if (
-                    !this._cadViewIds.has(nodeId) &&
-                    allowView(nodeId) &&
-                    model.isAnnotationView(nodeId)
-                ) {
-                    this._cadViewIds.add(nodeId);
-                    // the folder is already called Annotation Views, remove the annotation view text from the name
-                    const parsedValue = name.split("# Annotation View")[0];
+            // regular views
+            regularViews.forEach((view: View) => {
+                this._tree.addChild(
+                    view.name,
+                    this._cadViewId(view.nodeId),
+                    this._internalId,
+                    "view",
+                    false,
+                    Desktop.Tree.CadView,
+                );
+            });
 
-                    // add to annotation view folder
+            // Annotation views
+            if (annotationViews.length > 0) {
+                this._tree.addChild(
+                    this._annotationViewsLabel,
+                    this._internalId + this._annotationViewsString,
+                    this._internalId,
+                    "viewfolder",
+                    true,
+                    Desktop.Tree.CadView,
+                    true,
+                    false,
+                    this._annotationViewsLabel,
+                );
+
+                annotationViews.forEach((view: View) => {
+                    const parsedValue = view.name.split("# Annotation View")[0];
                     this._tree.addChild(
                         parsedValue,
-                        this._cadViewId(nodeId),
+                        this._cadViewId(view.nodeId),
                         this._internalId + this._annotationViewsString,
                         "view",
                         false,
                         Desktop.Tree.CadView,
                     );
-                }
-            });
+                });
+            }
+
+            // Combine state views
+            if (combineStateViews.length > 0) {
+                this._tree.addChild(
+                    this._combineStateViewsLabel,
+                    this._internalId + this._combineStateViewsString,
+                    this._internalId,
+                    "viewfolder",
+                    true,
+                    Desktop.Tree.CadView,
+                    true,
+                    false,
+                    this._combineStateViewsLabel,
+                );
+
+                combineStateViews.forEach((view: View) => {
+                    this._tree.addChild(
+                        view.name,
+                        this._cadViewId(view.nodeId),
+                        this._internalId + this._combineStateViewsString,
+                        "view",
+                        false,
+                        Desktop.Tree.CadView,
+                    );
+                });
+            }
         }
 
         private async _onTreeSelectItem(htmlId: HtmlId): Promise<void> {
@@ -221,7 +246,8 @@ namespace Communicator.Ui {
                 if (
                     thisElement.tagName === "LI" &&
                     htmlId !== this._internalId &&
-                    htmlId !== this._internalId + this._annotationViewsString
+                    htmlId !== this._internalId + this._annotationViewsString &&
+                    htmlId !== this._internalId + this._combineStateViewsString
                 ) {
                     thisElement.classList.add("selected");
                     this._lastSelectedhtmlId = htmlId;

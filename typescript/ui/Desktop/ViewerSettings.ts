@@ -590,7 +590,8 @@ namespace Communicator.Ui.Desktop {
 
             const selectionOperator = this._viewer.operatorManager.getOperator(OperatorId.Select);
             const selectionOperatorPickConfig = selectionOperator.getPickConfig();
-            selectionOperatorPickConfig.forceEffectiveSceneVisibilityMask = forceEffectiveSceneVisibilityMask;
+            selectionOperatorPickConfig.forceEffectiveSceneVisibilityMask =
+                forceEffectiveSceneVisibilityMask;
             selectionOperator.setPickConfig(selectionOperatorPickConfig);
 
             const areaSelectionOperator = this._viewer.operatorManager.getOperator(

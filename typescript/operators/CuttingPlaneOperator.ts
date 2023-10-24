@@ -27,7 +27,6 @@ namespace Communicator.Operator {
         public readonly origPlaneD: number;
     }
 
-    /** @hidden */
     export class CuttingPlaneOperator extends OperatorBase {
         private _cuttingManager: CuttingManager;
 
@@ -37,13 +36,11 @@ namespace Communicator.Operator {
          */
         private _context: CuttingPlaneOperatorContext | null = null;
 
-        /** @hidden */
         public constructor(viewer: WebViewer, cuttingManager: CuttingManager) {
             super(viewer);
             this._cuttingManager = cuttingManager;
         }
 
-        /** @hidden */
         public async onMouseDown(event: Event.MouseInputEvent): Promise<void> {
             super.onMouseDown(event);
 
@@ -57,7 +54,6 @@ namespace Communicator.Operator {
             }
         }
 
-        /** @hidden */
         public async onMouseMove(event: Event.MouseInputEvent): Promise<void> {
             super.onMouseMove(event);
 
@@ -107,7 +103,6 @@ namespace Communicator.Operator {
             }
         }
 
-        /** @hidden */
         public async onMouseUp(event: Event.MouseInputEvent): Promise<void> {
             const context = this._context;
             if (this.isActive() && context !== null) {
@@ -119,7 +114,6 @@ namespace Communicator.Operator {
             super.onMouseUp(event);
         }
 
-        /** @hidden */
         public setHandled(): boolean {
             return this.isActive() && this._context !== null;
         }

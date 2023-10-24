@@ -9,9 +9,7 @@ namespace Communicator.Operator.Common {
         const invW = 1 / sp4.w;
         const screenPosition = new Point2(sp4.x * invW, sp4.y * invW);
 
-        const dims = viewer.model.getClientDimensions();
-        const w = dims[0];
-        const h = dims[1];
+        const { x: w, y: h } = viewer.view.getCanvasSize();
 
         screenPosition.x = 0.5 * w * (screenPosition.x + 1);
         screenPosition.y = 0.5 * h * (screenPosition.y + 1);

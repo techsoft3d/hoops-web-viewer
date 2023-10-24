@@ -4253,6 +4253,13 @@ declare namespace Communicator {
         relateds: BimId[];
         relatings: BimId[];
     }
+    /** Types of draw strategy */
+    enum DrawStrategy {
+        /** Draw only largest objects to maintain constant framerate */
+        FixedFramerate = 0,
+        /** Use occlusion culling to ignore occluded objects */
+        OcclusionCulling = 1
+    }
 }
 /** @hidden */
 declare namespace Communicator.Internal {
@@ -6339,7 +6346,10 @@ declare namespace Communicator {
         /** @hidden */
         _setModelStructure(modelStructure: Internal.Tree.ModelStructure): void;
         /**
-         * Returns the dimensions of the client.
+         * Returns the dimensions of the viewer container in pixels.
+         *
+         * @deprecated use [[View.getCanvasSize]]
+         *
          * @returns a pair of numbers, [width, height].
          */
         getClientDimensions(): [number, number];
@@ -6968,9 +6978,10 @@ declare namespace Communicator {
          * Activates a CAD View
          * @param id ID of the CAD View to activate.
          * @param duration camera transition time in milliseconds.
+         * @param massageCamera If true, undesirable authored cameras may be modified into a camera with more reasonable values
          * @returns None.
          */
-        activateCadView(nodeId: NodeId, duration?: number): Promise<void>;
+        activateCadView(nodeId: NodeId, duration?: number, massageCamera?: boolean): Promise<void>;
         /** @deprecated Use [[activateCadView]] instead. */
         activateCADView(nodeId: NodeId, duration?: number): Promise<void>;
         /**
@@ -7006,9 +7017,10 @@ declare namespace Communicator {
         /**
          * Activate the default CAD view
          * @param duration Duration of the camera animation
+         * @param massageCamera If true, undesirable authored cameras may be modified into a camera with more reasonable values
          * @returns None.
          */
-        activateDefaultCadView(duration?: number): Promise<void>;
+        activateDefaultCadView(duration?: number, massageCamera?: boolean): Promise<void>;
         /** @deprecated Use [[getDefaultCadConfiguration]] instead. */
         getCADDefaultConfiguration(): NodeId | null;
         /**
@@ -7183,7 +7195,7 @@ declare namespace Communicator {
         getNodeName(nodeId: NodeId): string | null;
         /**
          * Returns the Exchange ID of a node in the assembly tree.
-         * @param nodeId The node ID to get the Exchange ID of.
+         * @param nodeId The node ID to get the Exchange ID from.
          * @returns The Exchange ID of the node with the given nodeId or null if no Exchange ID is found.
          */
         getNodeExchangeId(nodeId: NodeId): ExchangeId | null;
@@ -7226,7 +7238,7 @@ declare namespace Communicator {
         getLayerIdsFromName(name: LayerName): LayerId[] | null;
         /**
          * Returns the layer ID of a node in the assembly tree.
-         * @param nodeId The node ID to get the Exchange ID of.
+         * @param nodeId The node ID to get the Exchange ID from.
          * @returns The layer ID of the node with the given nodeId or null if no layer is found.
          */
         getNodeLayerId(nodeId: NodeId): LayerId | null;
@@ -7264,7 +7276,11 @@ declare namespace Communicator {
          */
         getBranchVisibility(nodeId: NodeId): BranchVisibility;
         /**
-         * Returns a chunk of keyed data
+         * Returns a data object. During the authoring phase, a user can store general data within a model. (This is how
+         * properties are stored, for example.) This function allows you to retrieve the data from the client application.
+         *
+         * @see {@link https://docs.techsoft3d.com/communicator/latest/api_ref/data_import/libsc/classSC_1_1Store_1_1Model.html#_CPPv4N2SC5Store5Model6InsertE8uint32_tPK7uint8_t8uint32_t Model::Insert}
+         *
          * @param an Array of ModelKey-DataKey pairs ([ModelKey, DataKey, ModelKey, DataKey, ModelKey, DataKey...]
          * @returns promise that resolves when this operation has completed returning an array of 8bits int arrays for each ModelKey-DataKey pairs
          */
@@ -7727,6 +7743,12 @@ declare namespace Communicator {
          * @returns true if the view is an annotation view
          */
         isAnnotationView(cadViewNodeId: CadViewId): boolean;
+        /**
+         * Tells if the view is a combine state view or not
+         * @param cadViewNodeId Node ID of the CAD view
+         * @returns true if the view is a combine state view
+         */
+        isCombineStateView(cadViewNodeId: CadViewId): boolean;
         /**
          * Sets a vector and angle used to determine an object's visibility based on camera orientation.
          * @param space The space in which the culling vector is defined.
@@ -8634,6 +8656,7 @@ declare namespace Communicator.Internal {
         setBoundingPreviewTestedColor(color: Color): void;
         setBoundingPreviewEjectedColor(color: Color): void;
         setBoundingPreviewUnderDraw(boxes: Box[]): void;
+        setBoundingDebugLevel(level: number): void;
         setBoundingPreviewTested(boxes: Box[]): void;
         setBoundingPreviewEjected(boxes: Box[]): void;
         setServerRenderQuality(jpegQualityLow: number, jpegQualityHigh: number, scaleLow: number, scaleHigh: number): void;
@@ -8661,6 +8684,7 @@ declare namespace Communicator.Internal {
         modelKeysFromInclusionKeys(inclusionKeys: SC.InclusionKey[]): Promise<SC.ModelKey[]>;
         detachInclusions(inclusionKeys: SC.InclusionKey[]): Promise<void>;
         resetToEmpty(whitelistInstances: SC.InstanceKey[], whitelistMeshes: SC.MeshKey[]): Promise<void>;
+        setDrawStrategy(strategy: DrawStrategy): void;
         redraw(): void;
         disconnectNetwork(): void;
         shutdown(): void;
@@ -10544,6 +10568,7 @@ declare namespace Communicator {
         private _antiAliasingMode;
         private _lightingEnabled;
         private _ambientLightColor;
+        private _massageExtremeCameras;
         private _bloomEnabled;
         private _bloomThreshold;
         private _bloomThresholdRampWidth;
@@ -10589,6 +10614,7 @@ declare namespace Communicator {
         private readonly _determineInitialAxes;
         private readonly _hiddenLineSettings;
         private _projectionMode;
+        private _drawStrategy;
         private _navCube;
         private _axisTriad;
         /** @hidden */
@@ -10629,6 +10655,11 @@ declare namespace Communicator {
          * @returns The current projection mode.
          */
         getProjectionMode(): Projection;
+        /**
+         * Gets the draw strategy.
+         * @returns The current draw strategy.
+         */
+        getDrawStrategy(): DrawStrategy;
         /**
          * Gets the view matrix.
          * @returns The current view matrix.
@@ -11168,6 +11199,14 @@ declare namespace Communicator {
          */
         setDisplayIncompleteFrames(value: boolean): DeprecatedPromise;
         private _setDisplayIncompleteFrames;
+        /**
+         * Sets whether to change cad view cameras with extreme values to functionally identical cameras with
+         * better behavior. This should be disabled if it is important that cameras have their authored values
+         * Default: true
+         * @param value Whether to modify cameras
+         */
+        setMassageExtremeCameras(value: boolean): void;
+        getMassageExtremeCameras(): boolean;
         /**
          * Sets how long after certain operations, such as setting the camera, to wait before
          * starting a redraw. This delay exists in order to prevent flicker during continuous
@@ -13436,6 +13475,7 @@ declare namespace Communicator.Internal.Tree {
         getFullCameraMatrix(): Matrix;
         fitWorld(duration: number, camera?: Camera): Promise<void>;
         isolateNodes(nodeIds: NodeId[], duration: number, fitNodes: boolean, initiallyHiddenStayHidden: boolean | null): Promise<void>;
+        fitNodes(ids: NodeId[], duration: number): Promise<void>;
         setViewOrientation(orientation: ViewOrientation, duration: number, bounding?: Box): Promise<void>;
     }
     interface AbstractModel {
@@ -13481,6 +13521,7 @@ declare namespace Communicator.Internal.Tree {
 }
 declare namespace Communicator.Internal.Tree {
     type LoadId = number;
+    type DeletableNode = ProductOccurrence | BodyInstance | InclusionContext | AttachContext | LoadContext | Pmi;
     interface AssemblyTreeConfig {
         readonly disableAutomaticFitWorld: boolean;
         readonly markImplicitNodesOutOfHierarchy: boolean;
@@ -13586,15 +13627,16 @@ declare namespace Communicator.Internal.Tree {
         forEachPmi(callback: (node: Pmi) => void): void;
         forEachCadConfiguration(callback: (node: ProductOccurrence) => void): void;
         hasActiveCadView(): boolean;
-        activateCadView(cadView: CadView, duration: number): Promise<void>;
+        activateCadView(cadView: CadView, duration: number, massageCamera: boolean): Promise<void>;
         deactivateActiveCadView(): Promise<void>;
         getDefaultCadView(node: ProductOccurrence | null): CadView | null;
         getCadViewPmis(cadView: CadView): Pmi[];
         isMeasurable(): boolean;
         containsDrawings(): boolean;
+        getCadConfigurations(): ProductOccurrence[];
         getDefaultCadConfiguration(): ProductOccurrence | null;
         getActiveCadConfiguration(): ProductOccurrence | null;
-        activateCadConfiguration(node: ProductOccurrence, fitNodes: boolean): Promise<void>;
+        activateCadConfiguration(node: ProductOccurrence): void;
         massageAuthoredUserId(inclusionContext: InclusionContext, authoredId: AuthoredNodeId | null): AuthoredNodeId | DynamicNodeId;
         createNode(parent: ProductOccurrence, nodeName: string, authoredId: AuthoredNodeId | null, localMatrix: SC.Matrix16 | null, visibility: boolean, measurementUnit?: number | null): ProductOccurrence;
         createPart(authoredNodeId: AuthoredNodeId | null): PartDefinition;
@@ -13610,10 +13652,10 @@ declare namespace Communicator.Internal.Tree {
         getInitiallyHiddenStayHidden(): boolean;
         setInitiallyHiddenStayHidden(value: boolean): void;
         private _removeIdMappingsRecursive;
-        deleteNode(node: ProductOccurrence | BodyInstance): Promise<void>;
+        deleteNode(node: ProductOccurrence | BodyInstance | Pmi): Promise<void>;
         private _canDeleteNode;
-        allowNodeDeletion(node: ProductOccurrence | BodyInstance | InclusionContext | AttachContext | LoadContext): void;
-        preventNodeDeletion(node: ProductOccurrence | BodyInstance | InclusionContext | AttachContext | LoadContext): void;
+        allowNodeDeletion(node: DeletableNode): void;
+        preventNodeDeletion(node: DeletableNode): void;
         preventMeshDeletion(meshKey: SC.MeshKey): void;
         private _resetContents;
         reset(): Promise<void>;
@@ -13824,7 +13866,7 @@ declare namespace Communicator.Internal.Tree {
         getRuntimeNodesFromLayerName(layerName: LayerName, onlyTreeNodes?: boolean): RuntimeNodeId[] | null;
         createCadView(parentId: RuntimeNodeId, viewName: string, camera: Camera, pmiIds: RuntimeNodeId[], nodesToShow: RuntimeNodeId[], nodesToHide: RuntimeNodeId[], nodesIdAndLocalTransforms: [RuntimeNodeId, Matrix][], cuttingPlane: Plane | null, meshInstanceData: MeshInstanceData | null): RuntimeNodeId | null;
         getCadViewMap(): Map<NodeId, string>;
-        activateCadView(cadViewId: RuntimeNodeId, duration: number): Promise<void>;
+        activateCadView(cadViewId: RuntimeNodeId, duration: number, massageCamera: boolean): Promise<void>;
         getCadViewPmis(cadViewId: RuntimeNodeId): RuntimeNodeId[];
         _disableCadConfigurations(): Promise<void>;
         cadConfigurationsEnabled(): Promise<boolean>;
@@ -13836,7 +13878,7 @@ declare namespace Communicator.Internal.Tree {
         activateCadConfiguration(cadConfigId: RuntimeNodeId, fitNodes: boolean): Promise<void>;
         activateDefaultCadConfiguration(fitNodes: boolean): Promise<void>;
         getDefaultCadView(): RuntimeNodeId | null;
-        activateDefaultCadView(duration: number): Promise<void>;
+        activateDefaultCadView(duration: number, massageCamera: boolean): Promise<void>;
         getPmis(): IdStringMap;
         getPmiType(pmiId: RuntimeNodeId): PmiType;
         getPmiSubType(pmiId: RuntimeNodeId): PmiSubType;
@@ -13872,6 +13914,7 @@ declare namespace Communicator.Internal.Tree {
         getModelFileNameFromNode(nodeId: RuntimeNodeId): string | null;
         getModelFileTypeFromNode(nodeId: RuntimeNodeId): FileType | null;
         isAnnotationView(cadViewNodeId: RuntimeNodeId): boolean;
+        isCombineStateView(cadViewNodeId: RuntimeNodeId): boolean;
         /** This will undo the effect of calling preventNodeDeletion() for the given node. */
         allowNodeDeletion(nodeId: RuntimeNodeId): void;
         preventNodeDeletion(nodeId: RuntimeNodeId): void;
@@ -14910,11 +14953,12 @@ declare namespace Communicator.Internal.Tree {
         IsCombineState(): boolean;
         deactivate(cuttingManager: AbstractCuttingManager): Promise<void>;
         private _replaceCuttingPlanes;
-        activate(assemblyTree: AssemblyTree, engine: AbstractScEngine, callbackManager: CallbackManager, cuttingManager: AbstractCuttingManager, view: AbstractView, duration: number, configurationNode: ProductOccurrence | null): Promise<void>;
+        activate(assemblyTree: AssemblyTree, engine: AbstractScEngine, callbackManager: CallbackManager, cuttingManager: AbstractCuttingManager, view: AbstractView, duration: number, massageCamera: boolean, configurationNode: ProductOccurrence | null): Promise<void>;
         private _activateView;
         private _activateCamera;
         hasPmi(pmi: Pmi): boolean;
         isAnnotationView(): boolean;
+        isCombineStateView(): boolean;
         setViewFrame(viewFrame: ViewFrame): void;
         protected readonly __CadView: PhantomMember;
         private readonly _parent;
@@ -15186,6 +15230,7 @@ declare namespace Communicator.Internal.Tree {
         private _removeDirectChild;
         private _removeIndirectChild;
         removeProductOccurrence(node: ProductOccurrence): boolean;
+        removePmi(node: Pmi): boolean;
         removeBodyInstance(node: BodyInstance): boolean;
         purgeContents(): Promise<void>;
         removePartDefinition(): PartDefinition;
@@ -15459,7 +15504,9 @@ declare namespace Communicator.Internal.Tree {
 declare namespace Communicator.Internal.Tree {
     type VisibilityFormatter = (node: AnyTreeNode) => boolean | undefined;
     interface VisibilityConfig {
-        containsConfig: boolean;
+        filterByConfiguration: boolean;
+        containsCurrentConfig: boolean;
+        containsAnyConfig: boolean;
         node?: ProductOccurrence;
         setVisibility?: SC.SetVisibility;
         initially: {
@@ -18396,7 +18443,6 @@ declare namespace Communicator.Operator {
     }
 }
 declare namespace Communicator.Operator {
-    /** @hidden */
     class CuttingPlaneOperator extends OperatorBase {
         private _cuttingManager;
         /**
@@ -18404,16 +18450,11 @@ declare namespace Communicator.Operator {
          * only for the duration of the mouse up-move-down sequence.
          */
         private _context;
-        /** @hidden */
         constructor(viewer: WebViewer, cuttingManager: CuttingManager);
-        /** @hidden */
         onMouseDown(event: Event.MouseInputEvent): Promise<void>;
-        /** @hidden */
         onMouseMove(event: Event.MouseInputEvent): Promise<void>;
         private _updatePlane;
-        /** @hidden */
         onMouseUp(event: Event.MouseInputEvent): Promise<void>;
-        /** @hidden */
         setHandled(): boolean;
         /**
          * Perform the selection operation. If successful, the cutting plane context will be properly
