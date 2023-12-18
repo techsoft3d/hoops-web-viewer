@@ -646,6 +646,7 @@ declare module SC {
         destroy(incs: InstanceIncs): Promise<void>;
         discardAnonymousMatrix(incs: InstanceIncs): Promise<void>;
         getAlwaysDraw(incs: InstanceIncs): Promise<boolean[]>;
+        getCappingMeshData(incs: InstanceIncs): Promise<MeshIds>;
         getColor(incs: InstanceIncs, elementType: ElementType): Promise<(Rgb | null)[]>;
         getCullingVector(incs: InstanceIncs): Promise<CullingVector[]>;
         getDoNotCut(incs: InstanceIncs): Promise<boolean[]>;
@@ -714,9 +715,14 @@ declare module SC {
         matrixPreMultiply(incs: InstanceIncs, matrix: Matrix16): Promise<void>;
         reifyAnonymousMatrix(incs: InstanceIncs): Promise<MatrixIncs>;
         setAlwaysDraw(incs: InstanceIncs, value: boolean): void;
+        setAmbientColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
+        setAmbientMix(incs: InstanceIncs, elementType: ElementType, value: number): void;
         setAnonymousMatrix(incs: InstanceIncs, matrix: Matrix16): void;
         setAnonymousMatrices(incs: InstanceIncs, matrices: number[]): void;
         setColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
+        setEmissiveColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
+        setSpecularColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
+        setSpecularIntensity(incs: InstanceIncs, elementType: ElementType, value: number): void;
         setCullingVector(
             incs: InstanceIncs,
             space: CullingVectorSpace,
@@ -728,6 +734,7 @@ declare module SC {
         setDoNotExplode(incs: InstanceIncs, doNotExplode: boolean): void;
         setDoNotLight(incs: InstanceIncs, value: boolean): void;
         setDoNotOutlineHighlight(incs: InstanceIncs, value: boolean): void;
+        setDoNotReset(incs: InstanceIncs, doNotReset: boolean): void;
         setDoNotSelect(incs: InstanceIncs, doNotSelect: boolean): void;
         setDoNotUseVertexColors(incs: InstanceIncs, value: boolean): void;
         setDoNotXRay(incs: InstanceIncs, value: boolean): void;
@@ -809,9 +816,12 @@ declare module SC {
             elementOffset: number,
             elementCount: number,
         ): void;
+        unsetEmissiveColor(incs: InstanceIncs, elementType: ElementType): void;
         unsetLinePattern(incs: InstanceIncs): void;
         unsetMatrix(incs: InstanceIncs, layer: number): Promise<void>;
         unsetOpacity(incs: InstanceIncs, elementType: ElementType): void;
+        unsetSpecularColor(incs: InstanceIncs, elementType: ElementType): void;
+        unsetSpecularIntensity(incs: InstanceIncs, elementType: ElementType): void;
         unsetTexture(incs: InstanceIncs, elementType: ElementType): void;
     }
     export interface Instance {
@@ -943,6 +953,13 @@ declare module SC {
         triangle_count: number;
         line_segment_count: number;
         point_count: number;
+    }
+
+    export interface Light {
+        position: Vector3;
+        color: Rgb;
+        type: LightType;
+        space: LightSpace;
     }
 
     export interface Instance {
@@ -1255,6 +1272,7 @@ declare module SC {
         getBackgroundGradient(): Promise<[Rgba, Rgba]>;
         getCamera(): Camera;
         getCameraPromise(): Promise<Camera>;
+        getCappedInstances(): Promise<InstanceIncs>;
         getCuttingSections(sectionKeys: CuttingSectionKey[]): Promise<Plane3[]>;
         getDefaultDepthRange(): Promise<Range>;
         getElementCount(): Promise<number>;
@@ -1268,6 +1286,8 @@ declare module SC {
         getFaceWindingFlipped(): Promise<boolean>;
         getFrontFacesVisible(): Promise<boolean>;
         getInteractiveDrawLimitIncreaseEnabled(): Promise<boolean>;
+        getLightKeys(): Promise<LightKey[]>;
+        getLight(key: LightKey): Promise<Light>;
         getLinesVisible(): Promise<boolean>;
         getLooseBounding(): Promise<Box>;
         getMetaData(ids: DataIds): Promise<Uint8Array[]>;

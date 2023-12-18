@@ -3333,6 +3333,11 @@ declare namespace Communicator {
          * will stretch in the direction of the longer side.
          */
         ScreenSpaceStretched = 13,
+        /**
+         * If set, the instance will not be affected by resets. Or by methods
+         * that unset or reset certain properties on the instance
+         */
+        DoNotReset = 14,
         /** @deprecated Use [[DoNotExplode]] instead. */
         IgnoreExplosion = 0,
         /** @deprecated Use [[DoNotCut]] instead. */
@@ -3405,7 +3410,12 @@ declare namespace Communicator {
          * If the aspect ratio of the screen is not 1:1, the instance
          * will stretch in the direction of the longer side.
          */
-        ScreenSpaceStretched = 16384
+        ScreenSpaceStretched = 16384,
+        /**
+         * If set, the instance will not be affected by resets. Or by methods
+         * that unset or reset certain properties on the instance
+         */
+        DoNotReset = 32768
     }
     enum BoundingPreviewMode {
         /** No bounding previews will be rendered */
@@ -4550,6 +4560,11 @@ declare namespace Communicator {
          * @returns the CuttingSection that contains the plane with the given node id or null if none contain it.
          */
         getCuttingSectionFromNodeId(nodeId: NodeId | null): CuttingSection | null;
+        /**
+         * Gets all nodes that have capping drawn for them.
+         * @returns an array of node IDs that have capping drawn for them
+         */
+        getNodesWithCapping(): Promise<NodeId[]>;
         /**
          * Sets whether stand-in geometry for cutting sections should be pickable.
          * If this option is set to false, picking rays will pass though stand-in geometry for cutting planes.
@@ -6466,6 +6481,54 @@ declare namespace Communicator {
          * @returns Promise that resolves when this operation has completed.
          */
         setNodesFaceColor(nodeIds: NodeId[], color: Color): DeprecatedPromise;
+        /**
+         * Sets the ambient color on the faces for a given list of nodes.
+         * @param nodeIds IDs of nodes whose color to set
+         * @param color the color to set
+         */
+        setNodesAmbientColor(nodeIds: NodeId[], color: Color): void;
+        /**
+         * Sets the ambient mix on the faces for a given list of nodes.
+         * The mix is between the material ambient light and the global ambient light,
+         * with 1.0 representing full material ambient mix and 0.0 representing full global
+         * ambient light.
+         * @param nodeIds IDs of nodes whose color to set
+         * @param value the decimal value to set, between 0 and 1
+         */
+        setNodesAmbientMix(nodeIds: NodeId[], value: number): void;
+        /**
+         * Sets the emissive color on the faces for a given list of nodes.
+         * @param nodeIds IDs of nodes whose color to set
+         * @param color the color to set
+         */
+        setNodesFaceEmissiveColor(nodeIds: NodeId[], color: Color): void;
+        /**
+         * Resets the emissive color on the faces for a given list of nodes.
+         * @param nodeIds IDs of nodes whose color to reset
+         */
+        unsetNodesFaceEmissiveColor(nodeIds: NodeId[]): void;
+        /**
+         * Sets the specular color on the faces for a given list of nodes.
+         * @param nodeIds IDs of nodes whose color to set
+         * @param color the color to set
+         */
+        setNodesFaceSpecularColor(nodeIds: NodeId[], color: Color): void;
+        /**
+         * Resets the specular color on the faces for a given list of nodes.
+         * @param nodeIds IDs of nodes whose color to reset
+         */
+        unsetNodesFaceSpecularColor(nodeIds: NodeId[]): void;
+        /**
+         * Sets the specular intensity on the faces for a given list of nodes.
+         * @param nodeIds IDs of nodes whose color to set
+         * @param value the value to set
+         */
+        setNodesFaceSpecularIntensity(nodeIds: NodeId[], value: number): void;
+        /**
+         * Resets the specular intensity on the faces for a given list of nodes.
+         * @param nodeIds IDs of nodes whose color to set
+         */
+        unsetNodesFaceSpecularIntensity(nodeIds: NodeId[]): void;
         private _setNodesFaceColor;
         private _unsetNodesColor;
         /**
@@ -6958,7 +7021,7 @@ declare namespace Communicator {
          * @param nodesToShow (optional, pass null or empty array if none to send) Node IDs of the elements to force visibility on
          * @param nodesToHide (optional, pass null or empty array if none to send) Node IDs of the elements to force visibility off
          * @param nodeIdsAndLocalTransforms (optional, pass null or empty array if none to send) array of node ID and matrix pair, defining specific local transform to apply
-         * @param cuttingPlane (optional, pass null if none to send) Cutting plane to set when the view gets activated
+         * @param cuttingPlane (optional, pass null if none to send) Cutting plane to set when the view gets activated. Distance of the planes must be in the same unit as the model.
          * @param meshInstanceData (optional, pass null if none to send) object that specifies the data for the mesh instance of the rectangular frame (mostly found on capture views)
          * @returns id of the view, null is returned if the function fails
          */
@@ -7118,6 +7181,16 @@ declare namespace Communicator {
          */
         getNodeMeshData(nodeId: NodeId): Promise<MeshDataCopy>;
         /**
+         * Fetch the mesh data for any capping geometry on a particular node
+         * @param nodeId the node's ID
+         */
+        getNodeCappingMeshData(nodeId: NodeId): Promise<MeshDataCopy | null>;
+        /**
+         * Fetch the mesh data for any capping geometry on a list of nodes and their children
+         * @param nodeIds the node IDs to get capping data from.
+         */
+        getNodesCappingMeshData(nodeIds: NodeId[]): Promise<MeshDataCopy[]>;
+        /**
          * Returns a copy of the Matrix for a node of the given ID
          * @param id Node to retrieve matrix from
          * @returns Copy of the Matrix of the node
@@ -7162,9 +7235,10 @@ declare namespace Communicator {
         /**
          * Returns the properties for the given node ID.
          * @param id Node ID to get the parent of
+         * @param computeFromChildren If true physical properties will be computed from child nodes.
          * @returns object properties for the supplied ID, or null if the ID was invalid
          */
-        getNodeProperties(nodeId: NodeId): Promise<StringStringMap | null>;
+        getNodeProperties(nodeId: NodeId, computeFromChildren?: boolean): Promise<StringStringMap | null>;
         /**
          * Purpose: Adds a property to the node
          * @Param nodeId node id to set the property on
@@ -8527,6 +8601,7 @@ declare namespace Communicator.Internal {
         updateCuttingSection(cuttingSection: CuttingSection): Promise<void>;
         setCappingDelay(delayInMilliseconds: number): void;
         enableCappingIdleCallback(enable: boolean): Promise<boolean>;
+        getCappedInstances(): Promise<SC.InstanceIncs>;
         delayCapping(): void;
         setCappingGeometryVisibility(cappingGeometryVisibility: boolean): void;
         private _regenerateCapping;
@@ -8612,6 +8687,14 @@ declare namespace Communicator.Internal {
         unsetPartColor(incs: SC.InstanceIncs, elementType: ElementType): void;
         getPartColor(incs: SC.InstanceIncs, elementType: ElementType): Promise<(Color | null)[]>;
         getEffectivePartColor(incs: SC.InstanceIncs, elementType: ElementType): Promise<Color[]>;
+        setPartAmbientColor(incs: SC.InstanceIncs, elementType: ElementType, color: Color): void;
+        setPartAmbientMix(incs: SC.InstanceIncs, elementType: ElementType, value: number): void;
+        setPartEmissiveColor(incs: SC.InstanceIncs, elementType: ElementType, color: Color): void;
+        unsetPartEmissiveColor(incs: SC.InstanceIncs, elementType: ElementType): void;
+        setPartSpecularColor(incs: SC.InstanceIncs, elementType: ElementType, color: Color): void;
+        unsetPartSpecularColor(incs: SC.InstanceIncs, elementType: ElementType): void;
+        setPartSpecularIntensity(incs: SC.InstanceIncs, elementType: ElementType, value: number): void;
+        unsetPartSpecularIntensity(incs: SC.InstanceIncs, elementType: ElementType): void;
         setElementColor(incs: SC.InstanceIncs, elementType: ElementType, elementOffset: number, elementCount: number, color: Color): void;
         unsetElementColor(incs: SC.InstanceIncs, elementType: ElementType, elementOffset: number, elementCount: number): void;
         getElementColor(inc: SC.InstanceInc, elementType: ElementType, elementOffset: number): Promise<[Color | null]>;
@@ -8706,6 +8789,8 @@ declare namespace Communicator.Internal {
         addNodesToOverlay(incs: SC.InstanceIncs, index: OverlayIndex): void;
         getInstancesMeshData(inc: SC.InstanceInc): Promise<SC.MeshId>;
         getInstancesMeshData(incs: SC.InstanceIncs): Promise<SC.MeshIds>;
+        getInstancesCappingMeshData(inc: SC.InstanceInc): Promise<SC.MeshId>;
+        getInstancesCappingMeshData(incs: SC.InstanceIncs): Promise<SC.MeshIds>;
         getMeshData(id: MeshId): Promise<MeshDataCopy>;
         private _toElementType;
         private _toXRayGroup;
@@ -8769,6 +8854,8 @@ declare namespace Communicator.Internal {
         waitForImageDecoding(): Promise<void>;
         registerBimInstances(incs: SC.InstanceIncs, bimType: SC.BimType): void;
         setAmbientLightColor(value: Color): void;
+        getLightKeys(): Promise<LightKey[]>;
+        getLight(key: LightKey): Promise<Light | undefined>;
         clearLights(): void;
         private _toLightType;
         private _toLightSpace;
@@ -9211,6 +9298,14 @@ declare namespace Communicator.Util {
      * @returns a timeout id in order to cancel it if necessary.
      */
     function delayCall(cb: (...cbArgs: any[]) => any, ...args: any[]): ReturnType<typeof setTimeout>;
+    /**
+     * Check if two exchange ids are equal.
+     *
+     * @param exchangeIdA the first exchange id to compare.
+     * @param exchangeIdB the second exchange id to compare.
+     * @returns true or false if exchange ids are equal.
+     */
+    function exchangeIdEqual(exchangeIdA: ExchangeId, exchangeIdB: ExchangeId): boolean;
 }
 declare namespace Communicator.Internal {
     function hasBits(storedBits: number, desiredBits: number): boolean;
@@ -10488,7 +10583,7 @@ declare namespace Communicator {
     type HtmlId = string;
     /** Type used to denote overlay indices. */
     type OverlayIndex = SC.OverlayIndex;
-    /** Type used to denote Exchange IDs. */
+    /** Type used to denote Exchange IDs. Use [[Util.exchangeIdEqual]] function to compare. */
     type ExchangeId = string;
     /** Type used to denote Filter IDs. */
     const enum FilterId {
@@ -11246,6 +11341,17 @@ declare namespace Communicator {
          * See also [[setAmbientLightColor]].
          */
         getAmbientLightColor(): Color;
+        /**
+         * Get the list of light keys in the scene.
+         * @returns The list of light keys in the scene.
+         */
+        getLightKeys(): Promise<LightKey[]>;
+        /**
+         * Get a Light given its key if it exists.
+         * @param key The key of the light to get.
+         * @returns A Light given its key if it exists.
+         */
+        getLight(key: LightKey): Promise<Light | undefined>;
         /**
          * Removes all lights from the scene. When there are no lights,
          * material colors are drawn at full intensity. This has the same
@@ -13644,7 +13750,7 @@ declare namespace Communicator.Internal.Tree {
         private _createCadView;
         private _createCadViewInstance;
         createCadView(engine: AbstractScEngine, parent: CadViewParent, name: string, camera: Camera, pmis: Pmi[], productOccurrencesToShow: RuntimeNodeId[], productOccurrencesToHide: RuntimeNodeId[], transformMap: Map<RuntimeNodeId, SC.Matrix16>, cuttingPlane: Plane | null, meshInstanceData: MeshInstanceData | null): CadView;
-        createMeshInstance(markLoaded: boolean, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, preventFromResetting: boolean, isOutOfHierarchy: boolean, implicitBody: boolean): BodyInstance;
+        createMeshInstance(markLoaded: boolean, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, preventFromResetting: boolean, isOutOfHierarchy: boolean, initiallyVisible: boolean, implicitBody: boolean): BodyInstance;
         createPmiInstance(inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, pmiType: PmiType, pmiSubType: PmiSubType, topoRefs: ReferenceOnTopology[]): Pmi;
         getRelationshipsOfItem(contextNodeId: RuntimeNodeId, node: BimId): Map<RelationshipType, BimRelationship>;
         getAutomaticMeasurementUnitScaling(): boolean;
@@ -13822,7 +13928,7 @@ declare namespace Communicator.Internal.Tree {
         getParentId(nodeId: RuntimeNodeId): RuntimeNodeId | null;
         getPartReferrers(nodeId: RuntimeNodeId): Promise<RuntimeNodeId[] | null>;
         getAttributes(nodeId: RuntimeNodeId): Promise<Attribute[]>;
-        getProperties(nodeId: RuntimeNodeId): Promise<StringStringMap | null>;
+        getProperties(nodeId: RuntimeNodeId, computeFromChildren: boolean): Promise<StringStringMap | null>;
         addProperty(nodeId: RuntimeNodeId, propertyName: string, propertyValue: string, propertyUnit: UnitElement[]): boolean;
         setPhysicalProperties(nodeId: RuntimeNodeId, centerOfGravity: Point3, surfaceArea: number, volume: number): boolean;
         getUserDataIndices(nodeId: RuntimeNodeId): UserDataIndex[];
@@ -14878,7 +14984,7 @@ declare namespace Communicator.Internal.Tree {
         static parseXml(assemblyTree: AssemblyTree, elem: Element, inclusionKey: SC.InclusionKey, config: LoadSubtreeConfig): BodyInstanceInfo;
         static parseBinary(assemblyTree: AssemblyTree, inclusionContext: InclusionContext, parser: AssemblyDataParser, config: LoadSubtreeConfig): BodyInstanceInfo;
         static reify(assemblyTree: AssemblyTree, masterModelKey: SC.MasterModelKey, parent: BodyInstanceParent, info: BodyInstanceInfo): BodyInstance;
-        static createDynamic(assemblyTree: AssemblyTree, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, bits: AnyBodyBits): BodyInstance;
+        static createDynamic(assemblyTree: AssemblyTree, inclusionKey: SC.InclusionKey, instanceKey: SC.InstanceKey, authoredId: AuthoredNodeId | null, name: string | null, parent: ProductOccurrence, nodeBits: NodeBits, bodyBits: AnyBodyBits): BodyInstance;
         private constructor();
         getName(): string;
         getInstanceInc(): SC.InstanceInc;
@@ -15213,7 +15319,7 @@ declare namespace Communicator.Internal.Tree {
         unsetMeasurementUnit(): void;
         hasMeasurementUnit(): boolean;
         getMeasurementUnit(): number;
-        getPhysicalProperties(): Promise<PhysicalProperties | null>;
+        getPhysicalProperties(gatherFromChildren: boolean): Promise<PhysicalProperties | null>;
         setPartDefinition(partDef: PartDefinition): void;
         setPrototype(prototype: PrototypeContext): void;
         removePrototype(): PrototypeContext;
