@@ -42,7 +42,7 @@ namespace Communicator.Operator.Common {
         preferVertices: boolean;
     }
 
-    class CursorMarkup extends Markup.Measure.MeasureMarkup {
+    export class CursorMarkup extends Markup.Measure.MeasureMarkup {
         private readonly _cursorSprite = new Markup.Shape.Circle();
         private readonly _markupId: string;
 

@@ -7182,7 +7182,7 @@ declare namespace Communicator {
         getNodeMeshData(nodeId: NodeId): Promise<MeshDataCopy>;
         /**
          * Fetch the mesh data for any capping geometry on a particular node
-         * @param nodeId the node's ID
+         * @param nodeIds the node IDs to get capping data from.
          */
         getNodeCappingMeshData(nodeId: NodeId): Promise<MeshDataCopy | null>;
         /**
@@ -14409,7 +14409,8 @@ declare namespace Communicator.Internal.Tree {
         TopoRef = 2,
         Attributes = 4,
         InitiallyHidden = 8,
-        HasMultipleBodies = 16
+        HasMultipleBodies = 16,
+        ExchangeId = 32
     }
     const enum FilterParseBits {
         Name = 1,
@@ -15186,6 +15187,7 @@ declare namespace Communicator.Internal.Tree {
         readonly pmiSubType: PmiSubType;
         readonly topoRefInfos: ReferenceOnTopologyInfo[];
         readonly topoRefs: ReferenceOnTopology[];
+        readonly exchangeId: string | null;
     }
     type PmiParent = ProductOccurrence;
     class Pmi extends NodeMixin<0> {
@@ -19031,6 +19033,7 @@ declare namespace Communicator.Operator {
         private _modelBounding;
         private _selectionBounding;
         private _pivot;
+        private _pivotMarkup;
         private _hitRayOrigin;
         private _hitRayDirection;
         private _hitRayAperture;

@@ -6,6 +6,7 @@ namespace Communicator.Operator {
         private _modelBounding: Box = new Box();
         private _selectionBounding: Box = new Box();
         private _pivot: Point3 = Point3.zero();
+        private _pivotMarkup: Common.CursorMarkup;
 
         private _hitRayOrigin: Point3 | null = null;
         private _hitRayDirection: Point3 | null = null;
@@ -18,7 +19,19 @@ namespace Communicator.Operator {
                 if (this._connexion === null) {
                     return;
                 }
-                const viewElement = this._viewer.getViewElement().parentElement!;
+                const viewElement = this._viewer.getViewElement();
+                viewElement.addEventListener("focusin", () => {
+                    if (this._connexion === null) {
+                        return;
+                    }
+                    this._connexion.update3dcontroller({ focus: true });
+                });
+                viewElement.addEventListener("focusout", () => {
+                    if (this._connexion === null) {
+                        return;
+                    }
+                    this._connexion.update3dcontroller({ focus: false });
+                });
                 this._connexion.create3dmouse(viewElement, "WebViewer");
             },
 
@@ -27,16 +40,26 @@ namespace Communicator.Operator {
                 if (this._connexion === null) {
                     return;
                 }
+                this._updateModelBounding() as Unreferenced;
+                this._connexion.update3dcontroller({ focus: true });
             },
 
             onDisconnect: (reason) => {
                 console.log(`3Dconnexion NL-Server disconnected ${reason}`);
             },
 
+            onStartMotion: () => {
+                return;
+            },
+
+            onStopMotion: () => {
+                return;
+            },
+
             getCoordinateSystem: () => {
                 // prettier-ignore
                 return [
-                    0, 0, -1, 0, 
+                    0, 0, 1, 0, 
                     1, 0, 0, 0, 
                     0, 1, 0, 0, 
                     0, 0, 0, 1
@@ -132,7 +155,7 @@ namespace Communicator.Operator {
                 const viewMatrix = [
                     right.x, right.y, right.z, 0,
                     up.x,    up.y,    up.z,    0,
-                    eye.x,   eye.y,   eye.z,   0,
+                    -eye.x,  -eye.y,  -eye.z,   0,
                     pos.x,   pos.y,   pos.z,   1,
                 ];
 
@@ -143,7 +166,7 @@ namespace Communicator.Operator {
                 const camera = this._viewer.view.getCamera();
 
                 const up = new Point3(m[4], m[5], m[6]);
-                const eye = new Point3(m[8], m[9], m[10]);
+                const eye = new Point3(-m[8], -m[9], -m[10]);
 
                 const position = new Point3(m[12], m[13], m[14]);
 
@@ -175,7 +198,7 @@ namespace Communicator.Operator {
                 return [
                     0, 1, 0, 0, 
                     0, 0, 1, 0, 
-                    -1, 0, 0, 0, 
+                    1, 0, 0, 0, 
                     0, 0, 0, 1
                 ];
             },
@@ -186,6 +209,10 @@ namespace Communicator.Operator {
 
             setPivotPosition: (pivot) => {
                 this._pivot = Point3.createFromArray(pivot);
+            },
+
+            setPivotVisible: (visible) => {
+                this._pivotMarkup.enable(visible);
             },
 
             getPointerPosition: () => {
@@ -311,6 +338,7 @@ namespace Communicator.Operator {
 
         public constructor(viewer: WebViewer) {
             super(viewer);
+            this._pivotMarkup = new Common.CursorMarkup(viewer);
 
             this._viewer.setCallbacks({
                 modelStructureReady: async () => {
@@ -328,12 +356,22 @@ namespace Communicator.Operator {
                 selectionArray: async () => {
                     await this._updateSelectionBounding();
                 },
+
+                frameDrawn: () => {
+                    if (this._connexion === null) {
+                        return;
+                    }
+                    const markupPoint3d: Point3 = this._viewer.view.projectPoint(this._pivot);
+                    const markupPoint2d = new Point2(markupPoint3d.x, markupPoint3d.y);
+                    this._pivotMarkup.setPosition(markupPoint2d);
+                    this._pivotMarkup.draw();
+                },
             });
         }
 
         /**
          * Connect to the space mouse. To be successful, this method
-         * should be called in the sceneReady callback. If you want to 
+         * should be called in the sceneReady callback. If you want to
          * connect at a later time, the canvas where the mouse is
          * to be used must have focus.
          *
