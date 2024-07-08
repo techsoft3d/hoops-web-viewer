@@ -104,7 +104,6 @@ namespace Communicator.Operator {
 
         /**
          * When dolly zoom is enabled, the camera position will move towards the camera target when zooming.
-         * @moveCameraPositon
          */
         public setDollyZoomEnabled(dollyZoomEnabled: boolean): void {
             this._dollyZoomEnabled = dollyZoomEnabled;

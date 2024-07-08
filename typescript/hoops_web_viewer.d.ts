@@ -2134,6 +2134,9 @@ declare namespace Communicator.Internal {
         trigger(name: "XHRonerror", event: ErrorEvent): void;
         trigger(name: "XHRonloadend", event: ProgressEvent, status: number, uri: string): void;
         trigger(name: "XHRonprogress", event: ProgressEvent): void;
+        trigger(name: "fetchOnError", event: ErrorEvent): void;
+        trigger(name: "fetchOnLoadEnd", event: ProgressEvent, status: number, uri: string): void;
+        trigger(name: "fetchOnProgress", event: ProgressEvent): void;
         unsafeTrigger(eventName: keyof CallbackMap, args?: any[]): void;
     }
 }
@@ -2778,6 +2781,7 @@ declare namespace Communicator {
          */
         websocketConnectionClosed?: () => void;
         /**
+         * @deprecated Use [[fetchOnError]] instead.
          * Triggered during load progress of HTTP requests.
          *
          * Happens when an error occurs during the loading of a model via an HTTP request.
@@ -2787,6 +2791,7 @@ declare namespace Communicator {
          */
         XHRonerror?: (errorEvent: ErrorEvent) => void;
         /**
+         * @deprecated Use [[fetchOnLoadEnd]] instead.
          * Triggered when an HTTP request completes.
          *
          * A completed HTTP request does not necessarily indicate success.
@@ -2801,6 +2806,7 @@ declare namespace Communicator {
          */
         XHRonloadend?: (progressEvent: ProgressEvent, status: number, uri: string) => void;
         /**
+         * @deprecated Use [[fetchOnProgress]] instead.
          * Triggered during load progress of HTTP requests.
          *
          * Happens when loading a model via an HTTP request.
@@ -2808,6 +2814,37 @@ declare namespace Communicator {
          * @param progressEvent Describes the progress of the load.
          */
         XHRonprogress?: (progressEvent: ProgressEvent) => void;
+        /**
+         * Triggered during load progress of HTTP requests via Fetch API.
+         *
+         * Happens when loading a model via an HTTP request via Fetch API.
+         *
+         * @param progressEvent Describes the progress of the load.
+         */
+        fetchOnProgress?: (progressEvent: ProgressEvent) => void;
+        /**
+         * Triggered when an HTTP request sent via Fetch API completes.
+         *
+         * A completed HTTP request does not necessarily indicate success.
+         * Make sure to check the return status.
+         *
+         * @param progressEvent Describes the progress of the completed load.
+         * @param status The status of the request.
+         * @param uri The URI of the request.
+         *
+         * See also:
+         *   - https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+         */
+        fetchOnLoadEnd?: (progressEvent: ProgressEvent, status: number, uri: string) => void;
+        /**
+         * Triggered during load progress of HTTP requests sent via Fetch API.
+         *
+         * Happens when an error occurs during the loading of a model via an HTTP request.
+         * For some errors (e.g. 404) make sure to check the status of fetchOnLoadEnd instead.
+         *
+         * @param errorEvent Describes the error.
+         */
+        fetchOnError?: (errorEvent: ErrorEvent) => void;
     }
 }
 declare namespace Communicator {
@@ -3660,10 +3697,17 @@ declare namespace Communicator {
         Pixels = 0,
         /**
          * The value is specified as a proportion of the viewing canvas.
-         * If the canvas is resized, the viewports dimensions will be recalculated accordingly.
+         * If the canvas is resized, the viewport's dimensions will be recalculated accordingly.
          * In this case the value should be specified in a range of 0.0 to 1.0.
          */
         ProportionOfCanvas = 1,
+        /**
+         * The value is specified as a portion of the viewing canvas' minimum dimension.
+         * If the canvas is resized, the viewport's dimensions will be recalculated based on the minimum
+         * of the X and Y proportions.
+         * This prevents the overlay from becoming oversized on very wide or very tall canvass.
+         */
+        MinimumProportionOfCanvas = 2,
         /**
          * The value is specified as a proportion its corresponding parameters calculated value.
          * For example, given a viewport specified with width of 0.25 and unit type of ProportionOfCanvas,
@@ -3671,7 +3715,7 @@ declare namespace Communicator {
          * calculated height value will be equal to the calculated width value should the canvas resize.
          * In this case the value should be specified in a range of 0.0 to 1.0.
          */
-        ProportionOfOtherDimension = 2
+        ProportionOfOtherDimension = 3
     }
     /** Specifies how point size is interpreted. */
     enum PointSizeUnit {
@@ -8753,7 +8797,7 @@ declare namespace Communicator.Internal {
         attachModel(attachScope: SC.AttachScope, modelName: ScModelName, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean): Promise<void>;
         attachScsModelByKey(attachScope: SC.AttachScope, modelKey: SC.ModelKey, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean): SC.InclusionKey;
         private _attachModels;
-        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean, resolveOnFullyLoaded: boolean): Promise<void>;
+        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer, inclusionMatrix: SC.Matrix12, attachMeasurementUnit: number, attachInvisibly: boolean, resolveOnFullyLoaded: boolean, cancelUnitMatrix: boolean): Promise<void>;
         feedScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null): void;
         private _parseKeyInfo;
         instanceKeyInfo(modelKey: SC.ModelKey, by: KeyInfoBy.Model, ret: KeyInfoReturn.AllKeys): Promise<SC.InstanceKey[]>;
@@ -13541,7 +13585,7 @@ declare namespace Communicator.Internal.Tree {
 declare namespace Communicator.Internal.Tree {
     interface AbstractScEngine {
         attachModel(attachScope: SC.AttachScope, modelName: ScModelName, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean): Promise<void>;
-        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean, resolveOnFullyLoaded: boolean): Promise<void>;
+        attachScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean, resolveOnFullyLoaded: boolean, cancelUnitMatrix: boolean): Promise<void>;
         feedScsBuffer(attachScope: SC.AttachScope, buffer: ScsBuffer | null): void;
         attachScsModelByKey(attachScope: SC.AttachScope, modelKey: SC.ModelKey, inclusionMatrix: SC.Matrix12, parentMeasurementUnit: number, markAllInstancesInvisible: boolean): SC.InclusionKey;
         beginRequestBatch(type: RequestBatchType): void;
@@ -13609,6 +13653,7 @@ declare namespace Communicator.Internal.Tree {
         readonly originalFileName: string;
         readonly originalFileType: FileType;
         readonly doublePrecisionMatrices: boolean;
+        readonly assemblyDataVersion: VersionNumber;
         private constructor();
         supportsAttributeBits(): boolean;
         rootAssemblyDataKey(): SC.DataKey;
@@ -14182,6 +14227,7 @@ declare namespace Communicator.Internal.Tree {
         getOriginalFileType(): FileType;
         setGenericTypeMaps(maps: GenericTypeMaps): void;
         getGenericTypeMaps(): GenericTypeMaps | null;
+        getAssemblyDataVersion(): VersionNumber;
         protected readonly __AttachContext: PhantomMember;
         private readonly _parent;
         private readonly _remapper;
@@ -14192,6 +14238,7 @@ declare namespace Communicator.Internal.Tree {
         private _inclusionContexts;
         private _originalFileName;
         private _originalFileType;
+        private _assemblyDataVersion;
         private _genericTypeMaps;
     }
 }
@@ -14581,6 +14628,7 @@ declare namespace Communicator.Internal.Tree {
         readonly measurementUnit: number | null;
         readonly toAttachData: ToAttachDataFunc;
         readonly reservedNodeIdOffset: NodeIdOffset;
+        readonly cancelUnitScale: boolean;
     }
     namespace ExternalModel {
         function isNameInfo(info: ExternalModelInfo): info is ExternalModelInfoByName;
@@ -14654,7 +14702,7 @@ declare namespace Communicator.Internal.Tree {
          *
          * Returns `Promise<null>` when the attachment is skipped (due to `toAttachData` returning `null`).
          */
-        attachByNamedScsBuffer(assemblyTree: AssemblyTree, modelName: ExternalModelName, remapper: ScKeyRemapper, toAttachData: ToAttachDataFunc, inclusionMatrix: Matrix, parentMeasurementUnit: number, attachInvisibly: Lazy<boolean>, xmlAttachInfo: XmlAttachInfo): Promise<AttachInfo | null>;
+        attachByNamedScsBuffer(assemblyTree: AssemblyTree, modelName: ExternalModelName, remapper: ScKeyRemapper, toAttachData: ToAttachDataFunc, inclusionMatrix: Matrix, parentMeasurementUnit: number, attachInvisibly: Lazy<boolean>, xmlAttachInfo: XmlAttachInfo, cancelUnitMatrix: boolean): Promise<AttachInfo | null>;
         private streamScsData;
         private _attachByScsBuffer;
         simpleAttach(assemblyTree: AssemblyTree, remapper: ScKeyRemapper, attachData: ScsBuffer, inclusionMatrix: Matrix, parentMeasurementUnit: number, attachInvisibly: Lazy<boolean>, xmlAttachInfo: null, allowMissingModel: boolean): Promise<AttachInfo>;
@@ -14705,6 +14753,7 @@ declare namespace Communicator.Internal.Tree {
     class TreeLoader {
         constructor(assemblyTree: AssemblyTree, scAttacher: ScAttacher, engine: AbstractScEngine, view: AbstractView, callbackManager: CallbackManager);
         private _resolveMeasurementUnits;
+        private _applyScalePatchIfNeeded;
         /**
          * Used to create assembly tree data for instances that don't have authored assembly tree data.
          */
@@ -16331,7 +16380,7 @@ declare namespace Communicator.Internal {
     class FetchApi {
         static _enabled: boolean;
         static isSupported(): boolean;
-        static request(url: string): Promise<Response>;
+        static request(url: string, callbackManager: CallbackManager): Promise<Response>;
     }
 }
 declare namespace Communicator.Internal {
@@ -17387,7 +17436,7 @@ declare namespace Communicator.Markup.Shape {
         /**
          * Sets the values for the circle
          * @param center the center point of the circle.
-         * @radius the circle radius.
+         * @param radius the circle radius.
          */
         set(center: Point2, radius: number): void;
         /**
@@ -19588,7 +19637,6 @@ declare namespace Communicator.Operator {
         getZoomToMousePosition(): boolean;
         /**
          * When dolly zoom is enabled, the camera position will move towards the camera target when zooming.
-         * @moveCameraPositon
          */
         setDollyZoomEnabled(dollyZoomEnabled: boolean): void;
         /**

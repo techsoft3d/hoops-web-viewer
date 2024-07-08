@@ -502,6 +502,7 @@ declare module SC {
     export const enum OverlayUnit {
         Pixels,
         ProportionOfScreen,
+        MinimumProportionOfScreen,
         ProportionOfOtherDimension,
     }
 
@@ -1216,6 +1217,7 @@ declare module SC {
             attachMeasurementUnit: number,
             attachInvisibly: boolean,
             resolveOnFullyLoaded: boolean,
+            cancelUnitMatrix: boolean,
         ): Promise<void>; // Actually returns Promise<ModelIncs>, but I don't want the code to depend on that if possible.
         feedScsBuffer(attachScope: AttachScope, buffer: Communicator.ScsBuffer | null): void;
         attachScsModelByKey(
