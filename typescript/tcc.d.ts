@@ -148,6 +148,7 @@ declare module SC {
         number,
     ];
 
+    export type ViewIndex = number;
     export type OverlayIndex = number;
     export type IncrementalSelectionHandle = number;
 
@@ -182,9 +183,9 @@ declare module SC {
         setNearLimit(nearLimit: number): void;
         nearLimit(): number;
 
-        projectionMatrix(): Matrix16;
+        projectionMatrix(width: number, height: number): Matrix16;
         viewMatrix(): Matrix16;
-        fullMatrix(): Matrix16;
+        fullMatrix(width: number, height: number): Matrix16;
     }
 
     export interface FaceFaceDistanceObject {
@@ -433,6 +434,14 @@ declare module SC {
         Points,
     }
 
+    // Mirrors C++ `TC::Web::ColorType`
+    export const enum ColorType {
+        Base = 0,
+        Specular,
+        Emissive,
+        Ambient
+    }
+
     // Mirrors C++ `TC::Web::ElementMask::Bits`
     export const enum ElementMask {
         None = 0,
@@ -475,6 +484,7 @@ declare module SC {
     // Mirrors C++ `TC::Web::LightType`
     export const enum LightType {
         Directional,
+        Point,
     }
 
     // Mirrors C++ `TC::Web::LinePatternLengthUnit`
@@ -616,21 +626,25 @@ declare module SC {
         clearElementVisible(incs: InstanceIncs, elementType: ElementType): void;
         clearElementXRay(incs: InstanceIncs, elementType: ElementType): void;
         computeMinimalBodyBodyDistance(
+            view_index: ViewIndex,
             inc1: InstanceInc,
             inc2: InstanceInc,
         ): Promise<FaceFaceDistanceObject>;
         computeMinimalFaceFaceDistance(
+            view_index: ViewIndex,
             inc1: InstanceInc,
             faceIndex1: number,
             inc2: InstanceInc,
             faceIndex2: number,
         ): Promise<FaceFaceDistanceObject>;
         computeMinimalFaceLineDistance(
+            view_index: ViewIndex,
             inc: InstanceInc,
             faceIndex: number,
             ray: Ray,
         ): Promise<FaceFaceDistanceObject>;
         computeMinimalFaceRayDistance(
+            view_index: ViewIndex,
             inc: InstanceInc,
             faceIndex: number,
             ray: Ray,
@@ -643,12 +657,13 @@ declare module SC {
             pointColor: Rgba,
             flags?: number,
             overlayIndex?: OverlayIndex,
+            viewKey?: ViewKey,
         ): Promise<InstanceInc>;
         destroy(incs: InstanceIncs): Promise<void>;
         discardAnonymousMatrix(incs: InstanceIncs): Promise<void>;
         getAlwaysDraw(incs: InstanceIncs): Promise<boolean[]>;
         getCappingMeshData(incs: InstanceIncs): Promise<MeshIds>;
-        getColor(incs: InstanceIncs, elementType: ElementType): Promise<(Rgb | null)[]>;
+        getColor(incs: InstanceIncs, elementType: ElementType, colorType: ColorType): Promise<(Rgb | null)[]>;
         getCullingVector(incs: InstanceIncs): Promise<CullingVector[]>;
         getDoNotCut(incs: InstanceIncs): Promise<boolean[]>;
         getDoNotExplode(incs: InstanceIncs): Promise<boolean[]>;
@@ -656,11 +671,12 @@ declare module SC {
         getDoNotOutlineHighlight(incs: InstanceIncs): Promise<boolean[]>;
         getDoNotSelect(incs: InstanceIncs): Promise<boolean[]>;
         getDoNotUseVertexColors(incs: InstanceIncs): Promise<boolean[]>;
-        getDrawnWorldSpaceBounding(): Promise<Box>;
-        getDrawnWorldSpaceBounding(incs: InstanceIncs): Promise<Box>;
-        getEffectiveColor(incs: InstanceIncs, elementType: ElementType): Promise<Rgb[]>;
+        getDrawnWorldSpaceBounding(viewIndex: ViewIndex): Promise<Box>;
+        getDrawnWorldSpaceBounding(incs: InstanceIncs, viewIndex: ViewIndex): Promise<Box>;
+        getEffectiveColor(incs: InstanceIncs, elementType: ElementType, colorType: ColorType): Promise<Rgb[]>;
         getEffectiveElementColor(
             incs: InstanceIncs,
+            viewIndex: ViewIndex,
             elementType: ElementType,
             index: number,
         ): Promise<Rgb[]>;
@@ -716,13 +732,10 @@ declare module SC {
         matrixPreMultiply(incs: InstanceIncs, matrix: Matrix16): Promise<void>;
         reifyAnonymousMatrix(incs: InstanceIncs): Promise<MatrixIncs>;
         setAlwaysDraw(incs: InstanceIncs, value: boolean): void;
-        setAmbientColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
         setAmbientMix(incs: InstanceIncs, elementType: ElementType, value: number): void;
         setAnonymousMatrix(incs: InstanceIncs, matrix: Matrix16): void;
         setAnonymousMatrices(incs: InstanceIncs, matrices: number[]): void;
-        setColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
-        setEmissiveColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
-        setSpecularColor(incs: InstanceIncs, elementType: ElementType, color: Rgb): void;
+        setColor(incs: InstanceIncs, elementType: ElementType, colorType: ColorType, color: Rgb): void;
         setSpecularIntensity(incs: InstanceIncs, elementType: ElementType, value: number): void;
         setCullingVector(
             incs: InstanceIncs,
@@ -786,7 +799,7 @@ declare module SC {
         ): void;
         unsetMetallicRoughness(incs: InstanceIncs): void;
         setOpacity(incs: InstanceIncs, elementType: ElementType, opacity: number): void;
-        setOverlayIndex(incs: InstanceIncs, index: OverlayIndex): void;
+        setOverlayId(incs: InstanceIncs, viewIndex: ViewIndex, overlayIndex: OverlayIndex): void;
         setOverrideSceneVisibility(incs: InstanceIncs, overrideSceneVisibility: boolean): void;
         setPointsVisible(incs: InstanceIncs, visible: boolean): void;
         setScreenOriented(incs: InstanceIncs, value: boolean): void;
@@ -808,7 +821,7 @@ declare module SC {
         setVisible(incs: InstanceIncs, visible: boolean, onlyDemanded: boolean): void;
         setXRay(incs: InstanceIncs, value: boolean): void;
         synchronizeVisibilities(incs: InstanceIncs, visible: boolean): void;
-        unsetColor(incs: InstanceIncs, elementType: ElementType): void;
+        unsetColor(incs: InstanceIncs, elementType: ElementType, colorType: ColorType): void;
         unsetCullingVector(incs: InstanceIncs): void;
         unsetDepthRange(incs: InstanceIncs): void;
         unsetElementColor(
@@ -817,11 +830,9 @@ declare module SC {
             elementOffset: number,
             elementCount: number,
         ): void;
-        unsetEmissiveColor(incs: InstanceIncs, elementType: ElementType): void;
         unsetLinePattern(incs: InstanceIncs): void;
         unsetMatrix(incs: InstanceIncs, layer: number): Promise<void>;
         unsetOpacity(incs: InstanceIncs, elementType: ElementType): void;
-        unsetSpecularColor(incs: InstanceIncs, elementType: ElementType): void;
         unsetSpecularIntensity(incs: InstanceIncs, elementType: ElementType): void;
         unsetTexture(incs: InstanceIncs, elementType: ElementType): void;
     }
@@ -830,10 +841,11 @@ declare module SC {
     }
 
     export interface OverlayInterface {
-        destroy(index: OverlayIndex): void;
+        destroy(viewIndex: ViewIndex, index: OverlayIndex): void;
         maxIndex(): OverlayIndex;
-        setCamera(index: OverlayIndex, Camera: Camera): void;
+        setCamera(viewIndex: ViewIndex, index: OverlayIndex, Camera: Camera): void;
         setViewport(
+            viewIndex: ViewIndex,
             index: OverlayIndex,
             anchor: OverlayAnchor,
             xOffset: number,
@@ -845,7 +857,7 @@ declare module SC {
             height: number,
             heightUnit: OverlayUnit,
         ): void;
-        setVisible(index: OverlayIndex, visibility: boolean): void;
+        setVisible(viewIndex: ViewIndex, index: OverlayIndex, visibility: boolean): void;
     }
     export interface Instance {
         Overlay: OverlayInterface;
@@ -878,7 +890,7 @@ declare module SC {
         formatBits: number;
     }
     export interface Instance {
-        MeshDataBuilder: { new (): MeshDataBuilder };
+        MeshDataBuilder: { new(): MeshDataBuilder };
     }
 
     export interface MeshDataInterface {
@@ -956,9 +968,9 @@ declare module SC {
         point_count: number;
     }
 
-    export interface Light {
+    export interface ILight {
         position: Vector3;
-        color: Rgb;
+        color: Vector3;
         type: LightType;
         space: LightSpace;
     }
@@ -1023,6 +1035,7 @@ declare module SC {
             eventName: "post_draw",
             callback: (
                 eventName: string,
+                viewIndex: ViewIndex,
                 stats: FrameStats,
                 camera: Camera,
                 visiblePoints: number[],
@@ -1134,6 +1147,7 @@ declare module SC {
             eventName: "post_draw",
             callback: (
                 eventName: string,
+                viewIndex: ViewIndex,
                 stats: FrameStats,
                 camera: Camera,
                 visiblePoints: number[],
@@ -1195,11 +1209,14 @@ declare module SC {
 
         addCuttingSection(cuttingPlanes: Plane3[]): Promise<CuttingSectionKey>;
         addLight(
+            viewIndex: ViewIndex,
             type: LightType,
             space: LightSpace,
             position: Point3,
             color: Rgb,
         ): Promise<LightKey>;
+        setLightPower(viewIndex: ViewIndex, key: LightKey, power: number): void;
+        setLightDecay(viewIndex: ViewIndex, key: LightKey, decay: number): void;
         advanceVolumeSelection(
             handle: IncrementalSelectionHandle,
             batchCapacity: number,
@@ -1231,14 +1248,17 @@ declare module SC {
             volumePlaneCoeffs: Plane3[],
             heuristicOrigin: Point3,
             config: VolumeSelectionConfig,
+            viewIndex: ViewIndex,
         ): Promise<IncrementalSelectionHandle>;
         beginRayDrillSelection(
+            viewIndex: ViewIndex,
             rayCssOriginX: number,
             rayCssOriginY: number,
             rayCssBoxRadius: number,
             config: VolumeSelectionConfig,
         ): Promise<IncrementalSelectionHandle>;
         beginScreenAreaSelection(
+            viewIndex: ViewIndex,
             areaCssMinX: number,
             areaCssMinY: number,
             areaCssMaxX: number,
@@ -1246,21 +1266,27 @@ declare module SC {
             config: VolumeSelectionConfig,
         ): Promise<IncrementalSelectionHandle>;
         beginSphereSelection(
+            viewIndex: ViewIndex,
             sphereCenter: Point3,
             sphereRadius: number,
             config: VolumeSelectionConfig,
         ): Promise<IncrementalSelectionHandle>;
-        clearLights(): void;
+        clearLights(viewIndex: ViewIndex): void;
         cuttingSectionLimits(): CuttingSectionLimits;
         debug_log(message: string): Promise<void>;
         debug_stateFailure(stateFailureValue: number): Promise<void>;
         debug_sync(): Promise<void>;
         demandMeshInstances(incs: InstanceIncs): void;
         detachInclusions(inclusionKeys: InclusionKey[]): Promise<void>;
-        disableCapping(): void;
+        disableCapping(viewIndex: ViewIndex): void;
         disconnectNetwork(): void;
-        enableCapping(lineColor: Rgba, faceColor: Rgba, quantizationGranularity: number): void;
-        endComparison(): void;
+        enableCapping(
+            viewIndex: ViewIndex,
+            lineColor: Rgba,
+            faceColor: Rgba,
+            quantizationGranularity: number,
+        ): void;
+        endComparison(viewIndex: ViewIndex): void;
         endVolumeSelection(handle: IncrementalSelectionHandle): void;
         explode(distance: number): void;
         createFloorplanMesh(incs: InstanceIncs): Promise<InstanceIncs>;
@@ -1268,44 +1294,44 @@ declare module SC {
         beginExportToSvg(config: SvgConfig): Promise<void>;
         advanceExportToSvg(): Promise<number[]>;
         flushMetaDataCache(): void;
-        getAmbientOcclusionEnabled(): Promise<boolean>;
-        getAmbientOcclusionRadius(): Promise<number>;
-        getBackFacesVisible(): Promise<boolean>;
-        getBackgroundGradient(): Promise<[Rgba, Rgba]>;
-        getCamera(): Camera;
-        getCameraPromise(): Promise<Camera>;
+        getAmbientOcclusionEnabled(viewIndex: ViewIndex): Promise<boolean>;
+        getAmbientOcclusionRadius(viewIndex: ViewIndex): Promise<number>;
+        getBackFacesVisible(viewIndex: ViewIndex): Promise<boolean>;
+        getBackgroundGradient(viewIndex: ViewIndex): Promise<[Rgba, Rgba]>;
+        getCamera(viewIndex: ViewIndex): Camera;
+        getCameraPromise(viewIndex: ViewIndex): Promise<Camera>;
         getCappedInstances(): Promise<InstanceIncs>;
         getCuttingSections(sectionKeys: CuttingSectionKey[]): Promise<Plane3[]>;
-        getDefaultDepthRange(): Promise<Range>;
+        getDefaultDepthRange(viewIndex: ViewIndex): Promise<Range>;
         getElementCount(): Promise<number>;
-        getEyeDomeLightingBlurEdgeDistance(): Promise<number>;
-        getEyeDomeLightingBlurInterval(): Promise<number>;
-        getEyeDomeLightingBlurSamples(): Promise<number>;
-        getEyeDomeLightingEnabled(): Promise<boolean>;
-        getEyeDomeLightingOpacity(): Promise<number>;
-        getEyeDomeLightingShadingEdgeDistance(): Promise<number>;
-        getFacesVisible(): Promise<boolean>;
-        getFaceWindingFlipped(): Promise<boolean>;
-        getFrontFacesVisible(): Promise<boolean>;
-        getInteractiveDrawLimitIncreaseEnabled(): Promise<boolean>;
-        getLightKeys(): Promise<LightKey[]>;
-        getLight(key: LightKey): Promise<Light>;
-        getLinesVisible(): Promise<boolean>;
+        getEyeDomeLightingBlurEdgeDistance(viewIndex: ViewIndex): Promise<number>;
+        getEyeDomeLightingBlurInterval(viewIndex: ViewIndex): Promise<number>;
+        getEyeDomeLightingBlurSamples(viewIndex: ViewIndex): Promise<number>;
+        getEyeDomeLightingEnabled(viewIndex: ViewIndex): Promise<boolean>;
+        getEyeDomeLightingOpacity(viewIndex: ViewIndex): Promise<number>;
+        getEyeDomeLightingShadingEdgeDistance(viewIndex: ViewIndex): Promise<number>;
+        getFacesVisible(viewIndex: ViewIndex): Promise<boolean>;
+        getFaceWindingFlipped(viewIndex: ViewIndex): Promise<boolean>;
+        getFrontFacesVisible(viewIndex: ViewIndex): Promise<boolean>;
+        getInteractiveDrawLimitIncreaseEnabled(viewIndex: ViewIndex): Promise<boolean>;
+        getLightKeys(viewIndex: ViewIndex): Promise<LightKey[]>;
+        getLight(viewIndex: ViewIndex, key: LightKey): Promise<ILight>;
+        getLinesVisible(viewIndex: ViewIndex): Promise<boolean>;
         getLooseBounding(): Promise<Box>;
         getMetaData(ids: DataIds): Promise<Uint8Array[]>;
-        getMinFrameRate(): Promise<number>;
+        getMinFrameRate(viewIndex: ViewIndex): Promise<number>;
         getNetworkVersion(): number;
-        getPointShape(): Promise<PointShape>;
-        getPointSize(): Promise<number>;
-        getPointSizeUnit(): Promise<PointSizeUnit>;
-        getPointsVisible(): Promise<boolean>;
+        getPointShape(viewIndex: ViewIndex): Promise<PointShape>;
+        getPointSize(viewIndex: ViewIndex): Promise<number>;
+        getPointSizeUnit(viewIndex: ViewIndex): Promise<PointSizeUnit>;
+        getPointsVisible(viewIndex: ViewIndex): Promise<boolean>;
         getStatistics(): Promise<Statistics>;
         getStreamedBounding(): Promise<Box>;
         getStreamVersion(): number;
         getTriangleCount(): Promise<number>;
         load(configuration: LoadConfig): SessionType;
         markAllMeshInstancesInteresting(interesting: boolean): void;
-        markCameraAsEmpty(): void;
+        markCameraAsEmpty(viewIndex: ViewIndex): void;
         meshInstanceKeyInfo(
             modelKeyOrAttachScope: ModelKey | AttachScope,
             byModel: boolean,
@@ -1317,14 +1343,14 @@ declare module SC {
             keyCountOnly: boolean,
         ): Promise<(ModelKey | DataKey)[] | [number]>;
         modelKeysFromInclusionKeys(inclusionKeys: InclusionKey[]): Promise<ModelKey[]>;
-        onResize(): void;
+        onResize(viewIndex: ViewIndex): void;
         pauseCapping(): void;
         primaryModelKey(): Promise<ModelKey>;
-        queueRedraw(): void;
+        queueRedraw(viewIndex: ViewIndex): void;
         registerBimInstances(incs: InstanceIncs, bimType: BimType): void;
         removeAllCuttingSections(): void;
         removeCuttingSections(sectionHandles: CuttingSectionKey[]): Promise<void>;
-        removeLight(key: LightKey): void;
+        removeLight(viewIndex: ViewIndex, key: LightKey): void;
         replaceCuttingSection(cuttingPlanes: Plane3[], key: CuttingSectionKey): Promise<void>;
         requestGroups(groupIds: GroupIds, obtainDependentGroups: boolean): Promise<void>;
         requestImages(imageIds: ImageIds, wantThumbnails: boolean): Promise<void>;
@@ -1344,8 +1370,9 @@ declare module SC {
             whitelistMeshes: SC.MeshKey[],
         ): Promise<void>;
         resumeCapping(): void;
-        resumeDrawing(): void;
+        resumeDrawing(viewIndex: ViewIndex): void;
         screenSelectByRay(
+            viewIndex: ViewIndex,
             elementMask: number,
             canvasX: number,
             canvasY: number,
@@ -1353,154 +1380,187 @@ declare module SC {
             config: RaySelectionConfig,
         ): Promise<PickResult>;
         serverSideRendering(): boolean;
-        setAmbientLightColor(value: Rgb): void;
-        setAmbientOcclusionBias(bias: number): void;
-        setAmbientOcclusionBlurInterval(interval: number): void;
-        setAmbientOcclusionBlurSamples(samples: number): void;
-        setAmbientOcclusionContrast(contrast: number): void;
-        setAmbientOcclusionEdgeDistance(distance: number): void;
-        setAmbientOcclusionEnabled(enabled: boolean): void;
-        setAmbientOcclusionIntensity(intensity: number): void;
-        setAmbientOcclusionNoiseSize(size: number): void;
-        setAmbientOcclusionOpacity(opacity: number): void;
-        setAmbientOcclusionRadius(radius: number): void;
-        setAmbientOcclusionSamples(samples: number): void;
-        setAntiAliasingMode(antiAliasingMode: AntiAliasingMode): void;
-        setBackFacesVisible(visible: boolean): void;
-        setBackgroundColor(color: Rgba): void;
-        setBackgroundGradient(top: Rgba, bottom: Rgba): void;
-        setBloomBlurInterval(layer: number, value: number, unit: BlurIntervalUnit): void;
-        setBloomBlurSamples(layer: number, value: number): void;
-        setBloomEnabled(value: boolean): void;
-        setBloomIntensity(layer: number, value: number): void;
-        setBloomIntensityScale(value: number): void;
-        setBloomLayerCount(value: number): void;
-        setBloomThreshold(value: number): void;
-        setBloomThresholdRampWidth(value: number): void;
-        setBoundingPreviewUnderdrawColor(color: Rgba): void;
-        setBoundingPreviewTestedColor(color: Rgba): void;
-        setBoundingPreviewEjectedColor(color: Rgba): void;
-        setBoundingPreviewColor(color: Rgba): void;
-        setBoundingPreviewUnderdraw(points: Vector3[]): void;
-        setBoundingPreviewTested(points: Vector3[]): void;
-        setBoundingPreviewEjected(points: Vector3[]): void;
-        setBoundingDebugLevel(level: number): void;
-        setCamera(camera: Camera): void;
+        setAmbientLightColor(viewIndex: ViewIndex, value: Rgb): void;
+        setAmbientOcclusionBias(viewIndex: ViewIndex, bias: number): void;
+        setAmbientOcclusionBlurInterval(viewIndex: ViewIndex, interval: number): void;
+        setAmbientOcclusionBlurSamples(viewIndex: ViewIndex, samples: number): void;
+        setAmbientOcclusionContrast(viewIndex: ViewIndex, contrast: number): void;
+        setAmbientOcclusionEdgeDistance(viewIndex: ViewIndex, distance: number): void;
+        setAmbientOcclusionEnabled(viewIndex: ViewIndex, enabled: boolean): void;
+        setAmbientOcclusionIntensity(viewIndex: ViewIndex, intensity: number): void;
+        setAmbientOcclusionNoiseSize(viewIndex: ViewIndex, size: number): void;
+        setAmbientOcclusionOpacity(viewIndex: ViewIndex, opacity: number): void;
+        setAmbientOcclusionRadius(viewIndex: ViewIndex, radius: number): void;
+        setAmbientOcclusionSamples(viewIndex: ViewIndex, samples: number): void;
+        setAntiAliasingMode(viewIndex: ViewIndex, antiAliasingMode: AntiAliasingMode): void;
+        setBackFacesVisible(viewIndex: ViewIndex, visible: boolean): void;
+        setBackgroundColor(viewIndex: ViewIndex, color: Rgba): void;
+        setBackgroundGradient(viewIndex: ViewIndex, top: Rgba, bottom: Rgba): void;
+        setBloomBlurInterval(
+            viewIndex: ViewIndex,
+            layer: number,
+            value: number,
+            unit: BlurIntervalUnit,
+        ): void;
+        setBloomBlurSamples(viewIndex: ViewIndex, layer: number, value: number): void;
+        setBloomEnabled(viewIndex: ViewIndex, value: boolean): void;
+        setBloomIntensity(viewIndex: ViewIndex, layer: number, value: number): void;
+        setBloomIntensityScale(viewIndex: ViewIndex, value: number): void;
+        setBloomLayerCount(viewIndex: ViewIndex, value: number): void;
+        setBloomThreshold(viewIndex: ViewIndex, value: number): void;
+        setBloomThresholdRampWidth(viewIndex: ViewIndex, value: number): void;
+        setBoundingPreviewUnderdrawColor(viewIndex: ViewIndex, color: Rgba): void;
+        setBoundingPreviewTestedColor(viewIndex: ViewIndex, color: Rgba): void;
+        setBoundingPreviewEjectedColor(viewIndex: ViewIndex, color: Rgba): void;
+        setBoundingPreviewColor(viewIndex: ViewIndex, color: Rgba): void;
+        setBoundingPreviewUnderdraw(points: Vector3[], viewIndex: ViewIndex): void;
+        setBoundingPreviewTested(points: Vector3[], viewIndex: ViewIndex): void;
+        setBoundingPreviewEjected(points: Vector3[], viewIndex: ViewIndex): void;
+        setBoundingDebugLevel(viewIndex: ViewIndex, level: number): void;
+        setCamera(viewIndex: ViewIndex, camera: Camera): void;
         setCappingIdleHookEnabled(enable: boolean): Promise<boolean>;
         setClumpingEnabled(value: boolean): void;
-        setComparisonColors(sameColor: Rgb, only1Color: Rgb, only2Color: Rgb): void;
-        setCurrentView(view: ViewKey): void;
-        setDefaultDepthRange(min: number, max: number): void;
-        setDefaultGloss(gloss: number): void;
-        setDefaultMirror(mirror: number): void;
-        setDefaultSpecularMix(mix: number): void;
-        setDefaultSphereMap(imageId: ImageId): void;
-        setDisplayIncompleteFrames(value: boolean): void;
-        setDrawIdleDelay(delay: number): void;
-        setDrawMode(drawMode: DrawMode): void;
-        setDrawStrategy(strategy: DrawStrategy): void;
-        setEyeDomeLightingBlurEdgeDistance(value: number): void;
-        setEyeDomeLightingBlurInterval(value: number): void;
-        setEyeDomeLightingBlurSamples(value: number): void;
-        setEyeDomeLightingEnabled(enabled: boolean): void;
-        setEyeDomeLightingOpacity(value: number): void;
-        setEyeDomeLightingShadingEdgeDistance(value: number): void;
-        setFacesVisible(visible: boolean): void;
-        setFaceWindingFlipped(flipped: boolean): void;
-        setFixedDrawLimit(value: number): void;
-        setFrontFacesVisible(visible: boolean): void;
-        setGoochBaseColorProminence(prominence: number): void;
-        setGoochBlue(blue: number): void;
-        setGoochLuminanceShiftStrength(shiftStrength: number): void;
-        setGoochYellow(yellow: number): void;
-        setGroundPlane(normal: Vector3): void;
-        setGroundPlaneWithPosition(normal: Vector3, position?: Point3): void;
-        setHardEdgeColor(value: Rgb): void;
-        setHardEdgeOpacity(value: number): void;
-        setHardEdgesEnabled(value: boolean): void;
-        setHardEdgeThreshold(value: number): void;
-        setHardEdgeThresholdRampWidth(value: number): void;
-        setHiddenLineHiddenLineColor(color: Rgba): void;
-        setHiddenLineHighlightedElementFillColor(color: Rgba): void;
-        setHiddenLineHighlightedElementOutlineColor(color: Rgba): void;
-        setHiddenLineHighlightedInstanceFillColor(color: Rgba): void;
-        setHiddenLineHighlightedInstanceOutlineColor(color: Rgba): void;
-        setHiddenLineVisibleLineColor(color: Rgba): void;
-        setHighlightColorizeCompression(compressionLevel: number): void;
-        setHighlightedElementColor(color: Rgba): void;
-        setHighlightedElementFilter(highlightedFilter: HighlightFilter): void;
-        setHighlightedElementOutlineColor(highlightedOutlineColor: Rgba): void;
-        setHighlightedInstanceColor(color: Rgba): void;
-        setHighlightedInstanceFilter(highlightedFilter: HighlightFilter): void;
-        setHighlightedInstanceOutlineColor(highlightedOutlineColor: Rgba): void;
-        setHighlightMode(highlightMode: HighlightMode): void;
-        setImageBasedLightingEnabled(value: boolean): void;
-        setImageBasedLightingEnvironment(data: Uint8Array): void;
-        setImageBasedLightingEnvironmentToDefault(): void;
-        setImageBasedLightingIntensity(value: number): void;
-        setImageBasedLightingMatrix(value: Matrix9): void;
-        setInstancingEnabled(value: boolean): void;
-        setInteractiveDrawLimitIncreaseEnabled(enable: boolean): void;
-        setInteractiveDrawLimitIncreaseInterval(milliseconds: number): void;
-        setLightingEnabled(enabled: boolean): void;
-        setLineJitterEnabled(enabled: boolean): void;
-        setLineJitterFrequency(value: number): void;
-        setLineJitterInstanceCount(value: number): void;
-        setLineJitterRadius(value: number): void;
-        setLinesVisible(visible: boolean): void;
+        setComparisonColors(
+            viewIndex: ViewIndex,
+            sameColor: Rgb,
+            only1Color: Rgb,
+            only2Color: Rgb,
+        ): void;
+        setCurrentView(viewIndex: ViewIndex, view: ViewKey): void;
+        setDefaultDepthRange(viewIndex: ViewIndex, min: number, max: number): void;
+        setDefaultGloss(viewIndex: ViewIndex, gloss: number): void;
+        setDefaultMirror(viewIndex: ViewIndex, mirror: number): void;
+        setDefaultSpecularMix(viewIndex: ViewIndex, mix: number): void;
+        setDefaultSphereMap(viewIndex: ViewIndex, imageId: ImageId): void;
+        setDisplayIncompleteFrames(viewIndex: ViewIndex, value: boolean): void;
+        setDrawIdleDelay(viewIndex: ViewIndex, delay: number): void;
+        setDrawMode(viewIndex: ViewIndex, drawMode: DrawMode): void;
+        setDrawStrategy(viewIndex: ViewIndex, strategy: DrawStrategy): void;
+        setEyeDomeLightingBlurEdgeDistance(viewIndex: ViewIndex, value: number): void;
+        setEyeDomeLightingBlurInterval(viewIndex: ViewIndex, value: number): void;
+        setEyeDomeLightingBlurSamples(viewIndex: ViewIndex, value: number): void;
+        setEyeDomeLightingEnabled(viewIndex: ViewIndex, enabled: boolean): void;
+        setEyeDomeLightingOpacity(viewIndex: ViewIndex, value: number): void;
+        setEyeDomeLightingShadingEdgeDistance(viewIndex: ViewIndex, value: number): void;
+        setFacesVisible(viewIndex: ViewIndex, visible: boolean): void;
+        setFaceWindingFlipped(viewIndex: ViewIndex, flipped: boolean): void;
+        setFixedDrawLimit(viewIndex: ViewIndex, value: number): void;
+        setFrontFacesVisible(viewIndex: ViewIndex, visible: boolean): void;
+        setGoochBaseColorProminence(viewIndex: ViewIndex, prominence: number): void;
+        setGoochBlue(viewIndex: ViewIndex, blue: number): void;
+        setGoochLuminanceShiftStrength(viewIndex: ViewIndex, shiftStrength: number): void;
+        setGoochYellow(viewIndex: ViewIndex, yellow: number): void;
+        setGroundPlane(viewIndex: ViewIndex, normal: Vector3): void;
+        setGroundPlaneWithPosition(viewIndex: ViewIndex, normal: Vector3, position?: Point3): void;
+        setHardEdgeColor(viewIndex: ViewIndex, value: Rgb): void;
+        setHardEdgeOpacity(viewIndex: ViewIndex, value: number): void;
+        setHardEdgesEnabled(viewIndex: ViewIndex, value: boolean): void;
+        setHardEdgeThreshold(viewIndex: ViewIndex, value: number): void;
+        setHardEdgeThresholdRampWidth(viewIndex: ViewIndex, value: number): void;
+        setHiddenLineHiddenLineColor(viewIndex: ViewIndex, color: Rgba): void;
+        setHiddenLineHighlightedElementFillColor(viewIndex: ViewIndex, color: Rgba): void;
+        setHiddenLineHighlightedElementOutlineColor(viewIndex: ViewIndex, color: Rgba): void;
+        setHiddenLineHighlightedInstanceFillColor(viewIndex: ViewIndex, color: Rgba): void;
+        setHiddenLineHighlightedInstanceOutlineColor(viewIndex: ViewIndex, color: Rgba): void;
+        setHiddenLineVisibleLineColor(viewIndex: ViewIndex, color: Rgba): void;
+        setHighlightColorizeCompression(viewIndex: ViewIndex, compressionLevel: number): void;
+        setHighlightedElementColor(viewIndex: ViewIndex, color: Rgba): void;
+        setHighlightedElementFilter(viewIndex: ViewIndex, highlightedFilter: HighlightFilter): void;
+        setHighlightedElementOutlineColor(
+            viewIndex: ViewIndex,
+            highlightedOutlineColor: Rgba,
+        ): void;
+        setHighlightedInstanceColor(viewIndex: ViewIndex, color: Rgba): void;
+        setHighlightedInstanceFilter(
+            viewIndex: ViewIndex,
+            highlightedFilter: HighlightFilter,
+        ): void;
+        setHighlightedInstanceOutlineColor(
+            viewIndex: ViewIndex,
+            highlightedOutlineColor: Rgba,
+        ): void;
+        setHighlightMode(viewIndex: ViewIndex, highlightMode: HighlightMode): void;
+        setImageBasedLightingEnabled(viewIndex: ViewIndex, value: boolean): void;
+        setImageBasedLightingEnvironment(viewIndex: ViewIndex, data: Uint8Array): void;
+        setImageBasedLightingEnvironmentToDefault(viewIndex: ViewIndex): void;
+        setImageBasedLightingIntensity(viewIndex: ViewIndex, value: number): void;
+        setImageBasedLightingMatrix(viewIndex: ViewIndex, value: Matrix9): void;
+        setInstancingEnabled(viewIndex: ViewIndex, value: boolean): void;
+        setInteractiveDrawLimitIncreaseEnabled(viewIndex: ViewIndex, enable: boolean): void;
+        setInteractiveDrawLimitIncreaseInterval(viewIndex: ViewIndex, milliseconds: number): void;
+        setLightingEnabled(viewIndex: ViewIndex, enabled: boolean): void;
+        setLineJitterEnabled(viewIndex: ViewIndex, enabled: boolean): void;
+        setLineJitterFrequency(viewIndex: ViewIndex, value: number): void;
+        setLineJitterInstanceCount(viewIndex: ViewIndex, value: number): void;
+        setLineJitterRadius(viewIndex: ViewIndex, value: number): void;
+        setLinesVisible(viewIndex: ViewIndex, visible: boolean): void;
         setMeshLevel(incs: InstanceIncs, level: number): void;
         setMetallicRoughnessMaterialOverride(
             defaultMetallicFactor: number,
             defaultRoughnessFactor: number,
         ): void;
-        setMinDrawLimit(value: number): void;
-        setMinFrameRate(value: number): void;
-        setMinIncrementalFrameRate(value: number): void;
-        setMinInteractiveFrameRate(value: number): void;
-        setPointShape(shape: PointShape): void;
-        setPointSize(size: number, unit: PointSizeUnit): void;
+        setMinDrawLimit(viewIndex: ViewIndex, value: number): void;
+        setMinFrameRate(viewIndex: ViewIndex, value: number): void;
+        setMinIncrementalFrameRate(viewIndex: ViewIndex, value: number): void;
+        setMinInteractiveFrameRate(viewIndex: ViewIndex, value: number): void;
+        setPointShape(viewIndex: ViewIndex, shape: PointShape): void;
+        setPointSize(viewIndex: ViewIndex, size: number, unit: PointSizeUnit): void;
         setPointsVisible(visible: boolean): void;
-        setPointVisibilityTest(points: Vector3[]): void;
-        setPostInputDelay(value: number): void;
-        setSilhouetteColor(value: Rgb): void;
-        setSilhouetteEnabled(value: boolean): void;
-        setSilhouetteOpacity(value: number): void;
-        setSilhouetteThreshold(value: number): void;
-        setSilhouetteThresholdRampWidth(value: number): void;
+        setPointVisibilityTest(points: Vector3[], viewIndex: ViewIndex): void;
+        setPostInputDelay(viewIndex: ViewIndex, value: number): void;
+        setSilhouetteColor(viewIndex: ViewIndex, value: Rgb): void;
+        setSilhouetteEnabled(viewIndex: ViewIndex, value: boolean): void;
+        setSilhouetteOpacity(viewIndex: ViewIndex, value: number): void;
+        setSilhouetteThreshold(viewIndex: ViewIndex, value: number): void;
+        setSilhouetteThresholdRampWidth(viewIndex: ViewIndex, value: number): void;
         setSimpleReflectionAttenuation(
+            viewIndex: ViewIndex,
             nearDistance: number,
             farDistance: number,
             unit: SimpleReflectionAttenuationUnit,
         ): void;
-        setSimpleReflectionBlurInterval(value: number, unit: BlurIntervalUnit): void;
-        setSimpleReflectionBlurSamples(value: number): void;
-        setSimpleReflectionEnabled(value: boolean): void;
-        setSimpleReflectionFadeAngle(degrees: number): void;
-        setSimpleReflectionOpacity(value: number): void;
-        setSimpleShadowBlurInterval(value: number): void;
-        setSimpleShadowBlurSamples(value: number): void;
-        setSimpleShadowColor(value: Rgb): void;
-        setSimpleShadowEnabled(value: boolean): void;
-        setSimpleShadowInteractiveUpdateEnabled(value: boolean): void;
-        setSimpleShadowOpacity(value: number): void;
-        setSimpleShadowResolution(pixels: number): void;
+        setSimpleReflectionBlurInterval(
+            viewIndex: ViewIndex,
+            value: number,
+            unit: BlurIntervalUnit,
+        ): void;
+        setSimpleReflectionBlurSamples(viewIndex: ViewIndex, value: number): void;
+        setSimpleReflectionEnabled(viewIndex: ViewIndex, value: boolean): void;
+        setSimpleReflectionFadeAngle(viewIndex: ViewIndex, degrees: number): void;
+        setSimpleReflectionOpacity(viewIndex: ViewIndex, value: number): void;
+        setSimpleShadowBlurInterval(viewIndex: ViewIndex, value: number): void;
+        setSimpleShadowBlurSamples(viewIndex: ViewIndex, value: number): void;
+        setSimpleShadowColor(viewIndex: ViewIndex, value: Rgb): void;
+        setSimpleShadowEnabled(viewIndex: ViewIndex, value: boolean): void;
+        setSimpleShadowInteractiveUpdateEnabled(viewIndex: ViewIndex, value: boolean): void;
+        setSimpleShadowOpacity(viewIndex: ViewIndex, value: number): void;
+        setSimpleShadowResolution(viewIndex: ViewIndex, pixels: number): void;
         setSsrQuality(opts: SsrQualityConfig): void;
         setStreamCutoffScale(value: number): void;
         setStreamIdleMarker(): Promise<void>;
-        setToonBandCount(bandCount: number): void;
-        setToonSpecularFactor(specularFactor: number): void;
-        setTransparencyMode(value: TransparencyMode): void;
-        setUnhighlightedColor(color: Rgba): void;
-        setUnhighlightedFilter(highlightedFilter: HighlightFilter): void;
+        setToonBandCount(viewIndex: ViewIndex, bandCount: number): void;
+        setToonSpecularFactor(viewIndex: ViewIndex, specularFactor: number): void;
+        setTransparencyMode(viewIndex: ViewIndex, value: TransparencyMode): void;
+        setUnhighlightedColor(viewIndex: ViewIndex, color: Rgba): void;
+        setUnhighlightedFilter(viewIndex: ViewIndex, highlightedFilter: HighlightFilter): void;
         setVisibilityByAttachment(attachScope: AttachScope, setVisibility: SetVisibility): void;
-        setXRayMaterial(group: XRayGroup, element: ElementType, color: Rgba): void;
-        setXRayOpacity(element: ElementType, value: number): void;
-        setXRayTransparencyMode(value: TransparencyMode): void;
+        setXRayMaterial(
+            viewIndex: ViewIndex,
+            group: XRayGroup,
+            element: ElementType,
+            color: Rgba,
+        ): void;
+        setXRayOpacity(viewIndex: ViewIndex, element: ElementType, value: number): void;
+        setXRayTransparencyMode(viewIndex: ViewIndex, value: TransparencyMode): void;
         shutDown(): void;
-        startComparison(instanceSet1: InstanceIncs, instanceSet2: InstanceIncs): void;
+        startComparison(
+            viewIndex: ViewIndex,
+            instanceSet1: InstanceIncs,
+            instanceSet2: InstanceIncs,
+        ): void;
         startExplode(incs: InstanceIncs, center: Point3): void;
-        suspendDrawing(): void;
-        testPointVisibility(points: Vector3[]): Promise<number[]>;
+        suspendDrawing(viewIndex: ViewIndex): void;
+        testPointVisibility(points: Vector3[], viewIndex: ViewIndex): Promise<number[]>;
         throttleLoad(
             newPauseInterval: Communicator.Milliseconds,
             throttleDuration: Communicator.Milliseconds,
@@ -1511,9 +1571,14 @@ declare module SC {
         unsetAllHighlighted(): void;
         unsetAllOpacity(): void;
         unsetAllXRay(): void;
-        unsetCurrentView(): void;
-        unsetXRayMaterial(group: XRayGroup, element: ElementType): Promise<void>;
+        unsetCurrentView(viewIndex: ViewIndex): void;
+        unsetXRayMaterial(
+            viewIndex: ViewIndex,
+            group: XRayGroup,
+            element: ElementType,
+        ): Promise<void>;
         updateLight(
+            viewIndex: ViewIndex,
             key: LightKey,
             type: LightType,
             space: LightSpace,
@@ -1521,7 +1586,11 @@ declare module SC {
             color: Rgb,
         ): void;
         waitForImageDecoding(): Promise<void>;
-        worldSelectByRay(ray: Ray, config: RaySelectionConfig): Promise<PickResult>;
+        worldSelectByRay(
+            viewIndex: ViewIndex,
+            ray: Ray,
+            config: RaySelectionConfig,
+        ): Promise<PickResult>;
 
         _loseWebGlContext(): boolean;
     }

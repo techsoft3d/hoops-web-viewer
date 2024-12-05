@@ -5571,7 +5571,12 @@ declare namespace Communicator {
          * rather than a point inside the scene. Light will hit every point
          * in the scene from that direction.
          */
-        Directional = 0
+        Directional = 0,
+        /**
+         * Specifies a point light source with a given distance / power
+         * and decay.
+         */
+        Point = 1
     }
     /**
      * Specifies the space in which a light's position is defined. See [[Light]].
@@ -5593,11 +5598,7 @@ declare namespace Communicator {
         type: LightType;
         /** The space in which the light's position is defined. */
         space: LightSpace;
-        /**
-         * The light's position in the scene. See [[LightType.Directional]]
-         * for information on how the position is interpreted for directional
-         * lights.
-         */
+        /** The position of the light. */
         position: Point3;
         /** The light's color. */
         color: Color;
@@ -5608,6 +5609,31 @@ declare namespace Communicator {
          * @param color The light's color. See [[color]].
          */
         constructor(type: LightType, space: LightSpace, position: Point3, color: Color);
+    }
+    /**
+     * Contains properties of a directional light. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/lights.html).
+     * See [[LightType.Directional]] for information on how the position is interpreted for directional lights.
+     */
+    class DirectionalLight extends Light {
+        constructor(type: LightType, space: LightSpace, position: Point3, color: Color);
+    }
+    /**
+     * Contains properties of a point light. More information can be found [here](https://docs.techsoft3d.com/communicator/latest/prog_guide/viewing/scene_attributes/lights.html).
+     */
+    class PointLight extends Light {
+        /** How bright the light is */
+        power: number;
+        /** How quickly the light will attenuate as it travels further from its source */
+        decay: number;
+        /**
+         * @param type The light's type. See [[type]].
+         * @param space The space in which a light is defined. See [[space]]
+         * @param position The light's position. See [[position]].
+         * @param color The light's color. See [[color]].
+         * @param power The light's power. See [[power]].
+         * @param decay The light's power. See [[decay]].
+         */
+        constructor(type: LightType, space: LightSpace, position: Point3, color: Color, power: number, decay: number);
     }
 }
 declare namespace Communicator {
@@ -8579,6 +8605,7 @@ declare namespace Communicator.Internal {
         private _scSelectionManager;
         private _initOptions;
         private _canvasContainer;
+        private _viewIndex;
         private readonly _engineReadyPromise;
         private readonly _sessionStartedPromise;
         private _connectionlessEmpty;
@@ -8904,6 +8931,9 @@ declare namespace Communicator.Internal {
         private _toLightType;
         private _toLightSpace;
         addLight(light: Light): Promise<SC.LightKey>;
+        addPointLight(light: PointLight): Promise<SC.LightKey>;
+        setLightPower(key: LightKey, power: number): Promise<void>;
+        setLightDecay(key: LightKey, decay: number): Promise<void>;
         removeLight(key: LightKey): void;
         updateLight(key: LightKey, light: Light): void;
         setBloomEnabled(value: boolean): void;
@@ -10627,6 +10657,8 @@ declare namespace Communicator {
     type HtmlId = string;
     /** Type used to denote overlay indices. */
     type OverlayIndex = SC.OverlayIndex;
+    /** Type used to denote view indices. */
+    type ViewIndex = SC.ViewIndex;
     /** Type used to denote Exchange IDs. Use [[Util.exchangeIdEqual]] function to compare. */
     type ExchangeId = string;
     /** Type used to denote Filter IDs. */
@@ -12454,6 +12486,7 @@ declare namespace Communicator {
         constructor(inputParams: WebViewerConfig);
         /** @hidden */
         private static deprecated;
+        applyFilter(filterId: FilterId): void;
         /**
          * Sets a boolean with the status of the context menu
          * @param isActive
@@ -13173,6 +13206,7 @@ declare namespace Communicator.Internal {
     class ScSelectionManager {
         private readonly _sc;
         private _pickTolerance;
+        private readonly _viewIndex;
         private readonly _incrementalChunkedItems;
         constructor(sc: SC.Instance);
         setPickTolerance(tolerance: number): void;
@@ -14004,6 +14038,7 @@ declare namespace Communicator.Internal.Tree {
         getFilters(): Map<FilterId, FilterName>;
         getFilterName(filterId: FilterId): FilterName | null;
         getFiltersWithNode(nodeId: RuntimeNodeId): FilterId[];
+        getFiltersFromView(nodeId: CadViewId): FilterId[];
         getNodesFromFilterIds(filterIds: FilterId[]): FilteredNodes | null;
         getLayers(): Map<LayerId, LayerName>;
         getUniqueLayerNames(): LayerName[];
@@ -14018,6 +14053,7 @@ declare namespace Communicator.Internal.Tree {
         createCadView(parentId: RuntimeNodeId, viewName: string, camera: Camera, pmiIds: RuntimeNodeId[], nodesToShow: RuntimeNodeId[], nodesToHide: RuntimeNodeId[], nodesIdAndLocalTransforms: [RuntimeNodeId, Matrix][], cuttingPlane: Plane | null, meshInstanceData: MeshInstanceData | null): RuntimeNodeId | null;
         getCadViewMap(): Map<NodeId, string>;
         activateCadView(cadViewId: RuntimeNodeId, duration: number, massageCamera: boolean): Promise<void>;
+        applyFilters(filterIds: FilterId[]): void;
         getCadViewPmis(cadViewId: RuntimeNodeId): RuntimeNodeId[];
         _disableCadConfigurations(): Promise<void>;
         cadConfigurationsEnabled(): Promise<boolean>;
@@ -14449,7 +14485,8 @@ declare namespace Communicator.Internal.Tree {
         IsNotExplosionSet = 8192,
         IsCombineState = 16384,
         IsPerspective = 32768,
-        IsDefaultView = 65536
+        IsDefaultView = 65536,
+        ViewFilters = 131072
     }
     const enum PmiParseBits {
         Name = 1,
@@ -14462,7 +14499,8 @@ declare namespace Communicator.Internal.Tree {
     const enum FilterParseBits {
         Name = 1,
         LayerItem = 2,
-        EntityItem = 4
+        EntityItem = 4,
+        ScId = 8
     }
     const enum LayerParseBits {
         Name = 1
@@ -15085,6 +15123,7 @@ declare namespace Communicator.Internal.Tree {
         readonly viewFrameInfo: ViewFrameInfo | null;
         readonly nodesToShow: Id[];
         readonly nodesToHide: Id[];
+        readonly filters: FilterId[];
         readonly transformMap: Map<Id, SC.Matrix16>;
         readonly cuttingPlanes: Plane[];
         readonly bits: CadViewBits;
@@ -15116,12 +15155,14 @@ declare namespace Communicator.Internal.Tree {
         isAnnotationView(): boolean;
         isCombineStateView(): boolean;
         setViewFrame(viewFrame: ViewFrame): void;
+        getFilters(): FilterId[] | null;
         protected readonly __CadView: PhantomMember;
         private readonly _parent;
         private readonly _camera;
         private readonly _instanceMarkupKeysToShow;
         private readonly _nodesToShow;
         private readonly _nodesToHide;
+        private readonly _filters;
         private _viewFrame;
         private readonly _transformMap;
         private readonly _cuttingPlanes;
@@ -15507,6 +15548,7 @@ declare namespace Communicator.Internal.Tree {
         isActive: boolean;
         layers: FilterLayers | null;
         entities: FilterEntities | null;
+        scId: Number | null;
         static parseBinary(parser: AssemblyDataParser): Filter;
         static parseXml(elem: Element): Filter;
     }

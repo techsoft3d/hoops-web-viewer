@@ -39,27 +39,7 @@ namespace Communicator.Ui {
         }
 
         private async _setFilter(filterId: FilterId): Promise<void> {
-            const model = await this._viewer.model;
-            const filteredNodes = model.getNodesFromFiltersId([filterId]);
-            if (filteredNodes !== null) {
-                const nodeIds: NodeId[] = [];
-                filteredNodes.nodeIds.forEach((nodeId) => {
-                    nodeIds.push(nodeId);
-                });
-
-                await this._viewer.pauseRendering();
-
-                await model.reset();
-
-                if (filteredNodes.isInclusive) {
-                    await model.setNodesVisibility([model.getAbsoluteRootNode()], false);
-                    await model.setNodesVisibility(nodeIds, true);
-                } else {
-                    await model.setNodesVisibility(nodeIds, false);
-                }
-
-                await this._viewer.resumeRendering();
-            }
+            await this._viewer.applyFilter(filterId);
         }
 
         private _onNewModel(): void {
